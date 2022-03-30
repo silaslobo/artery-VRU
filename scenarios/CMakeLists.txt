@@ -1,0 +1,43 @@
+add_subdirectory(artery)
+add_subdirectory(gemv2)
+add_subdirectory(highway-police)
+add_subdirectory(crash_junction_InTAS)
+add_subdirectory(roundabout_InTAS)
+
+
+if(WITH_ENVMOD)
+    add_subdirectory(rsu_grid)
+endif()
+if(WITH_STORYBOARD)
+    add_subdirectory(storyboard)
+endif()
+if(WITH_TESTBED)
+    add_subdirectory(testbed)
+endif()
+if(WITH_TRANSFUSION)
+    add_subdirectory(transfusion)
+endif()
+if(WITH_OTS)
+    add_opp_run(ots_demo WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/ots-demo)
+endif()
+
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/mt-its2017/omnetpp.ini AND WITH_STORYBOARD)
+    add_opp_run(mtits2017 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/mt-its2017)
+    add_opp_test(mtits2017 SUFFIX test SIMTIME_LIMIT 30s)
+endif()
+
+if(TARGET lte)
+    # keep artery-lte target for backward-compatibility
+    add_library(artery-lte ALIAS artery)
+    add_opp_run(simulte WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/simulte)
+    add_opp_test(simulte SUFFIX cellular CONFIG VoIP-UpLink SIMTIME_LIMIT 10s)
+    add_opp_test(simulte SUFFIX d2d CONFIG AlertMulticast SIMTIME_LIMIT 25s)
+endif()
+
+if(TARGET lte AND WITH_STORYBOARD)
+    add_subdirectory(lte-blackice)
+endif()
+
+add_opp_run(car2car-grid WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/car2car-grid)
+add_opp_test(car2car-grid SUFFIX cam_bsp CONFIG cam_bsp RUN 0 SIMTIME_LIMIT 30s)

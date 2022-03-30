@@ -1,0 +1,12 @@
+<configuration>
+	<input>
+		<net-file value="AudiKreis.net.xml"/>
+		<route-files value="AudiKreis_pedestrians.rou.xml, vut.rou.xml, AudiKreis.rou.xml"/>
+		<additional-files value="Audikreis.add.xml"/>
+	</input>
+	<time>
+		<begin value="0"/>
+		<step-length value="1"/>
+		<end value="70"/>
+	</time>
+</configuration>

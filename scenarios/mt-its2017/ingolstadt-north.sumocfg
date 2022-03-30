@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+    <input>
+        <net-file value="ingolstadt-north.net.xml" />
+        <route-files value="ingolstadt-north.rou.xml" />
+        <additional-files value="ingolstadt-north.poly.xml,private.vtype.xml" />
+    </input>
+
+    <processing>
+        <lateral-resolution value="0.5" />
+    </processing>
+
+    <time>
+        <step-length value="0.1" />
+    </time>
+</configuration>

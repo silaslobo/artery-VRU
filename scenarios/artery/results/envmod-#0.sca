@@ -1,0 +1,52 @@
+version 2
+run envmod-0-20220223-17:12:04-183494
+attr configname envmod
+attr datetime 20220223-17:12:04
+attr experiment envmod
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvarsf ""
+attr measurement ""
+attr network artery.envmod.World
+attr processid 183494
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 0
+param **.identityRegistryModule "\"idRegistry\""
+param *.traci.mapper.vehicleType "\"artery.envmod.Car\""
+param *.environmentModel.drawObstacles true
+param *.environmentModel.drawVehicles true
+param *.environmentModel.obstacleTypes "\"building shop\""
+param *.environmentModel.traciModule "\"traci\""
+param *.environmentModel.nodeMobilityModule "\".mobility\""
+param *.node[*].middleware.services "xmldoc(\"services-envmod.xml\")"
+param *.node[*].environmentModel.sensors "xmldoc(\"sensors.xml\")"
+param *.node[*].environmentModel.*.drawSensorCone true
+param *.node[*].environmentModel.*.drawLinesOfSight true
+param *.node[*].environmentModel.*.drawDetectedObjects true
+param *.node[*].environmentModel.*.drawBlockingObstacles true
+param *.node[*].environmentModel.FrontLongRangeRadar.fovRange 150m
+param *.node[*].environmentModel.FrontLongRangeRadar.fovAngle 10
+param *.node[*].environmentModel.FrontShortRangeRadar.fovRange 65m
+param *.node[*].environmentModel.FrontShortRangeRadar.fovAngle 80
+param *.node[*].environmentModel.FrontShortRangeRadar.numSegments 4
+param *.node[*].environmentModel.RearLongRangeRadar.fovRange 150m
+param *.node[*].environmentModel.RearLongRangeRadar.fovAngle 10
+param *.node[*].environmentModel.RearShortRangeRadar.fovRange 65m
+param *.node[*].environmentModel.RearShortRangeRadar.fovAngle 80
+param *.node[*].environmentModel.RearShortRangeRadar.numSegments 4
+param *.node[*].environmentModel.SeeThrough.fovRange 50m
+param *.node[*].wlan[*].typename "\"VanetNic\""
+param *.node[*].wlan[*].radio.channelNumber 180
+param *.node[*].wlan[*].radio.carrierFrequency "5.9 GHz"
+param *.node[*].wlan[*].radio.transmitter.power "200 mW"
+param *.node[*].middleware.updateInterval 0.1s
+param *.node[*].middleware.datetime "\"2013-06-01 12:35:00\""
+param *.node[*].middleware.services "xmldoc(\"services.xml\")"
+param *.traci.core.version -1
+param *.traci.launcher.typename "\"PosixLauncher\""
+param *.traci.launcher.sumocfg "\"../../extern/veins/examples/veins/erlangen.sumo.cfg\""
+
+

@@ -1,0 +1,66 @@
+---
+- name: install Artery dependencies
+  package:
+      name: "{{ packages }}"
+      state: present
+  vars:
+      packages:
+          - cmake
+          - cmake-curses-gui
+          - g++
+          - git
+          - libboost-dev
+          - libboost-date-time-dev
+          - libboost-system-dev
+          - libcrypto++-dev
+          - libgeographic-dev
+          - libpython3-dev
+          - libssl-dev
+          - python3-distutils
+          - sumo
+  become: yes
+
+- name: clone Artery repository
+  git:
+    repo: /vagrant/.git
+    dest: "{{ ansible_user_dir }}/artery"
+    clone: yes
+    recursive: yes
+    remote: vagrant
+
+- name: add 'origin' remote to upstream repository
+  git_config:
+    repo: "{{ ansible_user_dir }}/artery"
+    scope: local
+    name: remote.origin.url
+    value: https://github.com/riebl/artery.git
+
+- name: configure refs to fetch for 'origin'
+  git_config:
+    repo: "{{ ansible_user_dir }}/artery"
+    scope: local
+    name: remote.origin.fetch
+    value: +refs/heads/*:refs/remotes/origin/*
+
+- name: create Artery build directory
+  file:
+      path: "{{ artery_build_dir }}"
+      state: directory
+
+- name: configure Artery build directory
+  command: cmake {{ artery_source_dir }}
+  args:
+      chdir: "{{ artery_build_dir }}"
+      creates: "{{ artery_build_dir }}/Makefile"
+
+- name: clean build directory
+  make:
+      chdir: "{{ artery_build_dir }}"
+      target: clean
+  when: omnetpp_current.changed
+
+- name: build Artery
+  make:
+      chdir: "{{ artery_build_dir }}"
+  register: artery_make
+  changed_when: "'Linking CXX shared library' in artery_make.stdout"

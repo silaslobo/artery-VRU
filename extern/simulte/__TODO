@@ -1,0 +1,6 @@
+- use signal based statistics. In some places forwarded/dropped packets are counted inside a module.
+  These can be replaced by simply emitting the given packet.
+
+- In LteBinder parameters for QCI 3 4 and 6 7 seems to be swapped ???
+
+- FeedbackTester should be moved to a separate directory.

@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<routes>
+    <flow id="flowSouthNorth" type="private" from="32930763" to="266507534.0" begin="0" period="0.5" number="20" departPos="random_free"/>
+    <flow id="flowNorthSouth" type="private" from="39697943" to="266507536" begin="18" period="0.5" number="20" departPos="random_free"/>
+
+    <vType id="vtype0" accel="2.6" decel="4.5" length="2.5" minGap="2.5" sigma="0.1" tau="0.2" maxSpeed="14" color="1,0,0"/>
+    <route id="route0" edges="146973170 -266507543 266507533"/>
+    <flow id="flow1" type="vtype0" color="1,0,0" route="route0" begin="20" period="0.1" number="3"/>
+</routes>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2021-11-25 15:52:19 by Eclipse SUMO netedit Version 1.11.0
+-->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+<vType id="car" vClass="passenger" color="blue"/>
+<vType id="bus" vClass="bus" color="green"/>
+    <vehicle id="BUS" type="bus" depart="1.00" departPos="00.00" arrivalPos="45.00" arrivalSpeed="13.00">
+    	<routeDistribution last="0">
+    		<route cost="9.00" probability="1.00000" edges="266887590#0 4268816#1"/>
+        </routeDistribution>
+     </vehicle>
+    <person id="person" depart="2.00" departPos="50.00">
+    	 <walk edges="266887590#0 -266887590#0" />
+    </person>
+    <vehicle id="VUT" type="car" depart="14.00" departPos="00.00" arrivalPos="28.00" arrivalSpeed="10.00">
+    	<routeDistribution last="0">
+    		<route cost="9.00" probability="1.00000" edges="266887590#0 141058765#1"/>
+        </routeDistribution>
+     </vehicle>
+</routes>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sensors>
+	<sensor name="FrontShortRangeRadar" type="artery.envmod.sensor.RearRadar">
+		<filters><name pattern="VUT" /></filters>
+	</sensor>
+	<sensor name="FrontLongRangeRadar" type="artery.envmod.sensor.RearRadar" >
+		<filters><name pattern="VUT" /></filters>
+	</sensor>
+	<sensor name="RearLongRangeRadar" type="artery.envmod.sensor.FrontRadar" >
+		<filters><name pattern="VUT" /></filters>
+	</sensor>
+	<sensor name="RearShortRangeRadar" type="artery.envmod.sensor.FrontRadar" >
+		<filters><name pattern="VUT" /></filters>
+	</sensor>
+	<sensor name="SeeThrough" type="artery.envmod.sensor.SeeThroughSensor">
+		<filters><name pattern="VUT" /></filters>
+	</sensor>
+	<sensor name="VA" type="artery.envmod.sensor.VamSensor">
+		<filters><name pattern="VUT" /></filters>
+	</sensor>
+</sensors>

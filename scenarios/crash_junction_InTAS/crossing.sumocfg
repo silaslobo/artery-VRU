@@ -1,0 +1,15 @@
+<configuration>
+	<input>
+		<net-file value="InTAS_Crossing.net.xml"/>
+		<route-files value="routes.rou.xml"/>
+		<additional-files value="buildings.poly.xml"/>
+	</input>
+	<time>
+		<begin value="0"/>
+		<step-length value="0.1"/>
+		<end value="60"/>
+	</time>
+	<gui-only>
+		<delay value="100" />
+	</gui-only>	
+</configuration>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2022-03-07 12:05:25 by Eclipse SUMO netedit Version 1.11.0
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
+
+    <input>
+        <sumo-net-file value="ingolstadt.net.xml"/>
+    </input>
+
+    <output>
+        <output-file value="ingolstadt.net.xml"/>
+    </output>
+
+    <processing>
+        <geometry.min-radius.fix.railways value="false"/>
+        <geometry.max-grade.fix value="false"/>
+        <offset.disable-normalization value="true"/>
+        <lefthand value="false"/>
+    </processing>
+
+    <junctions>
+        <no-turnarounds value="true"/>
+        <junctions.corner-detail value="5"/>
+        <junctions.limit-turn-speed value="5.5"/>
+        <rectangular-lane-cut value="false"/>
+    </junctions>
+
+    <pedestrian>
+        <walkingareas value="false"/>
+    </pedestrian>
+
+    <netedit>
+        <additional-files value="/home/lobo/Programs/artery/scenarios/crash_junction_InTAS/audiKreis.xml"/>
+    </netedit>
+
+    <report>
+        <aggregate-warnings value="5"/>
+    </report>
+
+</configuration>
+-->
+
+<additional xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/additional_file.xsd">
+    <e1Detector id="e1Detector_0" lane="109483356#1_0" pos="33.02" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_1" lane="128361094#0_1" pos="17.79" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_10" lane="10427555#0_1" pos="19.61" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_11" lane="10427555#0_2" pos="20.45" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_12" lane="35744154#0_2" pos="67.21" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_13" lane="35744154#0_1" pos="69.82" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_14" lane="128361098_1" pos="9.13" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_15" lane="35926528#0_1" pos="66.31" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_16" lane="109483352#0_0" pos="15.48" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_17" lane="109483352#0_0" pos="14.57" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_2" lane="128361093#0_1" pos="14.33" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_3" lane="148527692#0_1" pos="15.08" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_4" lane="128361107#0_1" pos="6.55" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_5" lane="60931370_1" pos="6.29" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_6" lane="60931370_2" pos="7.18" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_7" lane="138002148_1" pos="45.99" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_8" lane="138002148_2" pos="44.77" freq="300.00" file="Audikreis.xml"/>
+    <e1Detector id="e1Detector_9" lane="138002148_3" pos="43.89" freq="300.00" file="Audikreis.xml"/>
+</additional>

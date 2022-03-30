@@ -1,0 +1,7 @@
+sim0mqpp is a C++11 implementation of the Sim0MQ messaging protocol.
+
+Except for C++11 and Boost headers no further dependencies are required.
+You may combine sim0mpqq with any 0MQ (https://zeromq.org) implementation you like.
+CMake is supported and recommended for integration by other projects.
+
+Details about Sim0MQ can be found at its website https://sim0mq.org

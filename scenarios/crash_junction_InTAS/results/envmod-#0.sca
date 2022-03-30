@@ -1,0 +1,634 @@
+version 2
+run envmod-0-20220307-11:52:58-26579
+attr configname envmod
+attr datetime 20220307-11:52:58
+attr experiment envmod
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvarsf ""
+attr measurement ""
+attr network artery.envmod.World
+attr processid 26579
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 0
+param **.identityRegistryModule "\"idRegistry\""
+param *.traci.mapper.vehicleType "\"artery.envmod.Car\""
+param *.traci.mapper.PersonType "\"artery.envmod.Person\""
+param *.environmentModel.drawObstacles true
+param *.environmentModel.drawVehicles true
+param *.environmentModel.drawPersons true
+param *.environmentModel.obstacleTypes "\"building shop\""
+param *.environmentModel.traciModule "\"traci\""
+param *.environmentModel.nodeMobilityModule "\".mobility\""
+param *.node[*].middleware.services "xmldoc(\"services-envmod.xml\")"
+param *.node[*].environmentModel.sensors "xmldoc(\"sensors.xml\")"
+param *.node[*].environmentModel.*.drawSensorCone true
+param *.node[*].environmentModel.*.drawLinesOfSight true
+param *.node[*].environmentModel.*.drawDetectedObjects true
+param *.node[*].environmentModel.*.drawBlockingObstacles true
+param *.node[*].environmentModel.*.drawDetectedPersons true
+param *.node[*].environmentModel.*.doLineOfSightCheck true
+param *.node[*].environmentModel.FrontLongRangeRadar.fovRange 150m
+param *.node[*].environmentModel.FrontLongRangeRadar.fovAngle 10
+param *.node[*].environmentModel.FrontShortRangeRadar.fovRange 65m
+param *.node[*].environmentModel.FrontShortRangeRadar.fovAngle 80
+param *.node[*].environmentModel.FrontShortRangeRadar.numSegments 4
+param *.node[*].environmentModel.RearLongRangeRadar.fovRange 150m
+param *.node[*].environmentModel.RearLongRangeRadar.fovAngle 10
+param *.node[*].environmentModel.RearShortRangeRadar.fovRange 65m
+param *.node[*].environmentModel.RearShortRangeRadar.fovAngle 80
+param *.node[*].environmentModel.RearShortRangeRadar.numSegments 4
+param *.node[*].environmentModel.SeeThrough.fovRange 10m
+param **.vanetza[*].router.disableBeaconing true
+param *.node[*].wlan[*].typename "\"VanetNic\""
+param *.node[*].wlan[*].radio.channelNumber 180
+param *.node[*].wlan[*].radio.carrierFrequency "5.9 GHz"
+param *.node[*].wlan[*].radio.transmitter.power "200 mW"
+param *.node[*].middleware.updateInterval 0.1s
+param *.node[*].middleware.datetime "\"2018-03-19 10:00:00\""
+param *.node[*].middleware.services "xmldoc(\"services.xml\")"
+param World.traci.ignorePersons false
+param *.traci.core.version -1
+param *.traci.launcher.typename "\"PosixLauncher\""
+param *.traci.launcher.sumocfg "\"crossing.sumocfg\""
+
+scalar World.traci.launcher port 38339
+scalar World.node[2].wlan[0].mac.rx ChannelLoad:timeavg 0.00021052631578947
+scalar World.node[2].wlan[0].mac rcvdPkFromLL:count 10
+attr interpolationmode none
+attr source packetReceivedFromLower
+attr title "packets received from lower layer, count"
+scalar World.node[2].wlan[0].mac rcvdPkFromLL:sum(packetBytes) 1160
+attr interpolationmode none
+attr source packetReceivedFromLower
+attr title "packets received from lower layer, sum(packetBytes)"
+scalar World.node[2].wlan[0].mac sentDownPk:count 0
+attr interpolationmode none
+attr source packetSentToLower
+attr title "packets sent to lower layer, count"
+scalar World.node[2].wlan[0].mac sentDownPk:sum(packetBytes) 0
+attr interpolationmode none
+attr source packetSentToLower
+attr title "packets sent to lower layer, sum(packetBytes)"
+scalar World.node[2].wlan[0].mac rcvdPkFromHL:count 0
+attr interpolationmode none
+attr source packetReceivedFromUpper
+attr title "packets received from higher layer, count"
+scalar World.node[2].wlan[0].mac rcvdPkFromHL:sum(packetBytes) 0
+attr interpolationmode none
+attr source packetReceivedFromUpper
+attr title "packets received from higher layer, sum(packetBytes)"
+scalar World.node[2].wlan[0].mac passedUpPk:count 10
+attr interpolationmode none
+attr source packetSentToUpper
+attr title "packets passed to higher layer, count"
+scalar World.node[2].wlan[0].mac passedUpPk:sum(packetBytes) 1160
+attr interpolationmode none
+attr source packetSentToUpper
+attr title "packets passed to higher layer, sum(packetBytes)"
+statistic World.node[2].wlan[0].radio radioChannel:histogram
+field count 1
+field mean 180
+field stddev -nan
+field min 180
+field max 180
+field sum 180
+field sqrsum 32400
+attr interpolationmode sample-hold
+attr source radioChannelChanged
+attr title "Radio channel, histogram"
+bin	-inf	0
+bin	179	0
+bin	180	1
+bin	181	0
+scalar World.node[2].wlan[0].radio transmissionState:count 0
+attr interpolationmode sample-hold
+attr source transmissionStateChanged
+attr title "Radio transmission state, count"
+scalar World.node[2].wlan[0].radio receptionState:count 21
+attr interpolationmode sample-hold
+attr source receptionStateChanged
+attr title "Radio reception state, count"
+scalar World.node[2].wlan[0].radio radioMode:count 2
+attr interpolationmode sample-hold
+attr source radioModeChanged
+attr title "Radio mode, count"
+statistic World.node[2].wlan[0].radio symbolErrorRate:histogram
+field count 0
+field mean -nan
+field stddev -nan
+field min -nan
+field max -nan
+field sum 0
+field sqrsum 0
+attr source symbolErrorRate
+attr title "Symbol error rate, histogram"
+bin	-inf	0
+bin	0	0
+bin	1	0
+statistic World.node[2].wlan[0].radio bitErrorRate:histogram
+field count 0
+field mean -nan
+field stddev -nan
+field min -nan
+field max -nan
+field sum 0
+field sqrsum 0
+attr source bitErrorRate
+attr title "Bit error rate, histogram"
+bin	-inf	0
+bin	0	0
+bin	1	0
+statistic World.node[2].wlan[0].radio packetErrorRate:histogram
+field count 10
+field mean 0
+field stddev 0
+field min 0
+field max 0
+field sum 0
+field sqrsum 0
+attr source packetErrorRate
+attr title "Packet error rate, histogram"
+bin	-inf	0
+bin	-0.5	0
+bin	-0.48	0
+bin	-0.46	0
+bin	-0.44	0
+bin	-0.42	0
+bin	-0.4	0
+bin	-0.38	0
+bin	-0.36	0
+bin	-0.34	0
+bin	-0.32	0
+bin	-0.3	0
+bin	-0.28	0
+bin	-0.26	0
+bin	-0.24	0
+bin	-0.22	0
+bin	-0.2	0
+bin	-0.18	0
+bin	-0.16	0
+bin	-0.14	0
+bin	-0.12	0
+bin	-0.1	0
+bin	-0.08	0
+bin	-0.06	0
+bin	-0.04	0
+bin	-0.02	0
+bin	0	10
+bin	0.02	0
+bin	0.04	0
+bin	0.06	0
+bin	0.08	0
+bin	0.1	0
+bin	0.12	0
+bin	0.14	0
+bin	0.16	0
+bin	0.18	0
+bin	0.2	0
+bin	0.22	0
+bin	0.24	0
+bin	0.26	0
+bin	0.28	0
+bin	0.3	0
+bin	0.32	0
+bin	0.34	0
+bin	0.36	0
+bin	0.38	0
+bin	0.4	0
+bin	0.42	0
+bin	0.44	0
+bin	0.46	0
+bin	0.48	0
+bin	0.5	0
+statistic World.node[2].wlan[0].radio minSNIR:histogram
+field count 10
+field mean 37202171.603502
+field stddev 115504105.23495
+field min 77897.290044277
+field max 365925557.7183
+field sum 372021716.03502
+field sqrsum 1.339108006553e+17
+attr source minSNIR
+attr title "Min SNIR, histogram"
+bin	-inf	0
+bin	0	9
+bin	10000000	0
+bin	20000000	0
+bin	30000000	0
+bin	40000000	0
+bin	50000000	0
+bin	60000000	0
+bin	70000000	0
+bin	80000000	0
+bin	90000000	0
+bin	100000000	0
+bin	110000000	0
+bin	120000000	0
+bin	130000000	0
+bin	140000000	0
+bin	150000000	0
+bin	160000000	0
+bin	170000000	0
+bin	180000000	0
+bin	190000000	0
+bin	200000000	0
+bin	210000000	0
+bin	220000000	0
+bin	230000000	0
+bin	240000000	0
+bin	250000000	0
+bin	260000000	0
+bin	270000000	0
+bin	280000000	0
+bin	290000000	0
+bin	300000000	0
+bin	310000000	0
+bin	320000000	0
+bin	330000000	0
+bin	340000000	0
+bin	350000000	0
+bin	360000000	1
+bin	370000000	0
+bin	380000000	0
+bin	390000000	0
+bin	400000000	0
+bin	410000000	0
+bin	420000000	0
+bin	430000000	0
+bin	440000000	0
+bin	450000000	0
+bin	460000000	0
+scalar World.node[0].wlan[0].mac.rx ChannelLoad:timeavg 0.0001875
+scalar World.node[0].wlan[0].mac rcvdPkFromLL:count 27
+attr interpolationmode none
+attr source packetReceivedFromLower
+attr title "packets received from lower layer, count"
+scalar World.node[0].wlan[0].mac rcvdPkFromLL:sum(packetBytes) 3132
+attr interpolationmode none
+attr source packetReceivedFromLower
+attr title "packets received from lower layer, sum(packetBytes)"
+scalar World.node[0].wlan[0].mac sentDownPk:count 0
+attr interpolationmode none
+attr source packetSentToLower
+attr title "packets sent to lower layer, count"
+scalar World.node[0].wlan[0].mac sentDownPk:sum(packetBytes) 0
+attr interpolationmode none
+attr source packetSentToLower
+attr title "packets sent to lower layer, sum(packetBytes)"
+scalar World.node[0].wlan[0].mac rcvdPkFromHL:count 0
+attr interpolationmode none
+attr source packetReceivedFromUpper
+attr title "packets received from higher layer, count"
+scalar World.node[0].wlan[0].mac rcvdPkFromHL:sum(packetBytes) 0
+attr interpolationmode none
+attr source packetReceivedFromUpper
+attr title "packets received from higher layer, sum(packetBytes)"
+scalar World.node[0].wlan[0].mac passedUpPk:count 27
+attr interpolationmode none
+attr source packetSentToUpper
+attr title "packets passed to higher layer, count"
+scalar World.node[0].wlan[0].mac passedUpPk:sum(packetBytes) 3132
+attr interpolationmode none
+attr source packetSentToUpper
+attr title "packets passed to higher layer, sum(packetBytes)"
+statistic World.node[0].wlan[0].radio radioChannel:histogram
+field count 1
+field mean 180
+field stddev -nan
+field min 180
+field max 180
+field sum 180
+field sqrsum 32400
+attr interpolationmode sample-hold
+attr source radioChannelChanged
+attr title "Radio channel, histogram"
+bin	-inf	0
+bin	179	0
+bin	180	1
+bin	181	0
+scalar World.node[0].wlan[0].radio transmissionState:count 0
+attr interpolationmode sample-hold
+attr source transmissionStateChanged
+attr title "Radio transmission state, count"
+scalar World.node[0].wlan[0].radio receptionState:count 55
+attr interpolationmode sample-hold
+attr source receptionStateChanged
+attr title "Radio reception state, count"
+scalar World.node[0].wlan[0].radio radioMode:count 2
+attr interpolationmode sample-hold
+attr source radioModeChanged
+attr title "Radio mode, count"
+statistic World.node[0].wlan[0].radio symbolErrorRate:histogram
+field count 0
+field mean -nan
+field stddev -nan
+field min -nan
+field max -nan
+field sum 0
+field sqrsum 0
+attr source symbolErrorRate
+attr title "Symbol error rate, histogram"
+bin	-inf	0
+bin	0	0
+bin	1	0
+statistic World.node[0].wlan[0].radio bitErrorRate:histogram
+field count 0
+field mean -nan
+field stddev -nan
+field min -nan
+field max -nan
+field sum 0
+field sqrsum 0
+attr source bitErrorRate
+attr title "Bit error rate, histogram"
+bin	-inf	0
+bin	0	0
+bin	1	0
+statistic World.node[0].wlan[0].radio packetErrorRate:histogram
+field count 27
+field mean 0
+field stddev 0
+field min 0
+field max 0
+field sum 0
+field sqrsum 0
+attr source packetErrorRate
+attr title "Packet error rate, histogram"
+bin	-inf	0
+bin	-0.5	0
+bin	-0.48	0
+bin	-0.46	0
+bin	-0.44	0
+bin	-0.42	0
+bin	-0.4	0
+bin	-0.38	0
+bin	-0.36	0
+bin	-0.34	0
+bin	-0.32	0
+bin	-0.3	0
+bin	-0.28	0
+bin	-0.26	0
+bin	-0.24	0
+bin	-0.22	0
+bin	-0.2	0
+bin	-0.18	0
+bin	-0.16	0
+bin	-0.14	0
+bin	-0.12	0
+bin	-0.1	0
+bin	-0.08	0
+bin	-0.06	0
+bin	-0.04	0
+bin	-0.02	0
+bin	0	27
+bin	0.02	0
+bin	0.04	0
+bin	0.06	0
+bin	0.08	0
+bin	0.1	0
+bin	0.12	0
+bin	0.14	0
+bin	0.16	0
+bin	0.18	0
+bin	0.2	0
+bin	0.22	0
+bin	0.24	0
+bin	0.26	0
+bin	0.28	0
+bin	0.3	0
+bin	0.32	0
+bin	0.34	0
+bin	0.36	0
+bin	0.38	0
+bin	0.4	0
+bin	0.42	0
+bin	0.44	0
+bin	0.46	0
+bin	0.48	0
+bin	0.5	0
+statistic World.node[0].wlan[0].radio minSNIR:histogram
+field count 27
+field mean 7184642.0903888
+field stddev 10741581.796523
+field min 135324.33236626
+field max 31141620.884343
+field sum 193985336.4405
+field sqrsum 4.3936362798849e+15
+attr source minSNIR
+attr title "Min SNIR, histogram"
+bin	-inf	0
+bin	0	7
+bin	500000	3
+bin	1000000	5
+bin	1500000	2
+bin	2000000	0
+bin	2500000	1
+bin	3000000	0
+bin	3500000	0
+bin	4000000	0
+bin	4500000	1
+bin	5000000	0
+bin	5500000	0
+bin	6000000	1
+bin	6500000	0
+bin	7000000	0
+bin	7500000	0
+bin	8000000	0
+bin	8500000	0
+bin	9000000	1
+bin	9500000	0
+bin	10000000	0
+bin	10500000	0
+bin	11000000	0
+bin	11500000	0
+bin	12000000	0
+bin	12500000	0
+bin	13000000	0
+bin	13500000	0
+bin	14000000	0
+bin	14500000	0
+bin	15000000	0
+bin	15500000	0
+bin	16000000	0
+bin	16500000	0
+bin	17000000	0
+bin	17500000	0
+bin	18000000	0
+bin	18500000	0
+bin	19000000	0
+bin	19500000	1
+bin	20000000	0
+bin	20500000	0
+bin	21000000	0
+bin	21500000	0
+bin	22000000	1
+bin	22500000	0
+bin	23000000	0
+bin	23500000	0
+bin	24000000	0
+bin	24500000	0
+bin	25000000	0
+bin	25500000	0
+bin	26000000	1
+bin	26500000	0
+bin	27000000	0
+bin	27500000	1
+bin	28000000	0
+bin	28500000	0
+bin	29000000	0
+bin	29500000	1
+bin	30000000	0
+bin	30500000	0
+bin	31000000	1
+bin	31500000	0
+bin	32000000	0
+bin	32500000	0
+bin	33000000	0
+bin	33500000	0
+bin	34000000	0
+bin	34500000	0
+bin	35000000	0
+bin	35500000	0
+bin	36000000	0
+bin	36500000	0
+bin	37000000	0
+bin	37500000	0
+bin	38000000	0
+bin	38500000	0
+bin	39000000	0
+scalar World.node[1].wlan[0].mac.rx ChannelLoad:timeavg 0
+scalar World.node[1].wlan[0].mac rcvdPkFromLL:count 0
+attr interpolationmode none
+attr source packetReceivedFromLower
+attr title "packets received from lower layer, count"
+scalar World.node[1].wlan[0].mac rcvdPkFromLL:sum(packetBytes) 0
+attr interpolationmode none
+attr source packetReceivedFromLower
+attr title "packets received from lower layer, sum(packetBytes)"
+scalar World.node[1].wlan[0].mac sentDownPk:count 27
+attr interpolationmode none
+attr source packetSentToLower
+attr title "packets sent to lower layer, count"
+scalar World.node[1].wlan[0].mac sentDownPk:sum(packetBytes) 3132
+attr interpolationmode none
+attr source packetSentToLower
+attr title "packets sent to lower layer, sum(packetBytes)"
+scalar World.node[1].wlan[0].mac rcvdPkFromHL:count 27
+attr interpolationmode none
+attr source packetReceivedFromUpper
+attr title "packets received from higher layer, count"
+scalar World.node[1].wlan[0].mac rcvdPkFromHL:sum(packetBytes) 3132
+attr interpolationmode none
+attr source packetReceivedFromUpper
+attr title "packets received from higher layer, sum(packetBytes)"
+scalar World.node[1].wlan[0].mac passedUpPk:count 0
+attr interpolationmode none
+attr source packetSentToUpper
+attr title "packets passed to higher layer, count"
+scalar World.node[1].wlan[0].mac passedUpPk:sum(packetBytes) 0
+attr interpolationmode none
+attr source packetSentToUpper
+attr title "packets passed to higher layer, sum(packetBytes)"
+statistic World.node[1].wlan[0].radio radioChannel:histogram
+field count 1
+field mean 180
+field stddev -nan
+field min 180
+field max 180
+field sum 180
+field sqrsum 32400
+attr interpolationmode sample-hold
+attr source radioChannelChanged
+attr title "Radio channel, histogram"
+bin	-inf	0
+bin	179	0
+bin	180	1
+bin	181	0
+scalar World.node[1].wlan[0].radio transmissionState:count 108
+attr interpolationmode sample-hold
+attr source transmissionStateChanged
+attr title "Radio transmission state, count"
+scalar World.node[1].wlan[0].radio receptionState:count 55
+attr interpolationmode sample-hold
+attr source receptionStateChanged
+attr title "Radio reception state, count"
+scalar World.node[1].wlan[0].radio radioMode:count 56
+attr interpolationmode sample-hold
+attr source radioModeChanged
+attr title "Radio mode, count"
+statistic World.node[1].wlan[0].radio symbolErrorRate:histogram
+field count 0
+field mean -nan
+field stddev -nan
+field min -nan
+field max -nan
+field sum 0
+field sqrsum 0
+attr source symbolErrorRate
+attr title "Symbol error rate, histogram"
+bin	-inf	0
+bin	0	0
+bin	1	0
+statistic World.node[1].wlan[0].radio bitErrorRate:histogram
+field count 0
+field mean -nan
+field stddev -nan
+field min -nan
+field max -nan
+field sum 0
+field sqrsum 0
+attr source bitErrorRate
+attr title "Bit error rate, histogram"
+bin	-inf	0
+bin	0	0
+bin	1	0
+statistic World.node[1].wlan[0].radio packetErrorRate:histogram
+field count 0
+field mean -nan
+field stddev -nan
+field min -nan
+field max -nan
+field sum 0
+field sqrsum 0
+attr source packetErrorRate
+attr title "Packet error rate, histogram"
+bin	-inf	0
+bin	0	0
+bin	1	0
+statistic World.node[1].wlan[0].radio minSNIR:histogram
+field count 0
+field mean -nan
+field stddev -nan
+field min -nan
+field max -nan
+field sum 0
+field sqrsum 0
+attr source minSNIR
+attr title "Min SNIR, histogram"
+bin	-inf	0
+bin	0	0
+bin	1	0
+scalar World.radioMedium.propagation "Arrival computation count" 37
+scalar World.radioMedium "transmission count" 27
+scalar World.radioMedium "radio frame send count" 37
+scalar World.radioMedium "reception computation count" 37
+scalar World.radioMedium "interference computation count" 141
+scalar World.radioMedium "reception decision computation count" 37
+scalar World.radioMedium "listening decision computation count" 67
+scalar World.radioMedium "reception cache hit" 85.714285714286
+attr unit %
+scalar World.radioMedium "interference cache hit" 66.666666666667
+attr unit %
+scalar World.radioMedium "noise cache hit" 0
+attr unit %
+scalar World.radioMedium "snir cache hit" 50
+attr unit %
+scalar World.radioMedium "reception decision cache hit" 50
+attr unit %
+scalar World.radioMedium "reception result cache hit" 0
+attr unit %
+

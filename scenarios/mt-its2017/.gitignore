@@ -1,0 +1,5 @@
+.cmdenv-log
+.qtenvrc
+results/
+sumo-*.log
+__pycache__/
