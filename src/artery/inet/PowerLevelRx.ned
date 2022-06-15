@@ -9,7 +9,7 @@ simple PowerLevelRx extends Rx
 
         // ChannelLoad signal reporting Channel Busy Ratio (CBR) between 0.0 and 1.0
         @signal[ChannelLoad](type=double);
-        @statistic[ChannelLoad](record=timeavg,vector?);
+        @statistic[ChannelLoad](record=max,vector?);
 
         string radioModule = default("^.^.radio");
 

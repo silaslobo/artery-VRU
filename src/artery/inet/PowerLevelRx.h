@@ -10,6 +10,7 @@
 #include "artery/nic/ChannelLoadSampler.h"
 #include "inet/linklayer/ieee80211/mac/Rx.h"
 #include <omnetpp/clistener.h>
+#include "artery/nic/RadioDriverBase.h"
 
 // forward declarations
 namespace inet {
@@ -34,7 +35,10 @@ public:
     PowerLevelRx();
     ~PowerLevelRx();
 
+    const ChannelLoadSampler getChannelLoad() {return mChannelLoadSampler;};
+
     static const omnetpp::simsignal_t ChannelLoadSignal;
+    static const omnetpp::simsignal_t ChannelLoad_realTime;
 
 protected:
     void initialize(int stage) override;

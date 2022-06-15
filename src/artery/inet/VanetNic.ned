@@ -12,7 +12,7 @@ module VanetNic extends Ieee80211Nic
 
         mac.modeSet = opMode;
         mac.qosStation = true;
-        mac.rx.typename = default("ChannelLoadRx");
+        mac.rx.typename = default("PowerLevelRx");
 
         radioType = default("VanetRadio");
         radio.bandName = "5 GHz";

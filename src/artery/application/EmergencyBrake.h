@@ -15,9 +15,11 @@
 #include "artery/cpm/compiled/ListOfSensorInformationContainer.h"
 #include "artery/application/InfoObject.h"
 #include <map>
+#include <vanetza/common/clock.hpp>
+#include "artery/nic/ChannelLoadSampler.h"
 
 // forward declaration
-namespace traci { class VehicleController; }
+namespace traci { class VehicleController; class ObjIdentification; class SimulationScopeController;}
 
 namespace artery
 {
@@ -37,6 +39,7 @@ class EmergencyBrake : public ItsG5BaseService
         ChannelNumber mPrimaryChannel = channel::CCH;
         void VAM_Content(const vanetza::asn1::Vam*);
         void CPM_Content(const artery::cpm::Cpm*);
+        void receiveSignal(cComponent*, omnetpp::simsignal_t signal, cObject *obj, cObject*);
 
         vanetza::units::Velocity mVUT_Speed;
         vanetza::units::Velocity mVRU_Speed;
@@ -45,19 +48,27 @@ class EmergencyBrake : public ItsG5BaseService
         vanetza::units::Duration mtriggerVRU_TTC;
         vanetza::units::Velocity mSpeedDelta;
 
+        int vamReceived = 0;
+        int cpmReceived = 0;
+
         LocalEnvironmentModel* mLocalEnvironmentModel;
         const Timer* mTimer = nullptr;
         Sensor* mCPSensor;
 
-        std::map<const int, omnetpp::SimTime> mobjDetctedMap;
+        ChannelLoadSampler mChannelLoadSampler;
+
+        omnetpp::SimTime timeNow;
+
+        std::vector<float> objDetected;
+
+        std::map<const std::string, omnetpp::SimTime> mobjDetectedMap;
+        std::map<const std::string, omnetpp::SimTime> mSensorDetection;
 
         void setVehicleBehavior();
         void AEB();
         void checkDistanceConditions();
+        void triggerObjMap(const std::string&);
         void checkSensorData(const omnetpp::SimTime&);
-        void checkObjectAge(const omnetpp::SimTime&);
-
-
         
         double VRU_latitude; //latitude from VRU
         double VRU_longitude; //longitude from VRU
@@ -67,7 +78,8 @@ class EmergencyBrake : public ItsG5BaseService
         //SpeedValue_t vruSpeed;
 
         traci::VehicleController* mVehicleController = nullptr;
-        const VehicleDataProvider* mVehicleDataProvider = nullptr;
+        traci::SimulationScopeController* mSimulationScope = nullptr;
+        const VehicleDataProvider* mVehicleDataProvider = nullptr;   
 };
 
 } //namespace artery

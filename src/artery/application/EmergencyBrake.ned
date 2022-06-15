@@ -13,4 +13,7 @@ simple EmergencyBrake like ItsG5Service
         double triggerVRU_TTC @unit(s) = default(1000s);
 
         double speedDelta @unit(mps) = default(100mps);
+
+        // dcc
+        string dccAlgorithm = default("LimericDccEntity");
 }

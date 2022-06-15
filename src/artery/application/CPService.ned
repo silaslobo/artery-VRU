@@ -32,6 +32,8 @@ simple CPService like ItsG5Service
         @signal[deltaPositionObject](type=double);
         @signal[removedObjExcessiveSize](type=long);
         @signal[resourceNotUsed](type=double);
+        @signal[VRUid](type=long);
+        @signal[VRUIdTime](type=simtime_t);
 
         @statistic[reception](title=CpmReceived; source=CpmReceived; record=vector(cpmStationId)?,vector(cpmGenerationDeltaTime)?);
         @statistic[transmission](source=CpmSent;record=vector(cpmStationId)?,vector(cpmGenerationDeltaTime)?);
@@ -41,6 +43,8 @@ simple CPService like ItsG5Service
         @statistic[ratioFilter](source=ratioFilter; record = stats?);
         @statistic[delayDcc](source=delayDCC; record = stats?);
         @statistic[resourceNotUsed](source=resourceNotUsed; record = stats?);
+
+        @statistic[VRUdetection](source=VRUid; record=vector?);
 
         @statistic[headingCPM](title=headingObject; source=CpmReceived; record=vector(headingObject)?);
         @statistic[speedCPM](title=speedObject; source=CpmReceived; record=vector(speedObject)?);

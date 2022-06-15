@@ -267,7 +267,7 @@ protected:
     void receiveSignal(cResultFilter* prev, simtime_t_cref t, cObject* object, cObject* details) override
     {
         if (auto cpm = dynamic_cast<CPObject*>(object)) {
-            long nb = 0;
+            long nb = 0;            
             if(cpm->asn1()->cpm.cpmParameters.perceivedObjectContainer){
                 nb = cpm->asn1()->cpm.cpmParameters.perceivedObjectContainer->list.count;
                 for(int i = 0 ; i < nb ; i++){
@@ -281,6 +281,29 @@ protected:
 };
 
 Register_ResultFilter("distYObject", distYObjectFilter)
+
+class VRUid_Filter : public cObjectResultFilter
+{
+protected:
+    void receiveSignal(cResultFilter* prev, simtime_t_cref t, cObject* object, cObject* details) override
+    {
+        if (auto cpm = dynamic_cast<CPObject*>(object)) {            
+            if(cpm->asn1()->cpm.cpmParameters.perceivedObjectContainer){
+                ListOfPerceivedObjectContainer_t *objectsContainer = cpm->asn1()->cpm.cpmParameters.perceivedObjectContainer;
+
+                for (int i = 0; objectsContainer != nullptr && i < objectsContainer->list.count; i++) {
+                    PerceivedObjectContainer *objCont = objectsContainer->list.array[i];
+                    
+                    const auto personID = objCont->objectID;   
+                    fire(this, t, personID, details);
+                }                
+                
+            }
+        }
+    }
+};
+
+Register_ResultFilter("VRUid", VRUid_Filter)
 
 
 } // namespace artery

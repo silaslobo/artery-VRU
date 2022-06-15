@@ -34,8 +34,13 @@ void PersonMiddleware::initialize(int stage)
 
         Identity identity;
         identity.traci = mPersonController->getPersonId();
+        
         identity.application = Identity::randomStationId(getRNG(0));
-        mPersonDataProvider.setStationId(identity.application);
+        //mPersonDataProvider.setStationId(identity.application);  
+        uint32_t personID = std::stoull(mPersonController->getPersonId());
+
+        mPersonDataProvider.setStationId(personID);
+
         emit(Identity::changeSignal, Identity::ChangeTraCI | Identity::ChangeStationId, &identity);
     }                
 

@@ -7,6 +7,7 @@
 #include "artery/utility/simtime_cast.h"
 #include "veins/base/utils/Coord.h"
 #include "artery/inet/InetMobility.h"
+#include "artery/inet/PowerLevelRx.h"
 #include "artery/application/MultiChannelPolicy.h"
 #include "DCCFacility.h"
 #include "artery/application/Constants.hpp"
@@ -51,6 +52,9 @@ static const simsignal_t scSignalRatioObjectAge = cComponent::registerSignal("ob
 static const simsignal_t scSignalDeltaPositionObject = cComponent::registerSignal("deltaPositionObject");
 static const simsignal_t scSignalRemovedObjExcessiveSize = cComponent::registerSignal("removedObjExcessiveSize");
 static const simsignal_t scSignalResourceNotUsed = cComponent::registerSignal("resourceNotUsed");
+
+static const simsignal_t scSignalVRUId = cComponent::registerSignal("VRUid");
+static const simsignal_t scSignalVRUIdDetecTime = cComponent::registerSignal("VRUIdTime");
 
 /** DCC Profile for the CP service.
 * @note CA is DP2, CP supposed to be either DP2 or DP3
@@ -289,6 +293,7 @@ void CPService::retrieveInformationFromCPM(const artery::cpm::Cpm *cpm) {
 
         PerceivedObjectContainer *objCont = objectsContainer->list.array[i];
 
+
         /** @note Skip message received about myself */
         if (objCont->objectID == mPersonDataProvider->station_id()) {
             //std::cout << "Skip myself" << std::endl;
@@ -298,6 +303,9 @@ void CPService::retrieveInformationFromCPM(const artery::cpm::Cpm *cpm) {
 
         omnetpp::SimTime objectPerceptTime = mTimer->getTimeFor(mTimer->reconstructMilliseconds(
                 cpm_data->cpm.generationDeltaTime - objCont->timeOfMeasurement));
+            
+        emit(scSignalVRUId, objCont->objectID);
+        emit(scSignalVRUIdDetecTime, objectPerceptTime);
 
         if (mObjectsReceived.find(objCont->objectID) == mObjectsReceived.end() || //First time object perceived
             mObjectsReceived.at(objCont->objectID).getLastTrackingTime().last() + mCPSensor->getValidityPeriod() <=
@@ -817,9 +825,13 @@ SimTime CPService::genCpmDcc() {
     }
     static const vanetza::dcc::TransmissionLite cp_tx(DCCPROFILECP, 0);
     vanetza::Clock::duration delay = trc->interval(cp_tx);
+    
     SimTime dcc{std::chrono::duration_cast<std::chrono::milliseconds>(delay).count(), SIMTIME_MS};
     //TODO revove
-    //std::cout << "time to wait before next transmission: " << dcc << std::endl;
+    if (std::min(mGenCpmMax, std::max(mGenCpmMin, dcc)) > 0.1) {
+        std::cout << std::min(mGenCpmMax, std::max(mGenCpmMin, dcc)) << std::endl;
+    }
+    
     return std::min(mGenCpmMax, std::max(mGenCpmMin, dcc));
 }
 
@@ -993,6 +1005,7 @@ double CPService::getRatioTimeAllowedUsed(const artery::cpm::Cpm *message) {
                     t_on_pp / dutyCycleLimit.value());
             double timeToWait = (double) std::chrono::duration_cast<std::chrono::microseconds>(interval).count();
             timeToWait /= 1000000;
+            //std::cout << timeToWait << std::endl;
             return timeToWait;
         }
     }
