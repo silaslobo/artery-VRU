@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sensors>
+		<sensor name="SeeThrough" type="artery.envmod.sensor.SeeThroughSensor" >
+		<filters> <name pattern="VUT" /> </filters>
+	</sensor>
+</sensors>
