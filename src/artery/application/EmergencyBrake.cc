@@ -5,7 +5,6 @@
 #include "artery/application/CPService.h"
 #include "artery/application/Constants.hpp"
 #include "artery/traci/VehicleController.h"
-#include "artery/traci/SimulationScopeController.h"
 #include "artery/application/PersonDataProvider.h"
 #include "artery/application/VehicleDataProvider.h"
 #include "artery/envmod/sensor/Sensor.h"
