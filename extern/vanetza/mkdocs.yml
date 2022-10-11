@@ -1,0 +1,23 @@
+site_name: Vanetza - Your open-source ETSI C-ITS protocol stack
+site_dir: www
+repo_url: https://github.com/riebl/vanetza
+theme:
+    name: readthedocs
+    custom_dir: mkdocs/
+    highlightjs: false
+    collapse_navigation: false
+extra_css:
+    - css/extra.css
+    - css/tango.css
+extra_javascript:
+    - js/extra.js
+markdown_extensions:
+    - admonition
+    - smarty
+    - sane_lists
+    - codehilite:
+        guess_lang: false
+plugins:
+    - awesome-pages:
+        collapse_single_pages: true
+    - search
