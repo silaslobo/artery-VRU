@@ -1,0 +1,18 @@
+<configuration>
+	<input>
+		<net-file value="AudiKreis.net.xml"/>
+		<route-files value="AudiKreis_pedestrians.rou.xml, vut.rou.xml, AudiKreis.rou.xml"/>
+		<additional-files value="Audikreis.add.xml"/>
+	</input>
+	<output>
+		<summary-output value="AudiKreis.simulation.summary.xml"/>
+		<tripinfo-output value="AudiKreis.simulation.tripinfo.xml"/>
+		<statistic-output value="AudiKreis.simulation.statistic.xml"/>
+		<person-summary-output value="Person.simulation.statistic.xml"/>
+	</output>
+	<time>
+		<begin value="0"/>
+		<step-length value="1"/>
+		<end value="100"/>
+	</time>
+</configuration>

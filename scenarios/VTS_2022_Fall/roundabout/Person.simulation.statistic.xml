@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2022-10-13 10:07:14 by Eclipse SUMO sumo Version 1.14.1
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="roundabout/AudiKreis.net.xml"/>
+        <route-files value="roundabout/AudiKreis_pedestrians.rou.xml,roundabout/vut.rou.xml,roundabout/AudiKreis.rou.xml"/>
+        <additional-files value="roundabout/Audikreis.add.xml"/>
+    </input>
+
+    <output>
+        <summary-output value="roundabout/AudiKreis.simulation.summary.xml"/>
+        <person-summary-output value="roundabout/Person.simulation.statistic.xml"/>
+        <tripinfo-output value="roundabout/AudiKreis.simulation.tripinfo.xml"/>
+        <statistic-output value="roundabout/AudiKreis.simulation.statistic.xml"/>
+    </output>
+
+    <time>
+        <begin value="0"/>
+        <end value="100"/>
+        <step-length value="1"/>
+    </time>
+
+    <report>
+        <message-log value="results/sumo-5.log"/>
+        <no-step-log value="true"/>
+    </report>
+
+    <traci_server>
+        <remote-port value="58115"/>
+    </traci_server>
+
+    <random_number>
+        <seed value="23423"/>
+    </random_number>
+
+    <gui_only>
+        <quit-on-end value="true"/>
+    </gui_only>
+
+</configuration>
+-->
+
+<personSummary xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/person_summary_file.xsd">
+    <step time="0.00" loaded="2" inserted="1" walking="1" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1665648434119"/>
+    <step time="1.00" loaded="167" inserted="2" walking="2" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1665648434173"/>
+    <step time="2.00" loaded="167" inserted="4" walking="4" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1665648434298"/>
+    <step time="3.00" loaded="167" inserted="6" walking="6" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1665648434396"/>
+    <step time="4.00" loaded="167" inserted="7" walking="7" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1665648434616"/>
+</personSummary>
