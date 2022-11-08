@@ -66,6 +66,8 @@ add_library(core SHARED
     traci/PersonMobility.cc
     traci/PersonController.cc
     traci/PersonType.cc
+    traci/SimulationScopeController.cc
+    traci/SimulationType.cc
     traci/VehicleController.cc
     traci/VehicleMobility.cc
     traci/VehicleType.cc
@@ -78,7 +80,8 @@ add_library(core SHARED
     utility/FilterRules.cc
     utility/Geometry.cc
     application/CPObject.cc
-	application/CPService.cc
+	#application/CPService.cc
+    application/CPServiceExt.cc
 	application/DCCFacility.cpp
     application/InfoObject.cpp
 	application/FilterObjects.cc
