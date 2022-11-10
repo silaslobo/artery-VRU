@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sensors>
+	<sensor type="artery.envmod.sensor.CPmSensor" >
+		<filters> <name pattern="199.*" match="inverse" /></filters>
+	</sensor>
+	<sensor type="artery.envmod.sensor.VamSensor" >
+		<filters> <name pattern="199.*" match="inverse" /></filters>
+	</sensor>
 	<sensor name="FrontShortRangeRadar" type="artery.envmod.sensor.FrontRadar">
 		<filters>
 			<name pattern="1" />
@@ -201,7 +207,7 @@
 			<name pattern="197" />
 			<name pattern="198" />	
 			<name pattern="200" />
-			<name pattern="VUT" />
+			<name pattern="VUT" />	
 		</filters>
 	</sensor>
 	<sensor name="FrontLongRangeRadar" type="artery.envmod.sensor.FrontRadar" >
