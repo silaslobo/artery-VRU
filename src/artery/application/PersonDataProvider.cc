@@ -83,7 +83,6 @@ void PersonDataProvider::calculateCurvature()
 	}
 }
 
-//curvature convidence
 void PersonDataProvider::calculateCurvatureConfidence()
 {
 	assert(mCurvatureConfidenceOutput.full());
@@ -103,7 +102,6 @@ void PersonDataProvider::calculateCurvatureConfidence()
 	mConfidence = mapOntoConfidence(abs(filter));
 }
 
-//kinematics and also position, i.e. lat, long, etc.
 void PersonDataProvider::update(const PersonKinematics& dynamics)
 {
 	using namespace omnetpp;

@@ -93,7 +93,7 @@ void Middleware::initializeServices(int stage)
     cXMLElement* config = par("services").xmlValue();
     for (cXMLElement* service_cfg : config->getChildrenByTagName("service")) {
         cModuleType* module_type = cModuleType::get(service_cfg->getAttribute("type"));
-
+        //std::cout << inet::getContainingNode(this) << module_type << std::endl;
         cXMLElement* service_filters = service_cfg->getFirstChildWithTag("filters");
         bool service_applicable = true;
         if (service_filters) {

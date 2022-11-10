@@ -130,7 +130,7 @@ void FilterObjects::changeDeltas(vanetza::units::Angle hd, vanetza::units::Lengt
 std::size_t FilterObjects::filterObjects(InfoObject::ObjectsToSendMap &objToSend,
                                   InfoObject::ObjectsToSendMap &prevObjSent, omnetpp::SimTime T_GenCpmDcc,
                                   Sensor * cpSensor, InfoObject::ObjectsReceivedMap& objReceived, const SimTime& T_now){
-    std::size_t countObject = 0;
+    std::size_t countObject = 0;    
     //Go through all the objects tracked
     for(const LocalEnvironmentModel::TrackedPerson& obj : mLocalEnvironmentModel->allPersonObjects()){
 
@@ -144,14 +144,13 @@ std::size_t FilterObjects::filterObjects(InfoObject::ObjectsToSendMap &objToSend
                 break;
             }
         }
-
         //Remove all expired object
         const PersonDataProvider &vd = obj.first.lock()->getPersonData();
         if (objReceived.find(vd.station_id()) != objReceived.end()) {
             InfoObject &infoObjectAI = objReceived.at(vd.station_id());
             //Remove the entry if expired
             if (objReceived.at(vd.station_id()).getLastTrackingTime().last() +
-                cpSensor->getValidityPeriod() < mPersonDataProvider->updated()) {
+                cpSensor->getValidityPeriod() < vd.updated()) {
                 objReceived.erase(vd.station_id());
             }
         }

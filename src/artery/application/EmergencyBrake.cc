@@ -5,6 +5,7 @@
 #include "artery/application/CPService.h"
 #include "artery/application/Constants.hpp"
 #include "artery/traci/VehicleController.h"
+#include "artery/traci/SimulationScopeController.h"
 #include "artery/application/PersonDataProvider.h"
 #include "artery/application/VehicleDataProvider.h"
 #include "artery/envmod/sensor/Sensor.h"
@@ -28,8 +29,7 @@
 #include <string>
 #include <iostream>  
 #include <artery/networking/LimericDccEntity.h>
-
-
+#include <unordered_map>
 
 namespace bg = boost::geometry;
 typedef bg::model::point <double,2,bg::cs::geographic <bg::degree> >point;
@@ -45,7 +45,9 @@ Define_Module(EmergencyBrake)
 
 static const simsignal_t scSignalVamReceived = cComponent::registerSignal("VamReceived");
 static const simsignal_t scSignalCpmReceived = cComponent::registerSignal("CpmReceived");
-
+static const simsignal_t scSignalVRU_ID_VAM = cComponent::registerSignal("VRU_ID_VAM");
+static const simsignal_t scSignalVRU_ID_CPM = cComponent::registerSignal("VRU_ID_CPM");
+static const simsignal_t scSignalVRU_ID_RADAR = cComponent::registerSignal("VRU_ID_RADAR");
 
 void EmergencyBrake::initialize()
 {
@@ -57,16 +59,7 @@ void EmergencyBrake::initialize()
 
     mTimer = &getFacilities().get_const<Timer>();
 
-    //setVehicleBehavior();
 
-    mtriggerVRU_TTC = par("triggerVRU_TTC").doubleValue() * vanetza::units::si::second;
-    mSpeedDelta = par("speedDelta").doubleValue() * vanetza::units::si::meter_per_second;  
-
-}
-
-void EmergencyBrake::setVehicleBehavior()
-{
-   ;
 }
 
 void EmergencyBrake::trigger()
@@ -74,68 +67,55 @@ void EmergencyBrake::trigger()
     checkSensorData(simTime());
 }
 
-
 void EmergencyBrake::checkSensorData(const SimTime &T_now)
 {
     Enter_Method("sensorData");
     auto TrackedPersons = mLocalEnvironmentModel->allPersonObjects();
-    
-    
-    PowerLevelRx* getCHLoad;
-    //auto teste = getCHLoad->getChannelLoad().cbr();
    
-
     timeNow = T_now;
 
     //////////////////////////////////////////////////////////////
     ////////  Calculate the Latency of Object's Detection  ////////
     //////////////////////////////////////////////////////////////
-
-    std::map<const std::string, omnetpp::SimTime>::iterator mEnvItr;
     
     for (auto itr : TrackedPersons){
             for (auto range : itr.second.sensors()){
             
-            auto const &personID = itr.first.lock()->getPersonId(); 
-             
-            mEnvItr = mSensorDetection.find(personID); //look for personID in the map
-
+            auto const &personID = itr.first.lock()->getPersonId();
+            u_int32_t vruID = std::atoi(personID.c_str());
+            std::map<const u_int32_t, omnetpp::SimTime>::iterator mEnvItr;
+            mEnvItr = mSensorDetection.find(vruID); //look for personID in the map            
             if (mEnvItr != mSensorDetection.end()){
                 ; //do nothing
             } else{
-                mSensorDetection.insert(std::pair<std::string, omnetpp::SimTime>(personID, range.second.first()));
+                mSensorDetection.insert(std::pair<u_int32_t, omnetpp::SimTime>(vruID, range.second.first()));  
+                emit(scSignalVRU_ID_RADAR, vruID);    
             }
         }
     }
 
-    
+    /*
     if (T_now > 99.8){
-        //std::cout << "Vam Received: " << vamReceived << std::endl;
-        //std::cout << "CPM Received: " << cpmReceived << std::endl;
-        for (auto printItr : mobjDetectedMap){        
+        for (auto printItr : mobjDetectedMap_vam){        
             std::cout << printItr.first << ";" << printItr.second << std::endl; 
         }
-    }
+
+        for (auto printItr : mobjDetectedMap_cpm){        
+            std::cout << printItr.first << ";" << printItr.second << std::endl; 
+        }
+    }*/
+
 
 
     ///////////////////////////////////////////////////////////////
     /////////////////////  Calculate the VPP  /////////////////////
     ///////////////////////////////////////////////////////////////
 
-//  std::cout << T_now << ";" << TrackedPersons.size() << std::endl;
 
-    /*
-    objDetected.push_back(TrackedPersons);
-    
-    float elementSum = 0;
-    
-    
-    if (T_now > 99.8){
-        for (auto const& itr : objDetected){
-            elementSum += itr;
-            std::cout << T_now << ";" << elementSum << std::endl;
-        }
-    }*/
+    if ((timeNow - lastCPMUpdate) > 0.1){
+        lastCPMUpdate = timeNow;
+        objDetected_cpm.clear();
+    }
 }
 
 
@@ -165,19 +145,10 @@ void EmergencyBrake::indicate(const vanetza::btp::DataIndication& ind, std::uniq
 	}
 }
 
-
-
-void EmergencyBrake::receiveSignal(cComponent*, omnetpp::simsignal_t signal, cObject *obj, cObject*)
-{
-    std::cout << "Signal received" << std::endl;
-    
-    if (signal == scSignalCpmReceived){
-        std::cout << "scSignalCPmReceived" << std::endl;    
-    }
-}
-
 void EmergencyBrake::VAM_Content(const vanetza::asn1::Vam *vam)
 {
+    Enter_Method("VAM_Content");
+
     ++vamReceived;
 
     vanetza::asn1::Vam vam_data = (*vam);
@@ -188,116 +159,94 @@ void EmergencyBrake::VAM_Content(const vanetza::asn1::Vam *vam)
     double VRU_lat = (vam_data->vam.vamParameters.basicContainer.referencePosition.latitude);
     double VRU_lon = (vam_data->vam.vamParameters.basicContainer.referencePosition.longitude);
 
-    VRU_latitude = VRU_lat / 10000000;
-    VRU_longitude = VRU_lon / 10000000;
-
     VruHighFrequencyContainer*& VAM_hfc = vam_data->vam.vamParameters.vruHighFrequencyContainer;
     vanetza::units::Velocity VRUspeed (VAM_hfc->speed.speedValue * Constants::centimeter_per_second);
 
-    checkDistanceConditions();
+    triggerObjMap_vam(stationID);
 
-    auto personID = std::to_string(stationID);
-    triggerObjMap(personID);
-
+    omnetpp::cComponent::emit(scSignalVRU_ID_VAM,stationID);    
 }
 
 
 void EmergencyBrake::CPM_Content(const artery::cpm::Cpm *cpm)
 {
+    Enter_Method("CPM_Content");
     ++cpmReceived;
 
     artery::cpm::Cpm cpm_data = (*cpm);
     artery::cpm::Cpm CPM;
 
     uint32_t stationID = cpm_data->header.stationID; 
-    
+    auto msgID = std::to_string(cpm_data->header.messageID);
+
     omnetpp::SimTime generationTime = mTimer->getTimeFor(mTimer->reconstructMilliseconds(cpm_data->cpm.generationDeltaTime));
     ListOfPerceivedObjectContainer_t *objectsContainer = cpm_data->cpm.cpmParameters.perceivedObjectContainer;
 
 
-    std::map<const std::string, omnetpp::SimTime>::iterator mobjItr;
-    std::map<const std::string, omnetpp::SimTime>::iterator mEnvCheckItr;
+    std::map<const std::string, omnetpp::SimTime>::const_iterator mobjItr;
+    std::map<const std::string, omnetpp::SimTime>::const_iterator mEnvCheckItr;
+    
     
     for (int i = 0; objectsContainer != nullptr && i < objectsContainer->list.count; i++) {        
         PerceivedObjectContainer *objCont = objectsContainer->list.array[i];
         auto personID = std::to_string(objCont->objectID);   
+
+        triggerObjMap_cpm(objCont->objectID);
+
+        if ( std::find(objDetected_cpm.begin(), objDetected_cpm.end(), objCont->objectID) != objDetected_cpm.end() ){
+            ;
+        }else{
+            objDetected_cpm.push_back(objCont->objectID);
+        }
         
 
-        triggerObjMap(personID);
-        /*
-        mEnvCheckItr = mPerceptionEnv.find(personID); //Check if CPM PersonID is on Env Map
-
-        if (mEnvCheckItr != mPerceptionEnv.end()) {
-
-            mobjItr = mobjDetctedMap.find(personID);
-            if (mobjItr != mobjDetctedMap.end()) { //Check if the element is already in ObjMapCPM
-                ;
-            } else {
-                auto latency = timeNow - mEnvCheckItr->second;
-                mobjDetctedMap.insert(std::pair<std::string, omnetpp::SimTime>(personID, latency));
-            }        
-        }   */      
+        omnetpp::cComponent::emit(scSignalVRU_ID_CPM,objCont->objectID);         
     }
+
 }
 
-void EmergencyBrake::triggerObjMap(const std::string &stationID)
-{
-    std::string personID = stationID;
+void EmergencyBrake::triggerObjMap_vam(const u_int32_t &stationID)
+{   
+    std::map<const u_int32_t, omnetpp::SimTime>::iterator mobjItr;
+    std::map<const u_int32_t, omnetpp::SimTime>::iterator mSensorCheckItr;
 
-    std::map<const std::string, omnetpp::SimTime>::iterator mobjItr;
-    std::map<const std::string, omnetpp::SimTime>::iterator mSensorCheckItr;
-
-    mSensorCheckItr = mSensorDetection.find(personID); //Check if CPM PersonID is on Env Map
-
-    if (mSensorCheckItr != mSensorDetection.end()) {
-
-        //detectionTime by the sensor
-        omnetpp::SimTime sensorDetectionTime = mSensorCheckItr->second;
-
-
-        mobjItr = mobjDetectedMap.find(personID);
-        if (mobjItr != mobjDetectedMap.end()) { //Check if the element is already in ObjMapCPM
-            ;
-        } else {         
-            if (sensorDetectionTime <= timeNow) {
-                mobjDetectedMap.insert(std::pair<std::string, omnetpp::SimTime>(personID, sensorDetectionTime));
-            } else {
-                mobjDetectedMap.insert(std::pair<std::string, omnetpp::SimTime>(personID, timeNow));
-            }   
-        }        
+    if (mobjDetectedMap_vam.find(stationID) != mobjDetectedMap_vam.end()){
+        ;
     } else {
-        mobjDetectedMap.insert(std::pair<std::string, omnetpp::SimTime>(personID, timeNow));
-    }         
-}   
-
-void EmergencyBrake::checkDistanceConditions()
-{
-    //calculate Lat and Long from VUT
-    artery::GeoPosition VUT_GeoPosition =  mVehicleController->getGeoPosition();
-    double VUT_lat = Constants::round(VUT_GeoPosition.latitude, Constants::microdegree); 
-    double VUT_lon = Constants::round(VUT_GeoPosition.longitude, Constants::microdegree);
-
-    VUT_latitude = VUT_lat / 1000000;
-    VUT_longitude = VUT_lon / 1000000;
-
-    
-    //Calculate the distance between 2 Points using Haversine Formula
-    //point (longitude, latitude)
-    auto distance_VRU_VUT_H = bg::distance(point(VUT_longitude, VUT_latitude), point(VRU_longitude, VRU_latitude), vincenty_type()) * vanetza::units::si::meter;
-
-    //Calculate TTC
-    mVUT_Speed = mVehicleDataProvider->speed();
-    TTC = (distance_VRU_VUT_H / mVUT_Speed);
-
-
-    if (TTC <= mtriggerVRU_TTC){
-        AEB();
-    }
+        mSensorCheckItr = mSensorDetection.find(stationID); //Check if CPM PersonID is on Env Map        
+        if (mSensorCheckItr != mSensorDetection.end()){
+            omnetpp::SimTime sensorDetectionTime = mSensorCheckItr->second;
+            if (sensorDetectionTime < timeNow){
+                mobjDetectedMap_vam.insert(std::pair<u_int32_t, omnetpp::SimTime>(stationID, sensorDetectionTime));            
+            } else {
+                mobjDetectedMap_vam.insert(std::pair<u_int32_t, omnetpp::SimTime>(stationID, timeNow));
+            }
+        } else {
+            mobjDetectedMap_vam.insert(std::pair<u_int32_t, omnetpp::SimTime>(stationID, timeNow));                  
+        }
+    }     
 }
 
-void EmergencyBrake::AEB()
-{       
-    EV_INFO << "AEB has been triggered" << endl;
+void EmergencyBrake::triggerObjMap_cpm(const u_int32_t &stationID)
+{ 
+    std::map<const u_int32_t, omnetpp::SimTime>::iterator mobjItr;
+    std::map<const u_int32_t, omnetpp::SimTime>::iterator mSensorCheckItr;
+
+    if (mobjDetectedMap_cpm.find(stationID) != mobjDetectedMap_cpm.end()){
+        ;
+    } else {
+        mSensorCheckItr = mSensorDetection.find(stationID); //Check if CPM PersonID is on Env Map        
+        if (mSensorCheckItr != mSensorDetection.end()){
+            omnetpp::SimTime sensorDetectionTime = mSensorCheckItr->second;
+            if (sensorDetectionTime < timeNow){
+                mobjDetectedMap_cpm.insert(std::pair<u_int32_t, omnetpp::SimTime>(stationID, sensorDetectionTime)); 
+            } else {
+                mobjDetectedMap_cpm.insert(std::pair<u_int32_t, omnetpp::SimTime>(stationID, timeNow));
+            }
+        } else {
+            mobjDetectedMap_cpm.insert(std::pair<u_int32_t, omnetpp::SimTime>(stationID, timeNow));             
+        }
+    }    
 }
 
 } //namespace artery

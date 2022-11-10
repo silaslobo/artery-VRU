@@ -25,6 +25,9 @@ using namespace omnetpp;
 
 static const simsignal_t scSignalVamReceived = cComponent::registerSignal("VamReceived");
 static const simsignal_t scSignalVamSent = cComponent::registerSignal("VamSent");
+static const simsignal_t SignalVamReceived = cComponent::registerSignal("VamReceivedCounter");
+static const simsignal_t SignalVamSent = cComponent::registerSignal("VamSentCounter");
+
 static const auto scLowFrequencyContainerInterval = std::chrono::milliseconds(500);
 
 SpeedValue_t buildVAMSpeedValue(const vanetza::units::Velocity& v)
@@ -60,7 +63,6 @@ void VaService::initialize()
 	mPersonDataProvider = &getFacilities().get_const<PersonDataProvider>();
 	mTimer = &getFacilities().get_const<Timer>();
 	
-
 	// avoid unreasonable high elapsed time values for newly inserted vehicles
 	mLastVamTimestamp = simTime();
 
@@ -102,6 +104,8 @@ void VaService::indicate(const vanetza::btp::DataIndication& ind, std::unique_pt
 		VaObject obj = visitor.shared_wrapper;
 		emit(scSignalVamReceived, &obj);
 		//mLocalDynamicMap->updateAwareness(obj);
+		vamReceiveCounter ++;
+		emit(SignalVamReceived,vamReceiveCounter);
 	}
 }
 
@@ -126,16 +130,6 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 	}
 }
 
-/*
-void VaService::personSumoData(const SimTime& simulationTimeNow)
-{	
-	mPersonController = &getFacilities().get_mutable<traci::PersonController>();
-
-	if (mPersonController->getPersonRoadID() == ":IN_6020_c1"){		
-		mPersonController->setSpeed(3 * vanetza::units::si::meter_per_second);
-	}
-}*/
-
 
 bool VaService::checkPositionDelta() const
 {
@@ -154,6 +148,7 @@ void VaService::sendVam(const SimTime& T_now)
 
 	mLastVamPosition = mPersonDataProvider->position();
 	mLastVamSpeed = mPersonDataProvider->speed();
+
 	//mLastVamHeading = mPersonDataProvider->heading();
 	mLastVamTimestamp = T_now;
 	if (T_now - mLastLowVamTimestamp >= artery::simtime_cast(scLowFrequencyContainerInterval)) {
@@ -173,6 +168,9 @@ void VaService::sendVam(const SimTime& T_now)
 	VaObject obj(std::move(vam));
 	emit(scSignalVamSent, &obj);
 
+	vamSentCounter ++;
+	emit (SignalVamSent, vamSentCounter);
+
 	using VamByteBuffer = convertible::byte_buffer_impl<asn1::Vam>;
 	std::unique_ptr<geonet::DownPacket> payload { new geonet::DownPacket() };
 	std::unique_ptr<convertible::byte_buffer> buffer { new VamByteBuffer(obj.shared_ptr()) };
@@ -187,7 +185,7 @@ SimTime VaService::genVamDcc()
 	auto netifc = mNetworkInterfaceTable->select(mPrimaryChannel);
 	vanetza::dcc::TransmitRateThrottle* trc = netifc ? netifc->getDccEntity().getTransmitRateThrottle() : nullptr;
 	if (!trc) {
-		throw cRuntimeError("No DCC TRC found for CA's primary channel %i", mPrimaryChannel);
+		throw cRuntimeError("No DCC TRC found for VA's primary channel %i", mPrimaryChannel);
 	}
 
 	static const vanetza::dcc::TransmissionLite va_tx(vanetza::dcc::Profile::DP2, 0);
@@ -203,7 +201,8 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& vdp, uint
 	ItsPduHeader_t& header = (*message).header;
 	header.protocolVersion = 2;
 	header.messageID = ItsPduHeader__messageID_vam;
-	header.stationID = vdp.station_id();
+	//header.stationID = vdp.station_id();
+	header.stationID = vdp.getStationId();
 
 	VruAwareness_t& vam = (*message).vam;
 	vam.generationDeltaTime = genDeltaTime * GenerationDeltaTime_oneMilliSec;

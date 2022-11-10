@@ -14,7 +14,7 @@
 #include "artery/application/InfoObject.h"
 #include "artery/cpm/compiled/ListOfSensorInformationContainer.h"
 #include "artery/application/InfoObject.h"
-#include <map>
+#include <unordered_map>
 #include <vanetza/common/clock.hpp>
 #include "artery/nic/ChannelLoadSampler.h"
 
@@ -39,46 +39,30 @@ class EmergencyBrake : public ItsG5BaseService
         ChannelNumber mPrimaryChannel = channel::CCH;
         void VAM_Content(const vanetza::asn1::Vam*);
         void CPM_Content(const artery::cpm::Cpm*);
-        void receiveSignal(cComponent*, omnetpp::simsignal_t signal, cObject *obj, cObject*);
-
-        vanetza::units::Velocity mVUT_Speed;
-        vanetza::units::Velocity mVRU_Speed;
-        //vanetza::units::Length mPositionDelta;
-        vanetza::units::Duration TTC;
-        vanetza::units::Duration mtriggerVRU_TTC;
-        vanetza::units::Velocity mSpeedDelta;
 
         int vamReceived = 0;
         int cpmReceived = 0;
 
         LocalEnvironmentModel* mLocalEnvironmentModel;
         const Timer* mTimer = nullptr;
-        Sensor* mCPSensor;
 
         ChannelLoadSampler mChannelLoadSampler;
 
         omnetpp::SimTime timeNow;
 
         std::vector<float> objDetected;
+        std::vector<u_int32_t> objDetected_cpm;
+        omnetpp::SimTime lastCPMUpdate = 0;
 
-        std::map<const std::string, omnetpp::SimTime> mobjDetectedMap;
-        std::map<const std::string, omnetpp::SimTime> mSensorDetection;
+        std::map<const u_int32_t, omnetpp::SimTime> mobjDetectedMap_vam;
+        std::map<const u_int32_t, omnetpp::SimTime> mobjDetectedMap_cpm;
+        std::map<const u_int32_t, omnetpp::SimTime> mSensorDetection;
 
-        void setVehicleBehavior();
-        void AEB();
-        void checkDistanceConditions();
-        void triggerObjMap(const std::string&);
+        void triggerObjMap_vam(const u_int32_t&);
+        void triggerObjMap_cpm(const u_int32_t&);
         void checkSensorData(const omnetpp::SimTime&);
-        
-        double VRU_latitude; //latitude from VRU
-        double VRU_longitude; //longitude from VRU
-        double VUT_latitude; //latitude from VRU
-        double VUT_longitude; //longitude from VRU
-
-        //SpeedValue_t vruSpeed;
 
         traci::VehicleController* mVehicleController = nullptr;
-        traci::SimulationScopeController* mSimulationScope = nullptr;
         const VehicleDataProvider* mVehicleDataProvider = nullptr;   
 };
 

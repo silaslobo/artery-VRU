@@ -64,6 +64,9 @@ class VaService : public ItsG5BaseService
 		bool mDccRestriction;
 		bool mFixedRate;
 
+		double vamReceiveCounter = 0;
+		double vamSentCounter = 0;
+
 		//access to control Person connection among Artery, Omnetpp, and SUMO
 		void personSumoData(const omnetpp::SimTime&);
 		traci::PersonController* mPersonController = nullptr;
