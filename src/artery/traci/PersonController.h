@@ -30,6 +30,7 @@ public:
     const std::string getPersonRoadID() const;
     const PersonType& getPersonType() const;
 
+
     artery::Position getPosition() const;
     artery::GeoPosition getGeoPosition() const;
     artery::Angle getHeading() const;

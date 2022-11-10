@@ -16,12 +16,11 @@ public:
     ObjIdentification(std::shared_ptr<traci::API>);
     ObjIdentification(std::shared_ptr<traci::API>, std::shared_ptr<SimulationCache> cache);
 
-    void objIdentfy() const;
+    int getPersonNumber();
 
 private:
-
-    std::map<int, std::vector<std::string>> m_objMap;
     std::shared_ptr<traci::API> m_traci;
+    int mRunningPerson;
     traci::Boundary m_boundary;
     std::shared_ptr<SimulationCache> m_cache;
 

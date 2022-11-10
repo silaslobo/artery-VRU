@@ -16,24 +16,9 @@ ObjIdentification::ObjIdentification(std::shared_ptr<traci::API> api, std::share
 {
 }
 
-void ObjIdentification::objIdentfy() const
+int ObjIdentification::getPersonNumber()
 {
-
-    std::vector<std::string> person;
-    std::vector<std::string> vehicle;
-
-    person = m_traci->simulation.getDepartedPersonIDList();
-    vehicle = m_traci->simulation.getDepartedIDList();
-
-    std::cout << "Time: " << m_traci->simulation.getCurrentTime() << std::endl; 
-    std::cout << "Person: " << m_traci->simulation.getDepartedPersonNumber() << std::endl;
-    std::cout << "Vehicle: " << m_traci->simulation.getDepartedNumber() << std::endl;
-    std::cout << "-------------------------------------" << std::endl;
-    //m_objMap.insert(std::pair<int, std::vector<std::string>>(m_traci->simulation.getDepartedPersonNumber(),vehicle));
-    
-
-    //return m_objMap;
-
+    mRunningPerson = m_traci->simulation.getDepartedPersonNumber() - m_traci->simulation.getArrivedPersonNumber();
+    return mRunningPerson;
 }
-
 } // namespace traci
