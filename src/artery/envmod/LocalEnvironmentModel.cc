@@ -199,7 +199,7 @@ SimTime LocalEnvironmentModel::Tracking::getTimeSinceLastUpdate(){
     for(auto it = this->sensors().begin(); it != this->sensors().end(); it++) {
         const Sensor* sensor = it->first;
         const TrackingTime& tracking = it->second;
-        if(sensor->getSensorCategory() == "CA" || sensor->getSensorCategory() == "CP"){
+        if(sensor->getSensorCategory() == "CA" || sensor->getSensorCategory() == "CP" || sensor->getSensorCategory() == "VA"){
             SimTime timeElapsed = simTime() - tracking.last();
             if(timeElapsedMin.isZero() || timeElapsed < timeElapsedMin){
                 timeElapsedMin = timeElapsed;

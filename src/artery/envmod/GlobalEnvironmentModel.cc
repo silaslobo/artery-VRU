@@ -19,6 +19,7 @@
 #include <inet/common/ModuleAccess.h>
 #include <algorithm>
 #include <array>
+#include <string> 
 
 using namespace omnetpp;
 
@@ -167,11 +168,12 @@ bool GlobalEnvironmentModel::addVehicle(traci::VehicleController* vehicle)
 
 bool GlobalEnvironmentModel::addPerson(traci::PersonController* person)
 {
-    uint32_t id = 0;
+    uint32_t id; //=0;
     if (mIdentityRegistry) {
         auto identity = mIdentityRegistry->lookup<IdentityRegistry::traci>(person->getPersonId());
         if (identity) {
-            id = identity->application;
+            id = std::stoul(person->getPersonId());
+            //id = identity->application;            
         }
     }
 
@@ -454,13 +456,6 @@ std::shared_ptr<EnvironmentModelObstacle> GlobalEnvironmentModel::getObstacle(co
     return found != mObstacles.end() ? found->second : nullptr;
 }
 
-std::shared_ptr<EnvironmentModelPerson> GlobalEnvironmentModel::getPersonFromVehDB(const u_int32_t& vehId)
-{
-    auto found = mPVeh.find(vehId);
-    return found != mPVeh.end() ? found->second : nullptr;
-}
-
-
 std::vector<std::shared_ptr<EnvironmentModelObject>>
 GlobalEnvironmentModel::preselectObjects(const std::string& ego, const std::vector<Position>& area)
 {
@@ -500,6 +495,7 @@ GlobalEnvironmentModel::preselectPersons(const std::string& ego, const std::vect
             personsInSearchArea.push_back(it->second);
         }
     }
+
     return personsInSearchArea;
 }
 

@@ -62,8 +62,6 @@ public:
     std::shared_ptr<EnvironmentModelObject> getObject(const std::string& objId);
     std::shared_ptr<EnvironmentModelPerson> getPerson(const std::string& objId);
 
-    std::shared_ptr<EnvironmentModelPerson> getPersonFromVehDB(const u_int32_t& vehId);
-
     /**
      * Get an obstacle by its id
      * @param obsId obstacle id
