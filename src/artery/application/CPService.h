@@ -89,6 +89,7 @@ class CPService : public ItsG5BaseService
 		InfoObject::ObjectsReceivedMap mObjectsReceived;
         Sensor* mCPSensor;
         Sensor* mCASensor;
+		Sensor* mVASensor;
 		FilterObjects mFilterObj;
 	    LocalEnvironmentModel* mLocalEnvironmentModel;
 		std::vector<Sensor*> mSensors;
@@ -107,6 +108,9 @@ class CPService : public ItsG5BaseService
 
         void retrieveInformationFromCPM(const artery::cpm::Cpm*);
 		void removeExpiredObject();
+
+		double CpmSentCounter = 0;
+        double CpmReceivedCounter = 0;
 
 		void fulfillmSensorsId();
         void checkTriggeringConditions(const omnetpp::SimTime&);
