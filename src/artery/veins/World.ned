@@ -43,8 +43,8 @@ network World
                 mapper.vehicleType = default("artery.veins.Car");
                 nodes.vehicleSinkModule = default(".mobility");
                 // persons are not (yet) supported with Veins-based setup
-                mapper.personType = default("");
-                nodes.personSinkModule = default("");
+                mapper.personType = default("artery.veins.Person");
+                nodes.personSinkModule = default(".mobility");
                 @display("p=20,20");
         }
 
