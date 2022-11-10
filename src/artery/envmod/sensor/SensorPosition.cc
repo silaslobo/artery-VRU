@@ -18,10 +18,10 @@ Angle relativeAngle(SensorPosition pos)
 
     switch (pos) {
         case SensorPosition::FRONT:
-            angle = Angle::from_degree(0.0);
+            angle = Angle::from_degree(180.0);
             break;
         case SensorPosition::BACK:
-            angle = Angle::from_degree(180.0);
+            angle = Angle::from_degree(0.0);
             break;
         case SensorPosition::LEFT:
             angle = Angle::from_degree(270.0);

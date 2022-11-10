@@ -205,7 +205,7 @@ SensorDetection FovSensor::detectPersons() const
 
                 if (noVehicleOccultation && noObstacleOccultation) {
                     if (personDetection.persons.empty() || personDetection.persons.back() != person) {
-                        personDetection.persons.push_back(person);
+                        personDetection.persons.push_back(person);                        
                     }
 
                     if (mDrawLinesOfSight) {

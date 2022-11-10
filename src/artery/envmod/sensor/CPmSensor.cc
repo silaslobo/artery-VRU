@@ -41,44 +41,40 @@ void CPmSensor::measurement()
 }
 
 void CPmSensor::receiveSignal(cComponent*, simsignal_t signal, cObject *obj, cObject*)
-{
-    if (signal == CPmReceivedSignal) {
+{    
+    if (signal == CPmReceivedSignal) {        
+        
         auto* cpm = dynamic_cast<CPObject*>(obj);
         if (cpm) {
-
+            
             SensorDetection detection;
             std::shared_ptr<EnvironmentModelObject> object;
-            std::shared_ptr<EnvironmentModelPerson> person;
+            //std::shared_ptr<EnvironmentModelPerson> person;
 
             //Add id of CPM sender
             uint32_t stationID = cpm->asn1()->header.stationID;
             //std::cout << "Station ID Object received sensor: " << stationID << std::endl;
-
+            /*
             auto identity = mIdentityRegistry->lookup<IdentityRegistry::application>(stationID);
             if (identity) {
                 object = mGlobalEnvironmentModel->getObject(identity->traci);
                 detection.objects.push_back(object);
-            }
+            }*/
             //Add object perceived
             ListOfPerceivedObjectContainer_t* objectsContainer = cpm->asn1()->cpm.cpmParameters.perceivedObjectContainer;
             //if(objectsContainer != nullptr)
             //std::cout << "Received " << objectsContainer->list.count << " object in CPM" << std::endl;
 
             for(int i = 0 ; objectsContainer != nullptr && i < objectsContainer->list.count ; i++){
-                PerceivedObjectContainer* objCont = objectsContainer->list.array[i];
-                identity = mIdentityRegistry->lookup<IdentityRegistry::application>(objCont->objectID);
-                if (identity) {                   
-                    person = mGlobalEnvironmentModel->getPerson(identity->traci);                    
-                    detection.persons.push_back(person);
-                } else{
-                    person = mGlobalEnvironmentModel->getPersonFromVehDB(objCont->objectID);
-                    if(person)
-                        detection.persons.push_back(person);
-                    else
-                        EV_DETAIL << "Unknown identity for station ID " << stationID;
+                
+                PerceivedObjectContainer* objCont = objectsContainer->list.array[i];                
+                auto identityPerson = mIdentityRegistry->lookup<IdentityRegistry::application>(objCont->objectID);
+                
+                if (identityPerson) {                                                        
+                    auto person = mGlobalEnvironmentModel->getPerson(identityPerson->traci);                                                                  
+                    detection.persons.push_back(person); 
                 }
             }
-
 
             mLocalEnvironmentModel->complementObjects(detection, *this);
 
@@ -90,7 +86,7 @@ void CPmSensor::receiveSignal(cComponent*, simsignal_t signal, cObject *obj, cOb
 
 omnetpp::SimTime CPmSensor::getValidityPeriod() const
 {
-    return omnetpp::SimTime { 1100, SIMTIME_MS };
+    return omnetpp::SimTime { 550, SIMTIME_MS };
 }
 
 const std::string& CPmSensor::getSensorCategory() const
