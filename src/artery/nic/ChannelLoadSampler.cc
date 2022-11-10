@@ -85,6 +85,7 @@ void ChannelLoadSampler::updateCbr()
 double ChannelLoadSampler::cbr()
 {
     updateCbr();
+    //std::cout << mCbr << std::endl;
     return mCbr;
 }
 
