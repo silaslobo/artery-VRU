@@ -66,8 +66,8 @@ add_library(core SHARED
     traci/PersonMobility.cc
     traci/PersonController.cc
     traci/PersonType.cc
-    traci/SimulationScopeController.cc
-    traci/SimulationType.cc
+    #traci/SimulationScopeController.cc
+    #traci/SimulationType.cc
     traci/VehicleController.cc
     traci/VehicleMobility.cc
     traci/VehicleType.cc
