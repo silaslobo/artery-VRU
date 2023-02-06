@@ -31,4 +31,4 @@ PersonKinematics p_getKinematics(const traci::PersonController&);
 } // namespace artery
 
 
-#endif ARTERY_PERSONKINEMATICS_H
+#endif /* ARTERY_PERSONKINEMATICS_H */

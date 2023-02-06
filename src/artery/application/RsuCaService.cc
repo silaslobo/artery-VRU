@@ -34,7 +34,7 @@ void RsuCaService::initialize()
     mGeoPosition = &getFacilities().get_const<GeoPosition>();
     mNetworkInterfaceTable = &getFacilities().get_const<NetworkInterfaceTable>();
     mTimer = &getFacilities().get_const<Timer>();
-    mLocalDynamicMap = &getFacilities().get_mutable<LocalDynamicMap>();
+    //mLocalDynamicMap = &getFacilities().get_mutable<LocalDynamicMap>();
 
     mGenerationInterval = par("generationInterval");
     mLastCamTimestamp = -mGenerationInterval;
@@ -98,7 +98,7 @@ void RsuCaService::indicate(const vanetza::btp::DataIndication& ind, std::unique
     if (cam && cam->validate()) {
         CaObject obj = visitor.shared_wrapper;
         emit(scSignalCamReceived, &obj);
-        mLocalDynamicMap->updateAwareness(obj);
+        //mLocalDynamicMap->updateAwareness(obj);
     }
 }
 

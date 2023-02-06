@@ -50,7 +50,7 @@ class RsuCaService : public ItsG5BaseService
         const Timer* mTimer = nullptr;
         const Identity* mIdentity = nullptr;
         const GeoPosition* mGeoPosition = nullptr;
-        LocalDynamicMap* mLocalDynamicMap = nullptr;
+        //LocalDynamicMap* mLocalDynamicMap = nullptr;
         omnetpp::SimTime mGenerationInterval;
         omnetpp::SimTime mLastCamTimestamp;
         std::list<ProtectedCommunicationZone> mProtectedCommunicationZones;

@@ -12,52 +12,52 @@ LocalDynamicMap::LocalDynamicMap(const Timer& timer) :
 {
 }
 
-void LocalDynamicMap::updateAwareness(const CaObject& obj)
+void LocalDynamicMap::updateAwareness(const VaObject& obj)
 {
-    const vanetza::asn1::Cam& msg = obj.asn1();
+    const vanetza::asn1::Vam& msg = obj.asn1();
 
     static const omnetpp::SimTime lifetime { 1100, omnetpp::SIMTIME_MS };
-    auto tai = mTimer.reconstructMilliseconds(msg->cam.generationDeltaTime);
+    auto tai = mTimer.reconstructMilliseconds(msg->vam.generationDeltaTime);
     const omnetpp::SimTime expiry = mTimer.getTimeFor(tai) + lifetime;
 
     const auto now = omnetpp::simTime();
     if (expiry < now || expiry > now + 2 * lifetime) {
         EV_STATICCONTEXT
-        EV_WARN << "Expiry of received CAM is out of bounds";
+        EV_WARN << "Expiry of received VAM is out of bounds";
         return;
     }
 
     AwarenessEntry entry(obj, expiry);
-    auto found = mCaMessages.find(msg->header.stationID);
-    if (found != mCaMessages.end()) {
+    auto found = mVaMessages.find(msg->header.stationID);
+    if (found != mVaMessages.end()) {
         found->second = std::move(entry);
     } else {
-        mCaMessages.emplace(msg->header.stationID, std::move(entry));
+        mVaMessages.emplace(msg->header.stationID, std::move(entry));
     }
 }
 
 void LocalDynamicMap::dropExpired()
 {
     const auto now = omnetpp::simTime();
-    for (auto it = mCaMessages.begin(); it != mCaMessages.end();) {
+    for (auto it = mVaMessages.begin(); it != mVaMessages.end();) {
         if (it->second.expiry < now) {
-            it = mCaMessages.erase(it);
+            it = mVaMessages.erase(it);
         } else {
             ++it;
         }
     }
 }
 
-unsigned LocalDynamicMap::count(const CamPredicate& predicate) const
-{
-    return std::count_if(mCaMessages.begin(), mCaMessages.end(),
+unsigned LocalDynamicMap::count(const VamPredicate& predicate) const
+{    
+    return std::count_if(mVaMessages.begin(), mVaMessages.end(),
             [&predicate](const std::pair<const StationID, AwarenessEntry>& map_entry) {
-                const Cam& cam = map_entry.second.object.asn1();
-                return predicate(cam);
+                const Vam& vam = map_entry.second.object.asn1();
+                return predicate(vam);
             });
 }
 
-LocalDynamicMap::AwarenessEntry::AwarenessEntry(const CaObject& obj, omnetpp::SimTime t) :
+LocalDynamicMap::AwarenessEntry::AwarenessEntry(const VaObject& obj, omnetpp::SimTime t) :
     expiry(t), object(obj)
 {
 }

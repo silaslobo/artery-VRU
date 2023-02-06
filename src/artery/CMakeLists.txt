@@ -45,7 +45,7 @@ add_library(core SHARED
     application/den/Memory.cc
     application/den/SuspendableUseCase.cc
     application/den/TractionLoss.cc
-    application/den/TrafficJamUseCase.cc
+    #application/den/TrafficJamUseCase.cc
     application/den/UseCase.cc
     networking/AccessInterface.cc
     networking/DccEntityBase.cc
@@ -81,7 +81,7 @@ add_library(core SHARED
     utility/Geometry.cc
     application/CPObject.cc
 	#application/CPService.cc
-    application/CPServiceExt.cc
+    #application/CPServiceExt.cc
 	application/DCCFacility.cpp
     application/InfoObject.cpp
 	application/FilterObjects.cc
