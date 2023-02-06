@@ -52,7 +52,7 @@ auto PersonController::getGeoPosition() const -> artery::GeoPosition
 
     TraCIGeoPosition traci_geo = pm_traci->convertGeo(traci_pos);
     artery::GeoPosition geo;
-    geo.latitude = traci_geo.latitude * boost::units::degree::degree;
+    geo.latitude = traci_geo.latitude * boost::units::degree::degree;    
     geo.longitude = traci_geo.longitude * boost::units::degree::degree;
     return geo;
 }

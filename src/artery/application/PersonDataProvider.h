@@ -68,4 +68,4 @@ class PersonDataProvider
 
 }// namespace artery
 
-#endif ARTERY_PERSONDATAPROVIDER_H
+#endif /* ARTERY_PERSONDATAPROVIDER_H */

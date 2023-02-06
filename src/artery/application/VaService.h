@@ -10,12 +10,14 @@
 #include "artery/application/ItsG5BaseService.h"
 #include "artery/utility/Channel.h"
 #include "artery/utility/Geometry.h"
-#include <vanetza/asn1/cam.hpp>
 #include <vanetza/asn1/vam.hpp>
 #include <vanetza/btp/data_interface.hpp>
 #include <vanetza/units/angle.hpp>
 #include <vanetza/units/velocity.hpp>
 #include <omnetpp/simtime.h>
+#include <artery/envmod/LocalEnvironmentModel.h>
+#include <artery/envmod/EnvironmentModelObject.h>
+
 
 
 namespace traci { class PersonController; }
@@ -25,6 +27,7 @@ namespace artery
 class NetworkInterfaceTable;
 class Timer;
 class PersonDataProvider;
+class LocalEnvironmentModel;
 
 class VaService : public ItsG5BaseService
 {
@@ -34,19 +37,33 @@ class VaService : public ItsG5BaseService
 		void indicate(const vanetza::btp::DataIndication&, std::unique_ptr<vanetza::UpPacket>) override;
 		void trigger() override;
 
-	private:
+	private:		
+		typedef boost::geometry::model::point <double,2,boost::geometry::cs::geographic <boost::geometry::degree> >point;
+		typedef boost::geometry::srs::spheroid <double> stype;
+		typedef boost::geometry::strategy::distance::vincenty <stype> vincenty_type;
+
 		void checkTriggeringConditions(const omnetpp::SimTime&);
 		bool checkHeadingDelta() const;
 		bool checkPositionDelta() const;
 		bool checkSpeedDelta() const;
 		void sendVam(const omnetpp::SimTime&);
+		
+		void clusterManagement(const omnetpp::SimTime&);
+		void checkSensorData(const omnetpp::SimTime&);
+		void clusterPoly(const std::map<LocalDynamicMap::StationID, artery::VaObject>);
+		
+		std::vector<point> clusterPoints;
+
 		omnetpp::SimTime genVamDcc();
 
 		ChannelNumber mPrimaryChannel = channel::CCH;
 		const NetworkInterfaceTable* mNetworkInterfaceTable = nullptr;
 		const PersonDataProvider* mPersonDataProvider = nullptr;
 		const Timer* mTimer = nullptr;
-		//LocalDynamicMap* mLocalDynamicMap = nullptr;
+		
+		LocalDynamicMap* mLocalDynamicMap = nullptr;
+		std::map<LocalDynamicMap::StationID, artery::VaObject> mVruClusterMap;
+		LocalEnvironmentModel* mLocalEnvironmentModel = nullptr;
 
 		omnetpp::SimTime mGenVamMin;
 		omnetpp::SimTime mGenVamMax;
@@ -63,9 +80,25 @@ class VaService : public ItsG5BaseService
 		vanetza::units::Velocity mSpeedDelta;
 		bool mDccRestriction;
 		bool mFixedRate;
+		bool mVRUstandAlone;
+		bool mClusterLeader;
+		bool mClusterContainer;
+		vanetza::units::Length mMaxVruDistance;
 
 		double vamReceiveCounter = 0;
 		double vamSentCounter = 0;
+		float geoBase = 10000000;
+
+		//ClusterManagement
+		unsigned mClusterId;
+		unsigned mNumCreateCluster;
+		unsigned mMaxClusterDistance;
+		unsigned mMaxClusterVelocityDifference;
+		unsigned mMaxCombinedClusterDistance;
+		unsigned mMinClusterSize;
+		unsigned mMaxClusterSize;
+		unsigned mNumClusterVAMRepeat;
+		void createClusterInformationContainer();
 
 		//access to control Person connection among Artery, Omnetpp, and SUMO
 		void personSumoData(const omnetpp::SimTime&);
