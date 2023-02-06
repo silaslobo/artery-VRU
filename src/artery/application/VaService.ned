@@ -13,6 +13,16 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+
+// ============================================================
+
+//	ATTENTION:
+//	Currently being modified and tested to enable clustering 
+
+// ============================================================
+	
+
+
 package artery.application;
 
 simple VaService like ItsG5Service
@@ -54,5 +64,7 @@ simple VaService like ItsG5Service
         volatile int pathHistoryLength = default(23);
         
         bool ignorePersons = false;
+
+        string boundingBoxShape = default("Polygon");
 
 }

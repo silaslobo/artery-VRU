@@ -16,7 +16,14 @@
 #include <vanetza/units/angle.hpp>
 #include <vanetza/units/velocity.hpp>
 #include <omnetpp/simtime.h>
+#include <string>
 
+/*
+	ATTENTION:
+
+	Currently being modified and tested to enable clustering 
+	
+*/
 
 namespace traci { class PersonController; }
 
@@ -33,6 +40,9 @@ class VaService : public ItsG5BaseService
 		void initialize() override;
 		void indicate(const vanetza::btp::DataIndication&, std::unique_ptr<vanetza::UpPacket>) override;
 		void trigger() override;
+
+		// Getter method to set cluster shape
+		std::string getBoundingBoxShape();
 
 	private:
 		void checkTriggeringConditions(const omnetpp::SimTime&);
@@ -64,6 +74,8 @@ class VaService : public ItsG5BaseService
 		bool mDccRestriction;
 		bool mFixedRate;
 
+		std::string mBoundingBoxShape;
+
 		double vamReceiveCounter = 0;
 		double vamSentCounter = 0;
 
@@ -74,6 +86,7 @@ class VaService : public ItsG5BaseService
 
 vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider&, uint16_t genDeltaTime);
 void addLowFrequencyContainer(vanetza::asn1::Vam&, unsigned pathHistoryLength = 0);
+void addClusterContainers(vanetza::asn1::Vam&, std::string);
 
 } // namespace artery
 

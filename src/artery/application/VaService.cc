@@ -16,6 +16,12 @@
 #include <vanetza/asn1/vam.hpp>
 #include <chrono>
 
+/*
+	ATTENTION:
+
+	Currently being modified and tested to enable clustering 
+	
+*/
 
 namespace artery
 {
@@ -84,6 +90,9 @@ void VaService::initialize()
 
 	// look up primary channel for CA
 	mPrimaryChannel = getFacilities().get_const<MultiChannelPolicy>().primaryChannel(vanetza::aid::VRU);
+
+	// Clustering options
+	mBoundingBoxShape = par("boundingBoxShape").stringValue();
 }
 
 
@@ -154,6 +163,10 @@ void VaService::sendVam(const SimTime& T_now)
 	if (T_now - mLastLowVamTimestamp >= artery::simtime_cast(scLowFrequencyContainerInterval)) {
 		//addLowFrequencyContainer(vam, par("pathHistoryLength"));
 		mLastLowVamTimestamp = T_now;
+
+		// FIXME: Implemented here for testing. The event will be handled by the ClusterManager in the future
+		addClusterContainers(vam, VaService::getBoundingBoxShape());
+		//std::cout << VaService::getBoundingBoxShape() << "\n";
 	}
 
 	using namespace vanetza;
@@ -192,6 +205,11 @@ SimTime VaService::genVamDcc()
 	vanetza::Clock::duration interval = trc->interval(va_tx);
 	SimTime dcc { std::chrono::duration_cast<std::chrono::milliseconds>(interval).count(), SIMTIME_MS };
 	return std::min(mGenVamMax, std::max(mGenVamMin, dcc));
+}
+
+std::string VaService::getBoundingBoxShape()
+{
+	return mBoundingBoxShape;
 }
 
 vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& vdp, uint16_t genDeltaTime)
@@ -241,10 +259,33 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& vdp, uint
 	if (!message.validate(error)) {
 		throw cRuntimeError("Invalid High Frequency VAM: %s", error.c_str());
 	}
-	
+
 	return message;
 }
 
+void addClusterContainers(vanetza::asn1::Vam& message, std::string shape){
 
+	VruClusterInformationContainer*& vcic = message->vam.vamParameters.vruClusterInformationContainer;
+	vcic = vanetza::asn1::allocate<VruClusterInformationContainer>();
+	vcic->clusterId = 220;
+
+	if(shape == "Rectangular"){
+		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterRectangle;
+		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMinorRangeLength = 17;
+		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeLength = 17;
+
+		// TODO: both depend on leader data, so might need to pass vdp as argument
+		// vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeOrientation = hfc->heading.headingValue;
+		// vcic->clusterBoundingBoxShape.choice.clusterRectangle.nodeCenterPoint = <(1,1)>;
+	}
+	if(shape == "Polygon"){
+		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterPolygon;
+		// cic->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList = RETURN FROM MANAGER;
+	}
+
+	// On first VAM of the cluster, the size should be minClusterSize
+	vcic->clusterCardinalitySize = 1; 
+
+}
 
 } // namespace artery
