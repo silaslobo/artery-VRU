@@ -165,7 +165,8 @@ void VaService::sendVam(const SimTime& T_now)
 		mLastLowVamTimestamp = T_now;
 
 		// FIXME: Implemented here for testing. The event will be handled by the ClusterManager in the future
-		addClusterContainers(vam, VaService::getBoundingBoxShape());
+		addClusterInformationContainer(vam, VaService::getBoundingBoxShape());
+		addClusterOperationContainer(vam);
 		//std::cout << VaService::getBoundingBoxShape() << "\n";
 	}
 
@@ -263,8 +264,9 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& vdp, uint
 	return message;
 }
 
-void addClusterContainers(vanetza::asn1::Vam& message, std::string shape){
+void addClusterInformationContainer(vanetza::asn1::Vam& message, std::string shape){
 
+	// Cluster Information Container
 	VruClusterInformationContainer*& vcic = message->vam.vamParameters.vruClusterInformationContainer;
 	vcic = vanetza::asn1::allocate<VruClusterInformationContainer>();
 	vcic->clusterId = 220;
@@ -286,6 +288,15 @@ void addClusterContainers(vanetza::asn1::Vam& message, std::string shape){
 	// On first VAM of the cluster, the size should be minClusterSize
 	vcic->clusterCardinalitySize = 1; 
 
+}
+
+void addClusterOperationContainer(vanetza::asn1::Vam& message){
+
+	// Must be triggered by an Operation event (join, leave, break up)
+	VruClusterOperationContainer*& vcoc = message->vam.vamParameters.vruClusterOperationContainer;
+	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer>();
+
+	vcoc->clusterJoinInfo();
 }
 
 } // namespace artery

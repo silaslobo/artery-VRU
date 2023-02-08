@@ -86,7 +86,8 @@ class VaService : public ItsG5BaseService
 
 vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider&, uint16_t genDeltaTime);
 void addLowFrequencyContainer(vanetza::asn1::Vam&, unsigned pathHistoryLength = 0);
-void addClusterContainers(vanetza::asn1::Vam&, std::string);
+void addClusterInformationContainer(vanetza::asn1::Vam&, std::string);
+void addClusterOperationContainer(vanetza::asn1::Vam&);
 
 } // namespace artery
 
