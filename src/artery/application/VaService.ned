@@ -38,7 +38,7 @@ simple VaService like ItsG5Service
         bool VRUstandAlone = default(true);
         bool clusterLeader = default(false);
         bool clusterContainer = default(false);
-        double maxVruDistance = default(20.0);
+        double maxVruDistance = default(5.0);
 
         // generation interval boundaries
         double minInterval @unit(s) = default(1.0s);

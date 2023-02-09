@@ -23,6 +23,11 @@ PersonController::PersonController(std::shared_ptr<traci::API> p_api, std::share
 {
 }
 
+const libsumo::TraCIPositionVector& PersonController::getBoundary() const
+{
+    return pm_traci->simulation.getNetBoundary();
+}
+
 const std::string& PersonController::getPersonId() const
 {    
     return pm_cache->getId();

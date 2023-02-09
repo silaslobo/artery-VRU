@@ -20,7 +20,7 @@
 
 
 
-namespace traci { class PersonController; }
+namespace traci { class PersonController; class Boundary;}
 
 namespace artery
 {
@@ -50,9 +50,7 @@ class VaService : public ItsG5BaseService
 		
 		void clusterManagement(const omnetpp::SimTime&);
 		void checkSensorData(const omnetpp::SimTime&);
-		void clusterPoly(const std::map<LocalDynamicMap::StationID, artery::VaObject>);
-		
-		std::vector<point> clusterPoints;
+		void clusterPoly(const std::map<LocalDynamicMap::StationID, artery::VaObject>);				
 
 		omnetpp::SimTime genVamDcc();
 

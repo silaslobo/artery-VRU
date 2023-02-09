@@ -20,7 +20,11 @@
 #include <vanetza/dcc/transmit_rate_control.hpp>
 #include <vanetza/asn1/vam.hpp>
 #include <chrono>
-
+#include <bitset>
+#include "traci/API.h"
+#include "traci/sumo/utils/traci/TraCIAPI.h"
+#include "traci/Boundary.h"
+#include "artery/traci/Cast.h"
 
 namespace artery
 {
@@ -201,14 +205,14 @@ void VaService::clusterManagement(const SimTime& T_now)
 		if ((*lDM).size() > 0) {
 			
 			//calculate distance between egoVRU and received VRU
-			auto VruEgoLon = ((Constants::round(mPersonDataProvider->longitude(), Constants::microdegree) * Longitude_oneMicrodegreeEast) / geoBase);
-			auto VruEgoLat = ((Constants::round(mPersonDataProvider->latitude(), Constants::microdegree) * Latitude_oneMicrodegreeNorth) / geoBase); 
+			auto VruEgoLon = ((Constants::round(mPersonDataProvider->longitude(), Constants::microdegree) * Longitude_oneMicrodegreeEast) / std::pow( 10.0, 7 ));
+			auto VruEgoLat = ((Constants::round(mPersonDataProvider->latitude(), Constants::microdegree) * Latitude_oneMicrodegreeNorth) / std::pow( 10.0, 7 )); 
 		
 			//collect data from the VRUs in the LDM and update mVruClusterMap		
 			for (auto const& itr : *lDM) {
 											
-				auto mVlatitude = ((itr.second.object.asn1()->vam.vamParameters.basicContainer.referencePosition.latitude) / geoBase);				
-				auto mVlongitude = ((itr.second.object.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / geoBase);			
+				auto mVlatitude = ((itr.second.object.asn1()->vam.vamParameters.basicContainer.referencePosition.latitude) / std::pow( 10.0, 7 ));				
+				auto mVlongitude = ((itr.second.object.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / std::pow( 10.0, 7 ));			
 								
 				vanetza::units::Length distanceVRU = bg::distance(point(VruEgoLon,VruEgoLat), point(mVlongitude,mVlatitude)) * vanetza::units::si::meter;				
 
@@ -231,7 +235,7 @@ void VaService::clusterManagement(const SimTime& T_now)
 				auto vruDistance = bg::distance(point(VruEgoLon,VruEgoLat), point(objLon,objLat));				
 			}	
 
-			//trigger a function to create the Cluster Container -> pass 
+			//trigger a function to create the Cluster Container -> pass 			
 			
 			mClusterContainer = true;			
 			mVRUstandAlone = true; //set as false 
@@ -244,27 +248,23 @@ void VaService::clusterManagement(const SimTime& T_now)
 void VaService::clusterPoly(const std::map<LocalDynamicMap::StationID, artery::VaObject> vruMap)
 {
 	std::map<LocalDynamicMap::StationID, artery::VaObject> clusterMap = vruMap;
+	std::vector<point> clusterPoints;
 
-	auto VruEgoLon = ((Constants::round(mPersonDataProvider->longitude(), Constants::microdegree) * Longitude_oneMicrodegreeEast) / geoBase);
-	auto VruEgoLat = ((Constants::round(mPersonDataProvider->latitude(), Constants::microdegree) * Latitude_oneMicrodegreeNorth) / geoBase); 
+	auto VruEgoLon = ((Constants::round(mPersonDataProvider->longitude(), Constants::microdegree) * Longitude_oneMicrodegreeEast) / std::pow( 10.0, 7 ));
+	auto VruEgoLat = ((Constants::round(mPersonDataProvider->latitude(), Constants::microdegree) * Latitude_oneMicrodegreeNorth) / std::pow( 10.0, 7 )); 
 
 	clusterPoints.push_back(point(VruEgoLon,VruEgoLat));
 
 	for (auto const& itr : clusterMap) {
-		auto vruLat = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.latitude) / geoBase);
-		auto vruLon = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / geoBase);
-		clusterPoints.push_back(point(vruLon,vruLat));
+		auto vruLat = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.latitude) / std::pow( 10.0, 7 ));
+		auto vruLon = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / std::pow( 10.0, 7 ));
+		clusterPoints.push_back(point(vruLon,vruLat));				
 	}
 
 	//egoHeading
-	auto egoVruHeading = Constants::round(mPersonDataProvider->heading(), Constants::decidegree);
+	auto egoVruHeading = Constants::round(mPersonDataProvider->heading(), Constants::decidegree);	
 	
-	
-	//Calculate polygon
-	
-	
-	clusterPoints.clear();
-	
+	//Calculate polygon with ref_Point	
 }
 
 void VaService::createClusterInformationContainer()
@@ -338,6 +338,4 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& vdp, uint
 	return message;
 }
 
-
-
-} // namespace artery
+} // namespace artery        
