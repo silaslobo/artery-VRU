@@ -44,6 +44,12 @@ simple VaService like ItsG5Service
         // evaluate DCC transmission interval restrictions
         bool withDccRestriction = default(true);
 
+        // cluster Information
+        bool VRUstandAlone = default(true);
+        bool clusterLeader = default(false);
+        bool clusterContainer = default(false);
+        double maxVruDistance = default(5.0);
+
         // generation interval boundaries
         double minInterval @unit(s) = default(1.0s);
         double maxInterval @unit(s) = default(5.0s);

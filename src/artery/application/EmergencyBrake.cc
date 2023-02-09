@@ -197,8 +197,7 @@ void EmergencyBrake::CPM_Content(const artery::cpm::Cpm *cpm)
             ;
         }else{
             objDetected_cpm.push_back(objCont->objectID);
-        }
-        
+        }        
 
         omnetpp::cComponent::emit(scSignalVRU_ID_CPM,objCont->objectID);         
     }

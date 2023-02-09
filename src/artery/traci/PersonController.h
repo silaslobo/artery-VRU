@@ -29,6 +29,7 @@ public:
     const std::string getVehicleClass() const;
     const std::string getPersonRoadID() const;
     const PersonType& getPersonType() const;
+    const libsumo::TraCIPositionVector& getBoundary() const;
 
 
     artery::Position getPosition() const;

@@ -64,7 +64,7 @@ void CaService::initialize()
 	mNetworkInterfaceTable = &getFacilities().get_const<NetworkInterfaceTable>();
 	mVehicleDataProvider = &getFacilities().get_const<VehicleDataProvider>();
 	mTimer = &getFacilities().get_const<Timer>();
-	mLocalDynamicMap = &getFacilities().get_mutable<artery::LocalDynamicMap>();
+	//mLocalDynamicMap = &getFacilities().get_mutable<artery::LocalDynamicMap>();
 
 	// avoid unreasonable high elapsed time values for newly inserted vehicles
 	mLastCamTimestamp = simTime();
@@ -104,7 +104,7 @@ void CaService::indicate(const vanetza::btp::DataIndication& ind, std::unique_pt
 	if (cam && cam->validate()) {
 		CaObject obj = visitor.shared_wrapper;
 		emit(scSignalCamReceived, &obj);
-		mLocalDynamicMap->updateAwareness(obj);
+		//mLocalDynamicMap->updateAwareness(obj);
 	}
 }
 

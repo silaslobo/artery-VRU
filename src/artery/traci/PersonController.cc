@@ -23,6 +23,11 @@ PersonController::PersonController(std::shared_ptr<traci::API> p_api, std::share
 {
 }
 
+const libsumo::TraCIPositionVector& PersonController::getBoundary() const
+{
+    return pm_traci->simulation.getNetBoundary();
+}
+
 const std::string& PersonController::getPersonId() const
 {    
     return pm_cache->getId();
@@ -52,7 +57,7 @@ auto PersonController::getGeoPosition() const -> artery::GeoPosition
 
     TraCIGeoPosition traci_geo = pm_traci->convertGeo(traci_pos);
     artery::GeoPosition geo;
-    geo.latitude = traci_geo.latitude * boost::units::degree::degree;
+    geo.latitude = traci_geo.latitude * boost::units::degree::degree;    
     geo.longitude = traci_geo.longitude * boost::units::degree::degree;
     return geo;
 }

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2022-10-13 10:07:14 by Eclipse SUMO sumo Version 1.14.1
+<!-- generated on 2023-02-01 15:29:50 by Eclipse SUMO sumo Version 1.15.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
         <net-file value="roundabout/AudiKreis.net.xml"/>
-        <route-files value="roundabout/AudiKreis_pedestrians.rou.xml,roundabout/vut.rou.xml,roundabout/AudiKreis.rou.xml"/>
+        <route-files value="roundabout/AudiKreis_pedestrians.rou.xml,roundabout/ vut.rou.xml,roundabout/ AudiKreis.rou.xml"/>
         <additional-files value="roundabout/Audikreis.add.xml"/>
     </input>
 
@@ -23,12 +23,12 @@
     </time>
 
     <report>
-        <message-log value="results/sumo-5.log"/>
+        <message-log value="results/sumo-0.log"/>
         <no-step-log value="true"/>
     </report>
 
     <traci_server>
-        <remote-port value="58115"/>
+        <remote-port value="43431"/>
     </traci_server>
 
     <random_number>
@@ -43,9 +43,26 @@
 -->
 
 <personSummary xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/person_summary_file.xsd">
-    <step time="0.00" loaded="2" inserted="1" walking="1" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1665648434119"/>
-    <step time="1.00" loaded="167" inserted="2" walking="2" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1665648434173"/>
-    <step time="2.00" loaded="167" inserted="4" walking="4" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1665648434298"/>
-    <step time="3.00" loaded="167" inserted="6" walking="6" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1665648434396"/>
-    <step time="4.00" loaded="167" inserted="7" walking="7" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1665648434616"/>
+    <step time="0.00" loaded="2" inserted="1" walking="1" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1675261790694"/>
+    <step time="1.00" loaded="167" inserted="2" walking="2" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1675261790722"/>
+    <step time="2.00" loaded="167" inserted="4" walking="4" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1675261790764"/>
+    <step time="3.00" loaded="167" inserted="6" walking="6" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1675261790824"/>
+    <step time="4.00" loaded="167" inserted="7" walking="7" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1675261790901"/>
+    <step time="5.00" loaded="167" inserted="9" walking="9" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="0" arrived="0" duration="1675261790951"/>
+    <step time="6.00" loaded="167" inserted="11" walking="10" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261791013"/>
+    <step time="7.00" loaded="167" inserted="12" walking="11" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261791160"/>
+    <step time="8.00" loaded="167" inserted="14" walking="13" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261791247"/>
+    <step time="9.00" loaded="167" inserted="16" walking="15" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261791373"/>
+    <step time="10.00" loaded="167" inserted="17" walking="16" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261791505"/>
+    <step time="11.00" loaded="167" inserted="19" walking="18" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261791675"/>
+    <step time="12.00" loaded="167" inserted="21" walking="20" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261791857"/>
+    <step time="13.00" loaded="167" inserted="22" walking="21" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261792024"/>
+    <step time="14.00" loaded="167" inserted="24" walking="23" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261792304"/>
+    <step time="15.00" loaded="167" inserted="26" walking="25" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261792553"/>
+    <step time="16.00" loaded="167" inserted="27" walking="26" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261792809"/>
+    <step time="17.00" loaded="167" inserted="29" walking="28" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261793100"/>
+    <step time="18.00" loaded="167" inserted="31" walking="30" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261793452"/>
+    <step time="19.00" loaded="167" inserted="32" walking="31" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261793755"/>
+    <step time="20.00" loaded="167" inserted="34" walking="33" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261794165"/>
+    <step time="21.00" loaded="167" inserted="36" walking="35" waitingForRide="0" riding="0" stopping="0" jammed="0" ended="1" arrived="1" duration="1675261794650"/>
 </personSummary>

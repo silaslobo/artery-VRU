@@ -1,13 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sensors>
-	<sensor name="FrontShortRangeRadar" type="artery.envmod.sensor.FrontRadar">
-		<filters>
-			<name pattern="VUT" />
-		</filters>
-	</sensor>
-	<sensor name="FrontLongRangeRadar" type="artery.envmod.sensor.FrontRadar" >
-		<filters>
-			<name pattern="VUT" />
-		</filters>
+	<sensor type="artery.envmod.sensor.VamSensor">
+			<filters> <name pattern="199.*" /></filters>		
 	</sensor>
 </sensors>
