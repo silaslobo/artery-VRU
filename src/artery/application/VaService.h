@@ -117,7 +117,6 @@ class VaService : public ItsG5BaseService
 		unsigned mMinClusterSize;
 		unsigned mMaxClusterSize;
 		unsigned mNumClusterVAMRepeat;
-		void createClusterInformationContainer();
 
 		// Cluster timing
 		omnetpp::SimTime mTimeClusterJoinNotification;

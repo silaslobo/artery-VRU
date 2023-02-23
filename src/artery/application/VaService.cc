@@ -209,9 +209,8 @@ void VaService::sendVam(const SimTime& T_now)
 		addClusterInformationContainer(vam, mBoundingBoxInfo);
 	}
 
-	// TODO: 
-	// For VRU-Passive and for VRU-Standalone, Cluster Leader Data is needed to add VCOC
-	// So, it is needed to also receive and process other VAMs? 
+	// TODO: Implement addClusterOperationContainer() 
+	// for VRU-Passive and VRU-Standalone operations, Cluster Leader Data is needed, so it will also need to involve somehow the indicate() method
 
 	using namespace vanetza;
 	btp::DataRequestB request;
@@ -264,6 +263,7 @@ void VaService::clusterManagement(const SimTime& T_now)
 			}
 			
 			if (mVruClusterMap.size() > mNumCreateCluster) {
+				std::cout << "Cluster size: " << mVruClusterMap.size() << std::endl;
 				mBoundingBoxInfo.shape = mBoundingBoxShape;
 				mBoundingBoxInfo.cardinalitySize = mMinClusterSize;	
 				mBoundingBoxInfo.polyOffsets = clusterPoly(mVruClusterMap);			
@@ -316,7 +316,7 @@ std::vector<std::tuple<double,double>>  VaService::clusterPoly(const std::map<Lo
 
 	std::cout << "Original poly: " << bg::dsv(clusterPolygon) << "\n";
 
-	// TODO: Evaluate if in fact the correct is reordering anything other than just the rotation of the sweep
+	// TODO: Evaluate if in fact bg::correct() is reordering anything 
 	bg::correct(clusterPolygon);
 
 	std::cout << "Corrected poly: " << bg::dsv(clusterPolygon) << "\n";
@@ -351,8 +351,7 @@ std::vector<std::tuple<double,double>>  VaService::clusterPoly(const std::map<Lo
 		distancesList.push_back(std::make_tuple(deltaX, deltaY));
 		previousPos = currentPos;
 	}
-
-	std::cout << "\n\n";
+	std::cout << std::endl;
 
 	return distancesList;
 }
@@ -379,7 +378,6 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& vdp, uint
 	ItsPduHeader_t& header = (*message).header;
 	header.protocolVersion = 2;
 	header.messageID = ItsPduHeader__messageID_vam;
-	//header.stationID = vdp.station_id();
 	header.stationID = vdp.getStationId();
 
 	VruAwareness_t& vam = (*message).vam;
@@ -396,7 +394,6 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& vdp, uint
 			SemiAxisLength_unavailable;
 	basic.referencePosition.positionConfidenceEllipse.semiMinorConfidence =
 			SemiAxisLength_unavailable;
-
 	
 	//High Frequency Container
 	
@@ -444,13 +441,14 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, BoundingBoxInfo
 	} else if(boxInfo.shape == "Polygon"){
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterPolygon;
 		// ETSI TS 103 300-3 V2.1.2 (2021-04) - page 83
+
+		std::cout << "Adding container \n" << std::endl;
+
 		for (auto offsetValue : boxInfo.polyOffsets){
 			OffsetPoint* offsetPoint = vanetza::asn1::allocate<OffsetPoint>();
 			offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY5;
 			offsetPoint->nodeOffsetPointxy.choice.node_XY5.x = std::get<0>(offsetValue);
 			offsetPoint->nodeOffsetPointxy.choice.node_XY5.y = std::get<1>(offsetValue);
-			std::cout << "Adding container" << std::endl;
-			std::cout << mPersonDataProvider << std::endl;
 			ASN_SEQUENCE_ADD(&vcic->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList, offsetPoint);
 		}
 	}
@@ -478,7 +476,6 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, BoundingBoxInfo
 void addClusterOperationContainer(vanetza::asn1::Vam& message){
 	VruClusterOperationContainer*& vcoc = message->vam.vamParameters.vruClusterOperationContainer;
 	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer>();
-
 
 }
 
