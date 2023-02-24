@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<services>
+	<service type="artery.application.EmergencyBrake">
+        <listener port="2018" />
+        <filters><name pattern="VUT" /></filters>
+	</service>
+
+	<service type="artery.application.EmergencyBrake">
+        <listener port="2009" />
+        <filters> <name pattern="VUT" /> </filters>
+	</service>
+</services>
