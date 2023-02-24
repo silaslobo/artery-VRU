@@ -22,6 +22,7 @@
 #include <vanetza/facilities/cam_functions.hpp>
 #include <vanetza/asn1/cam.hpp>
 #include <vanetza/asn1/vam.hpp>
+#include "artery/application/CaObject.h"
 #include "artery/application/VaObject.h"
 #include <memory>
 #include "artery/envmod/sensor/FovSensor.h"

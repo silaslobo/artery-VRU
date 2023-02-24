@@ -22,6 +22,7 @@
 #include <vanetza/facilities/cam_functions.hpp>
 #include <vanetza/asn1/cam.hpp>
 #include <vanetza/asn1/vam.hpp>
+#include "artery/application/CaObject.h"
 #include "artery/application/VaObject.h"
 #include <memory>
 #include "artery/envmod/sensor/FovSensor.h"
@@ -823,7 +824,7 @@ void CPService::receiveSignal(cComponent *, simsignal_t signal, cObject *obj, cO
         fulfillmSensorsId();
 
     if (signal == CamReceivedSignal) {
-        auto *cam = dynamic_cast<CaObject *>(obj);
+        auto *cam = dynamic_cast<CaObject*>(obj);
         if (cam) {
             //Get info of the emitter vehicle
             uint32_t stationID = cam->asn1()->header.stationID;
