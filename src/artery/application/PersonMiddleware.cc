@@ -31,13 +31,24 @@ void PersonMiddleware::initialize(int stage)
         initializeStationType(mPersonController->getVehicleClass());
         getFacilities().register_const(&mPersonDataProvider);
         mPersonDataProvider.update(p_getKinematics(*mPersonController));
-
+        
+        // Appends a string to differentiate traci identity to Controller Id
         Identity identity;
-        identity.traci = mPersonController->getPersonId();
+        std::string personIDstr = mPersonController->getPersonId();
+        identity.traci = personIDstr.append("-traci");
         
         identity.application = Identity::randomStationId(getRNG(0));
-        //mPersonDataProvider.setStationId(identity.application);  
-        uint32_t personID = std::stoull(mPersonController->getPersonId());
+        
+        // Removes any character that can't be converted to a number
+        std::string parsedID;
+        
+        for (char c : personIDstr) {
+            if (std::isdigit(c)) {
+                parsedID += c;
+            }
+        }
+        
+        uint32_t personID = std::stoull(parsedID);
 
         mPersonDataProvider.setStationId(personID);
 
@@ -90,6 +101,7 @@ void PersonMiddleware::receiveSignal(cComponent* component, simsignal_t signal, 
 		mPersonDataProvider.update(p_getKinematics(*mPersonController));
 	}
 }
+
 
 } // namespace artery
 
