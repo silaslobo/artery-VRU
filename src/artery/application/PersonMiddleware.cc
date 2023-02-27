@@ -32,23 +32,29 @@ void PersonMiddleware::initialize(int stage)
         getFacilities().register_const(&mPersonDataProvider);
         mPersonDataProvider.update(p_getKinematics(*mPersonController));
         
-        // Appends a string to differentiate traci identity to Controller Id
+        
         Identity identity;
         std::string personIDstr = mPersonController->getPersonId();
-        identity.traci = personIDstr.append("-traci");
-        
+        identity.traci = personIDstr;
         identity.application = Identity::randomStationId(getRNG(0));
         
-        // Removes any character that can't be converted to a number
-        std::string parsedID;
-        
-        for (char c : personIDstr) {
-            if (std::isdigit(c)) {
-                parsedID += c;
+        mParseID = par("parseID");
+
+        if(mParseID){
+            // Appends a string to differentiate traci identity to Controller Id
+            identity.traci.append("-traci");
+
+            // Parses ID string, appending all numbers and discarding all the other characters
+            std::string parsedID;
+            for (char c : mPersonController->getPersonId()) {
+                if (std::isdigit(c)) {
+                    parsedID += c;
+                }
             }
+            personIDstr = parsedID;
         }
         
-        uint32_t personID = std::stoull(parsedID);
+        uint32_t personID = std::stoull(personIDstr);
 
         mPersonDataProvider.setStationId(personID);
 

@@ -15,4 +15,7 @@ simple PersonMiddleware extends Middleware
 		string localEnvironmentModule = default("");
 		string globalEnvironmentModule = default("");
 		string mobilityModule;
+
+		// filter PersonMiddleware IDs
+        bool parseID = default(false);
 }
