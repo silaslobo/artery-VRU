@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sensors>
+	<sensor type="artery.envmod.sensor.VamSensor">
+			<filters> <name pattern="199.*" /></filters>		
+	</sensor>
+</sensors>

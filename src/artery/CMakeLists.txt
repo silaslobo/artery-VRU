@@ -81,7 +81,7 @@ add_library(core SHARED
     utility/Geometry.cc
     application/CPObject.cc
 	#application/CPService.cc
-    #application/CPServiceExt.cc
+    application/CPServiceExt.cc
 	application/DCCFacility.cpp
     application/InfoObject.cpp
 	application/FilterObjects.cc

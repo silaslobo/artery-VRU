@@ -31,6 +31,7 @@ class PersonMiddleware : public Middleware
         traci::PersonController* mPersonController = nullptr;
         PersonDataProvider mPersonDataProvider;
         //PersonMobility* mMobility = nullptr;
+        bool mParseID;
 };
 
 } // namespace artery
