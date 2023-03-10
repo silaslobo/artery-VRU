@@ -40,6 +40,7 @@ typedef struct BoundingBoxInfo{
 			unsigned cardinalitySize;
 			std::vector<std::tuple<double,double>> polyOffsets;
 			const PersonDataProvider* leaderDataProvider;
+			double circleRadius;
 
 		} BoundingBoxInfo_t;
 class VaService : public ItsG5BaseService
@@ -65,6 +66,7 @@ class VaService : public ItsG5BaseService
 		bool checkPositionDelta() const;
 		bool checkSpeedDelta() const;
 		void sendVam(const omnetpp::SimTime&);
+		void retrieveInformationFromVAM(const vanetza::asn1::Vam*);
 		
 		void clusterManagement(const omnetpp::SimTime&);
 		void checkSensorData(const omnetpp::SimTime&);	
