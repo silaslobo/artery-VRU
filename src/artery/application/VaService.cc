@@ -154,38 +154,29 @@ void VaService::indicate(const vanetza::btp::DataIndication& ind, std::unique_pt
 		vamReceiveCounter ++;
 		emit(SignalVamReceived,vamReceiveCounter);
 
-		retrieveInformationFromVAM(vam);
+		retrieveInformationFromVAM(*vam);
 
 	}
 }
 
-void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam *vam)
+void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 {
-	vanetza::asn1::Vam VAM = (*vam);
-	VruAwareness_t& vam_data = (*VAM).vam;
-
-	if(mClusterContainer && vam_data.vamParameters.vruClusterInformationContainer->clusterCardinalitySize == 1){
-
-		std::cout << "( " << &vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.nodeCenterPoint->nodeOffsetPointxy.choice.node_XY3.x << "," << &vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.nodeCenterPoint->nodeOffsetPointxy.choice.node_XY3.y << ")" << std::endl; 
-		
-	}	
+	VruAwareness_t vam_data = (*vam).vam;
 
 	if(mClusterContainer && vam_data.vamParameters.vruClusterInformationContainer->clusterCardinalitySize > 1){
-		//std::cout << "VAM received by " << mPersonDataProvider->getStationId() << " with station ID: " << vam_data->header.stationID << std::endl;
-		std::cout << "Cluster size: " << vam_data.vamParameters.vruClusterInformationContainer->clusterCardinalitySize << std::endl;
-		std::cout << "Polygon list size: " << vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList.list.size << std::endl;
 
 		PolyPointList_t& poly = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList;
 
+		std::cout << "Offset list received: ";
+
 		for(int iter = 0; iter < poly.list.count; iter++){
 			OffsetPoint_t* off = poly.list.array[iter];
-			Node_XY_28b_t* node = &off->nodeOffsetPointxy.choice.node_XY5;
+			Node_XY_22b_t* node = &off->nodeOffsetPointxy.choice.node_XY2;
 
-			//long x = node->x;
-			//long y = node->y;
-
-			std::cout << "( " << node->x << "," << node->y << ")" << std::endl; 
+			std::cout << "( " << node->x << "," << node->y << ")," ; 
 		}
+
+		std::cout << std::endl;
 	}	
 }
 
@@ -277,7 +268,7 @@ void VaService::clusterManagement(const SimTime& T_now)
 		//check if there are VRUs on the LDM
 		if ((*lDM).size() > 0) {
 
-			double minValidDistance = mMaxVruDistance/vanetza::units::si::meter;
+			vanetza::units::Length minValidDistance = mMaxVruDistance;
 			
 			//calculate distance between egoVRU and received VRU
 			auto VruEgoLon = ((Constants::round(mPersonDataProvider->longitude(), Constants::microdegree) * Longitude_oneMicrodegreeEast) / std::pow( 10.0, 7 ));
@@ -293,8 +284,8 @@ void VaService::clusterManagement(const SimTime& T_now)
 
 				//update mVruClusterMap that are closer then mMaxVruDistance			
 				if (distanceVRU <= mMaxVruDistance) {	
-					if(distanceVRU/vanetza::units::si::meter < minValidDistance){
-						minValidDistance = distanceVRU/vanetza::units::si::meter;
+					if(distanceVRU < minValidDistance){
+						minValidDistance = distanceVRU;
 					}			
 					uint32_t stationID = itr.second.object.asn1()->header.stationID;
 					artery::VaObject awr =itr.second.object;
@@ -304,11 +295,9 @@ void VaService::clusterManagement(const SimTime& T_now)
 
 			// If it is the first VAM of a cluster, it must include only the leader
 			if(clusterVamSentCounter == 0){
-				//std::cout << "Cluster Creation with leader: " << mPersonController->getPersonId();
 				mBoundingBoxInfo.shape = "Circular";
 				mBoundingBoxInfo.cardinalitySize = mMinClusterSize;
-				mBoundingBoxInfo.circleRadius = (minValidDistance/2)*10;
-				//std::cout << " and initial radius: " << mBoundingBoxInfo.circleRadius << std::endl;
+				mBoundingBoxInfo.circleRadius = (minValidDistance/vanetza::units::si::meter)*Radius_oneMeter*.5;
 			}else if (mVruClusterMap.size() > mNumCreateCluster) {
 				mBoundingBoxInfo.shape = mBoundingBoxShape;
 				mBoundingBoxInfo.cardinalitySize = mVruClusterMap.size() + 1;	
@@ -330,12 +319,12 @@ void VaService::clusterManagement(const SimTime& T_now)
 	mVruClusterMap.clear();
 }
 
-std::vector<std::tuple<double,double>>  VaService::clusterPoly(const std::map<LocalDynamicMap::StationID, artery::VaObject> vruMap)
+std::vector<std::tuple<long,long>>  VaService::clusterPoly(const std::map<LocalDynamicMap::StationID, artery::VaObject> vruMap)
 {
 	std::map<LocalDynamicMap::StationID, artery::VaObject> clusterMap = vruMap;
 	std::vector<pointXY> clusterPositions;
 	pointXY previousPos, vruEgoPos;
-	std::vector<std::tuple<double,double>> distancesList;
+	std::vector<std::tuple<long,long>> distancesList;
 
 	libsumo::TraCIPosition vruEgoTraCIPos = position_cast(traci::Boundary(api->simulation.getNetBoundary()), mPersonDataProvider->position());
 	vruEgoPos = pointXY(vruEgoTraCIPos.x, vruEgoTraCIPos.y);
@@ -358,11 +347,11 @@ std::vector<std::tuple<double,double>>  VaService::clusterPoly(const std::map<Lo
 	Polygon_t clusterPolygon, hull;
 	bg::assign_points(clusterPolygon, clusterPositions);
 
-	//std::cout << "Original poly: " << bg::dsv(clusterPolygon) << "\n";
+	std::cout << "Original poly: " << bg::dsv(clusterPolygon) << "\n";
 
 	bg::convex_hull(clusterPolygon, hull);
 
-	//std::cout << "Hull poly: " << bg::dsv(hull) << "\n";
+	std::cout << "Hull poly: " << bg::dsv(hull) << "\n";
 
 	// replaces original vertices with corrected vertices
 	clusterPositions = hull.outer();
@@ -371,26 +360,26 @@ std::vector<std::tuple<double,double>>  VaService::clusterPoly(const std::map<Lo
 	bool firstIteration = true;
 	for (auto const& currentPos : clusterPositions){
 
-		double deltaX , deltaY;
+		long deltaX , deltaY;
 		
 		// First value is obtained from the offset between vruEgo and starting point of the polygon
 		// If the starting point is the vruEgo, a null first offset is expected
 		if(firstIteration){
 			firstIteration = false;
 			previousPos = vruEgoPos;
-			//std::cout << "offset list: ";
+			std::cout << "offset list leader: ";
 		}
 
 		// Offset in centimeters assuming a cartesian plane
-		deltaX = (bg::get<0>(currentPos) - bg::get<0>(previousPos))*100;
-		deltaY = (bg::get<1>(currentPos) - bg::get<1>(previousPos))*100;
+		deltaX = std::round(bg::get<0>(currentPos) - bg::get<0>(previousPos))*100;
+		deltaY = std::round(bg::get<1>(currentPos) - bg::get<1>(previousPos))*100;
 
-		//std::cout << "(" << std::to_string(deltaX) << "," << std::to_string(deltaY) << "),";
+		std::cout << "(" << std::to_string(deltaX) << "," << std::to_string(deltaY) << "),";
 
 		distancesList.push_back(std::make_tuple(deltaX, deltaY));
 		previousPos = currentPos;
 	}
-	//std::cout << std::endl;
+	std::cout << std::endl;
 
 	return distancesList;
 }
@@ -460,33 +449,24 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& vdp, uint
 }
 
 void addClusterInformationContainer(vanetza::asn1::Vam& message, BoundingBoxInfo_t& boxInfo){
-	
-	VruClusterInformationContainer_t* &vcic = message->vam.vamParameters.vruClusterInformationContainer;
+
+	VruAwareness_t &vam = (*message).vam;
+
+	VruClusterInformationContainer_t* &vcic = vam.vamParameters.vruClusterInformationContainer;
 	vcic = vanetza::asn1::allocate<VruClusterInformationContainer_t>();
 
+	// Unique ID number between 0-255
 	std::srand(3);
 	vcic->clusterId = std::rand() % 256;
 
+	// BOUNDING BOX SHAPE AND PARAMETERS
 	if(boxInfo.shape == "Circular"){
-		//vcic->clusterBoundingBoxShape = *vanetza::asn1::allocate<ClusterBoundingBoxShape_t>();
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterCircle;
-
 		vcic->clusterBoundingBoxShape.choice.clusterCircle.radius = boxInfo.circleRadius;
-
-		OffsetPoint_t*& offsetPoint = vcic->clusterBoundingBoxShape.choice.clusterCircle.nodeCenterPoint;
-		offsetPoint = vanetza::asn1::allocate<OffsetPoint_t>();
-
-		//offsetPoint->nodeOffsetPointxy = *vanetza::asn1::allocate<NodeOffsetPointXY_t>();
-		offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY3;
-		offsetPoint->nodeOffsetPointxy.choice.node_XY3.x = 0;
-		offsetPoint->nodeOffsetPointxy.choice.node_XY3.y = 0;
-
-		ASN_SEQUENCE_ADD(&vcic->clusterBoundingBoxShape.choice.clusterCircle.nodeCenterPoint, offsetPoint);
 
 	}else if(boxInfo.shape == "Rectangular"){
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterRectangle;
-		// Node is within 5.11m of last node - Refer to ISO/TS 19091:2017
-		vcic->clusterBoundingBoxShape.choice.clusterRectangle.nodeCenterPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY3;
+		vcic->clusterBoundingBoxShape.choice.clusterRectangle.nodeCenterPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY2;
 		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMinorRangeLength = 17;
 		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeLength = 17;
 		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeOrientation = Constants::round(boxInfo.leaderDataProvider->heading(), Constants::decidegree);
@@ -494,21 +474,13 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, BoundingBoxInfo
 	}else if(boxInfo.shape == "Polygon"){
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterPolygon;
 
-		PolyPointList_t& polyList = vcic->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList;
-		polyList = *vanetza::asn1::allocate<PolyPointList_t>();
-
-		// ETSI TS 103 300-3 V2.1.2 (2021-04) - page 83
-
-		for (auto offsetValue : boxInfo.polyOffsets){
-
-			OffsetPoint_t* offsetPoint = vanetza::asn1::allocate<OffsetPoint_t>();
-			offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY5;
-			offsetPoint->nodeOffsetPointxy.choice.node_XY5.x = std::get<0>(offsetValue);
-			offsetPoint->nodeOffsetPointxy.choice.node_XY5.y = std::get<1>(offsetValue);
-			ASN_SEQUENCE_ADD(&polyList.list, offsetPoint);
-
+		for (auto &offsetValue : boxInfo.polyOffsets){
+			OffsetPoint* offsetPoint = vanetza::asn1::allocate<OffsetPoint>();
+			offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY2;
+			offsetPoint->nodeOffsetPointxy.choice.node_XY2.x = std::get<0>(offsetValue);
+			offsetPoint->nodeOffsetPointxy.choice.node_XY2.y = std::get<1>(offsetValue);
+			ASN_SEQUENCE_ADD(&vcic->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList, offsetPoint);
 		}
-		
 	}
 
 	// CARDINALITY SIZE

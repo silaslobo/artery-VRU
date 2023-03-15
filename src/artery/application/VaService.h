@@ -38,7 +38,7 @@ class LocalEnvironmentModel;
 typedef struct BoundingBoxInfo{
 			std::string shape;
 			unsigned cardinalitySize;
-			std::vector<std::tuple<double,double>> polyOffsets;
+			std::vector<std::tuple<long,long>> polyOffsets;
 			const PersonDataProvider* leaderDataProvider;
 			double circleRadius;
 
@@ -66,11 +66,11 @@ class VaService : public ItsG5BaseService
 		bool checkPositionDelta() const;
 		bool checkSpeedDelta() const;
 		void sendVam(const omnetpp::SimTime&);
-		void retrieveInformationFromVAM(const vanetza::asn1::Vam*);
+		void retrieveInformationFromVAM(const vanetza::asn1::Vam&);
 		
 		void clusterManagement(const omnetpp::SimTime&);
 		void checkSensorData(const omnetpp::SimTime&);	
-		std::vector<std::tuple<double,double>> clusterPoly(const std::map<LocalDynamicMap::StationID, artery::VaObject>);
+		std::vector<std::tuple<long,long>> clusterPoly(const std::map<LocalDynamicMap::StationID, artery::VaObject>);
 
 		omnetpp::SimTime genVamDcc();
 
