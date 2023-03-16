@@ -319,6 +319,7 @@ void VaService::clusterManagement(const SimTime& T_now)
 	mVruClusterMap.clear();
 }
 
+// TODO: Maybe convert every pos *100 before doing the subtraction to avoid rounding errors
 std::vector<std::tuple<long,long>>  VaService::clusterPoly(const std::map<LocalDynamicMap::StationID, artery::VaObject> vruMap)
 {
 	std::map<LocalDynamicMap::StationID, artery::VaObject> clusterMap = vruMap;
@@ -458,6 +459,8 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, BoundingBoxInfo
 	// Unique ID number between 0-255
 	std::srand(3);
 	vcic->clusterId = std::rand() % 256;
+	// TODO: Using the method below is preferred. Thus, learn how to generate omnetpp rng
+	//vcic->clusterId = Identity::randomStationId();
 
 	// BOUNDING BOX SHAPE AND PARAMETERS
 	if(boxInfo.shape == "Circular"){
