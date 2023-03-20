@@ -298,6 +298,7 @@ void VaService::clusterManagement(const SimTime& T_now)
 				mBoundingBoxInfo.shape = "Circular";
 				mBoundingBoxInfo.cardinalitySize = mMinClusterSize;
 				mBoundingBoxInfo.circleRadius = (minValidDistance/vanetza::units::si::meter)*Radius_oneMeter*.5;
+				mBoundingBoxInfo.leaderId = omnetpp::intuniform(getRNG(0), 0, 255);
 			}else if (mVruClusterMap.size() > mNumCreateCluster) {
 				mBoundingBoxInfo.shape = mBoundingBoxShape;
 				mBoundingBoxInfo.cardinalitySize = mVruClusterMap.size() + 1;	
@@ -393,7 +394,7 @@ SimTime VaService::genVamDcc()
 	if (!trc) {
 		throw cRuntimeError("No DCC TRC found for VA's primary channel %i", mPrimaryChannel);
 	}
-
+	
 	static const vanetza::dcc::TransmissionLite va_tx(vanetza::dcc::Profile::DP2, 0);
 	vanetza::Clock::duration interval = trc->interval(va_tx);
 	SimTime dcc { std::chrono::duration_cast<std::chrono::milliseconds>(interval).count(), SIMTIME_MS };
@@ -456,13 +457,8 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, BoundingBoxInfo
 	VruClusterInformationContainer_t* &vcic = vam.vamParameters.vruClusterInformationContainer;
 	vcic = vanetza::asn1::allocate<VruClusterInformationContainer_t>();
 
-	// Unique ID number between 0-255
-	std::srand(3);
-	vcic->clusterId = std::rand() % 256;
-	// TODO: Using the method below is preferred. Thus, learn how to generate omnetpp rng
-	//vcic->clusterId = Identity::randomStationId();
+	vcic->clusterId = boxInfo.leaderId;
 
-	// BOUNDING BOX SHAPE AND PARAMETERS
 	if(boxInfo.shape == "Circular"){
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterCircle;
 		vcic->clusterBoundingBoxShape.choice.clusterCircle.radius = boxInfo.circleRadius;
@@ -486,10 +482,8 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, BoundingBoxInfo
 		}
 	}
 
-	// CARDINALITY SIZE
 	vcic->clusterCardinalitySize = boxInfo.cardinalitySize;
 
-	// PROFILES BITSTRING
 	vcic->clusterProfiles.buf = static_cast<uint8_t*>(vanetza::asn1::allocate(1));
 	vcic->clusterProfiles.size = 1;
 	vcic->clusterProfiles.bits_unused = 0;

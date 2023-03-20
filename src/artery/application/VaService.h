@@ -41,6 +41,7 @@ typedef struct BoundingBoxInfo{
 			std::vector<std::tuple<long,long>> polyOffsets;
 			const PersonDataProvider* leaderDataProvider;
 			double circleRadius;
+			long leaderId;
 
 		} BoundingBoxInfo_t;
 class VaService : public ItsG5BaseService
