@@ -48,8 +48,7 @@ simple VaService like ItsG5Service
         bool VRUstandAlone = default(true);
         bool clusterLeader = default(false);
         bool clusterContainer = default(false);
-        //double maxVruDistance @unit(m) = default(5.0m);
-        double maxVruDistance @unit(m) = default(15.0m);
+        double maxVruDistance @unit(m) = default(5.0m);
         int numCreateCluster = default(3);
         int minClusterSize = default(1);
         int maxClusterSize = default(20);
