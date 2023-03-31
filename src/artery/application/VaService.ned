@@ -44,14 +44,20 @@ simple VaService like ItsG5Service
         // evaluate DCC transmission interval restrictions
         bool withDccRestriction = default(true);
 
+        // VRU roles
+        bool vruIdle = default(false);
+        bool vruActiveStandalone = default(true);
+        bool vruActiveClusterLeader = default(false);
+        bool vruPassive = default(false);
+
         // cluster Information
-        bool VRUstandAlone = default(true);
-        bool clusterLeader = default(false);
         bool clusterContainer = default(false);
         double maxVruDistance @unit(m) = default(5.0m);
+        double maxClusterVelocityDifference = default(0.05);
         int numCreateCluster = default(3);
         int minClusterSize = default(1);
         int maxClusterSize = default(20);
+        string boundingBoxShape = default("Polygon");
         
         // cluster timings
         double timeClusterJoinNotification @unit(s) = default(3.0s);
@@ -79,7 +85,4 @@ simple VaService like ItsG5Service
         volatile int pathHistoryLength = default(23);
         
         bool ignorePersons = false;
-
-        string boundingBoxShape = default("Polygon");
-
 }
