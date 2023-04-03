@@ -66,7 +66,7 @@ simple VaService like ItsG5Service
         double timeClusterLeaveNotification @unit(s) = default(1.0s);
 
         // generation interval boundaries
-        double minInterval @unit(s) = default(1.0s);
+        double minInterval @unit(s) = default(0.1s);
         double maxInterval @unit(s) = default(5.0s);
 
         // generate at fixed rate (using minInterval, optionally restricted by DCC)

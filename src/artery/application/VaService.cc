@@ -72,7 +72,7 @@ SpeedValue_t buildVAMSpeedValue(const vanetza::units::Velocity& v)
 Define_Module(VaService)
 
 VaService::VaService() :
-		mGenVamMin { 1000, SIMTIME_MS },
+		mGenVamMin { 100, SIMTIME_MS },
 		mGenVamMax { 5000, SIMTIME_MS },
 		mGenVam(mGenVamMax),
 		mGenVamLowDynamicsCounter(0),
@@ -165,22 +165,52 @@ void VaService::indicate(const vanetza::btp::DataIndication& ind, std::unique_pt
 void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 {
 	VruAwareness_t vam_data = (*vam).vam;
+	
+	// Cluster Information Container
+	if(vam_data.vamParameters.vruClusterInformationContainer){
+		int clusterCardinalitySize = vam_data.vamParameters.vruClusterInformationContainer->clusterCardinalitySize;
 
-	if(mClusterContainer && vam_data.vamParameters.vruClusterInformationContainer->clusterCardinalitySize > 1){
+		if(clusterCardinalitySize > mMinClusterSize && clusterCardinalitySize < mMaxClusterSize){
 
-		PolyPointList_t& poly = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList;
+			// Builds cluster Bounding Box and checks if node is within it
+			PolyPointList_t& receivedOffsetList = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList;
+			std::vector<pointXY> reconstructedPositions;
 
-		//std::cout << "Offset list received: ";
+			auto vruLeaderLat = vam_data.vamParameters.basicContainer.referencePosition.latitude/std::pow(10.0, 7);
+			auto vruLeaderLon = vam_data.vamParameters.basicContainer.referencePosition.longitude/std::pow(10.0, 7);
+			libsumo::TraCIPosition leaderTraCIPos = api->simulation.convertGeo(vruLeaderLon,vruLeaderLat, true);
+			
+			std::map<int,OffsetPoint_t*> offsetMap;
+			for(int iter = 0; iter < receivedOffsetList.list.count; iter++){
+				offsetMap.insert(std::pair<int, OffsetPoint_t*>(iter, receivedOffsetList.list.array[iter]));
+			}
 
-		for(int iter = 0; iter < poly.list.count; iter++){
-			OffsetPoint_t* off = poly.list.array[iter];
-			Node_XY_22b_t* node = &off->nodeOffsetPointxy.choice.node_XY2;
+			bool firstIteration = true;
+			pointXY previousPos;
+			for(auto& offsetPoint : offsetMap){
 
-			//std::cout << "( " << node->x << "," << node->y << ")," ; 
+				if(firstIteration){
+					previousPos = pointXY(leaderTraCIPos.x, leaderTraCIPos.y);
+					firstIteration = false;
+				}
+
+				Node_XY_22b_t* node = &offsetPoint.second->nodeOffsetPointxy.choice.node_XY2;
+				pointXY currentPos = pointXY(bg::get<0>(previousPos) + node->x/100, bg::get<1>(previousPos) + node->y/100);
+				reconstructedPositions.push_back(currentPos);
+				previousPos = currentPos;
+			}
+
+			Polygon_t reconstructedPolygon;
+			bg::assign_points(reconstructedPolygon, reconstructedPositions);
+
+			libsumo::TraCIPosition vruEgoTraCIPos = position_cast(traci::Boundary(api->simulation.getNetBoundary()), mPersonDataProvider->position());
+			
+			if(bg::within(pointXY(vruEgoTraCIPos.x, vruEgoTraCIPos.y),reconstructedPolygon)){
+				std::cout << "Node " << mPersonDataProvider->station_id() << " is in cluster area" << std::endl;
+			}
 		}
+	}
 
-		//std::cout << std::endl;
-	}	
 }
 
 void VaService::checkTriggeringConditions(const SimTime& T_now)
@@ -411,14 +441,14 @@ SimTime VaService::genVamDcc()
 	return std::min(mGenVamMax, std::max(mGenVamMin, dcc));
 }
 
-vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& vdp, uint16_t genDeltaTime)
+vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& pdp, uint16_t genDeltaTime)
 {
 	vanetza::asn1::Vam message;
 
 	ItsPduHeader_t& header = (*message).header;
 	header.protocolVersion = 2;
 	header.messageID = ItsPduHeader__messageID_vam;
-	header.stationID = vdp.getStationId();
+	header.stationID = pdp.getStationId();
 
 	VruAwareness_t& vam = (*message).vam;
 	vam.generationDeltaTime = genDeltaTime * GenerationDeltaTime_oneMilliSec;
@@ -427,8 +457,8 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& vdp, uint
 	basic.stationType = StationType_pedestrian;
 	basic.referencePosition.altitude.altitudeValue = AltitudeValue_unavailable;
 	basic.referencePosition.altitude.altitudeConfidence = AltitudeConfidence_unavailable;
-	basic.referencePosition.longitude = Constants::round(vdp.longitude(), Constants::microdegree) * Longitude_oneMicrodegreeEast;
-	basic.referencePosition.latitude = Constants::round(vdp.latitude(), Constants::microdegree) * Latitude_oneMicrodegreeNorth;
+	basic.referencePosition.longitude = Constants::round(pdp.longitude(), Constants::microdegree) * Longitude_oneMicrodegreeEast;
+	basic.referencePosition.latitude = Constants::round(pdp.latitude(), Constants::microdegree) * Latitude_oneMicrodegreeNorth;
 	basic.referencePosition.positionConfidenceEllipse.semiMajorOrientation = HeadingValue_unavailable;
 	basic.referencePosition.positionConfidenceEllipse.semiMajorConfidence =
 			SemiAxisLength_unavailable;
@@ -440,12 +470,12 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& vdp, uint
 	VruHighFrequencyContainer*& hfc = message->vam.vamParameters.vruHighFrequencyContainer;
 	hfc = vanetza::asn1::allocate<VruHighFrequencyContainer>();
 	
-	hfc->heading.headingValue = Constants::round(vdp.heading(), Constants::decidegree);
+	hfc->heading.headingValue = Constants::round(pdp.heading(), Constants::decidegree);
 	hfc->heading.headingConfidence = HeadingConfidence_equalOrWithinOneDegree;
-	hfc->speed.speedValue = buildVAMSpeedValue (vdp.speed());
+	hfc->speed.speedValue = buildVAMSpeedValue (pdp.speed());
 	hfc->speed.speedConfidence = SpeedConfidence_equalOrWithinOneCentimeterPerSec * 3;
 
-	const double lonAccelValue = vdp.acceleration() / vanetza::units::si::meter_per_second_squared;
+	const double lonAccelValue = pdp.acceleration() / vanetza::units::si::meter_per_second_squared;
 	if (lonAccelValue >= -160.0 && lonAccelValue <= 161.0){
 		hfc->longitudinalAcceleration.longitudinalAccelerationValue = lonAccelValue * LongitudinalAccelerationValue_pointOneMeterPerSecSquaredForward;
 	} else{
