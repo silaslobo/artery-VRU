@@ -69,6 +69,8 @@ class VaService : public ItsG5BaseService
 		bool checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality);
 		void sendVam(const omnetpp::SimTime&);
 		void retrieveInformationFromVAM(const vanetza::asn1::Vam&);
+		artery::VaService::Polygon_t reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos);
+		double velocityDifference(SpeedValue_t, SpeedValue_t);
 		
 		void clusterManagement(const omnetpp::SimTime&);
 		void checkSensorData(const omnetpp::SimTime&);	

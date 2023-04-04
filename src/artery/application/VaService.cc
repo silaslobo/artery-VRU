@@ -166,51 +166,72 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 {
 	VruAwareness_t vam_data = (*vam).vam;
 	
-	// Cluster Information Container
-	if(vam_data.vamParameters.vruClusterInformationContainer){
+	// Check if node should join cluster
+	// TODO: Evaluate if some of the same verifications can be used for VRU-IDLE
+	if(vam_data.vamParameters.vruClusterInformationContainer && mVruActiveStandalone){
 		int clusterCardinalitySize = vam_data.vamParameters.vruClusterInformationContainer->clusterCardinalitySize;
 
 		if(clusterCardinalitySize > mMinClusterSize && clusterCardinalitySize < mMaxClusterSize){
 
-			// Builds cluster Bounding Box and checks if node is within it
 			PolyPointList_t& receivedOffsetList = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList;
-			std::vector<pointXY> reconstructedPositions;
-
-			auto vruLeaderLat = vam_data.vamParameters.basicContainer.referencePosition.latitude/std::pow(10.0, 7);
+			
 			auto vruLeaderLon = vam_data.vamParameters.basicContainer.referencePosition.longitude/std::pow(10.0, 7);
+			auto vruLeaderLat = vam_data.vamParameters.basicContainer.referencePosition.latitude/std::pow(10.0, 7);
+
 			libsumo::TraCIPosition leaderTraCIPos = api->simulation.convertGeo(vruLeaderLon,vruLeaderLat, true);
-			
-			std::map<int,OffsetPoint_t*> offsetMap;
-			for(int iter = 0; iter < receivedOffsetList.list.count; iter++){
-				offsetMap.insert(std::pair<int, OffsetPoint_t*>(iter, receivedOffsetList.list.array[iter]));
-			}
+			pointXY leaderPos = pointXY(leaderTraCIPos.x,leaderTraCIPos.y);
 
-			bool firstIteration = true;
-			pointXY previousPos;
-			for(auto& offsetPoint : offsetMap){
+			libsumo::TraCIPosition vruTraCIPos = position_cast(traci::Boundary(api->simulation.getNetBoundary()), mPersonDataProvider->position());
+			pointXY vruPos = pointXY(vruTraCIPos.x, vruTraCIPos.y);
 
-				if(firstIteration){
-					previousPos = pointXY(leaderTraCIPos.x, leaderTraCIPos.y);
-					firstIteration = false;
+			auto vruLeaderSpeed = vam_data.vamParameters.vruHighFrequencyContainer->speed.speedValue;
+			auto vruSpeed = buildVAMSpeedValue(mPersonDataProvider->speed());
+
+			if(velocityDifference(vruLeaderSpeed,vruSpeed) <= mMaxClusterVelocityDifference){
+				bool withinBoundingBox = bg::within(vruPos, reconstructPolygon(receivedOffsetList,leaderTraCIPos));
+
+				if(withinBoundingBox || bg::distance(vruPos, leaderPos) <= mMaxClusterDistance){
+					std::cout << "The node " << mPersonDataProvider->station_id() << " should join!" << std::endl;
+					// Cluster join call
 				}
-
-				Node_XY_22b_t* node = &offsetPoint.second->nodeOffsetPointxy.choice.node_XY2;
-				pointXY currentPos = pointXY(bg::get<0>(previousPos) + node->x/100, bg::get<1>(previousPos) + node->y/100);
-				reconstructedPositions.push_back(currentPos);
-				previousPos = currentPos;
-			}
-
-			Polygon_t reconstructedPolygon;
-			bg::assign_points(reconstructedPolygon, reconstructedPositions);
-
-			libsumo::TraCIPosition vruEgoTraCIPos = position_cast(traci::Boundary(api->simulation.getNetBoundary()), mPersonDataProvider->position());
-			
-			if(bg::within(pointXY(vruEgoTraCIPos.x, vruEgoTraCIPos.y),reconstructedPolygon)){
-				std::cout << "Node " << mPersonDataProvider->station_id() << " is in cluster area" << std::endl;
 			}
 		}
 	}
+}
 
+// Reconstructs Polygon Bounding Box and checks if node is within it
+artery::VaService::Polygon_t VaService::reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos)
+{
+	std::vector<pointXY> reconstructedPositions;
+
+	std::map<int,OffsetPoint_t*> offsetMap;
+	for(int iter = 0; iter < receivedOffsetList.list.count; iter++){
+		offsetMap.insert(std::pair<int, OffsetPoint_t*>(iter, receivedOffsetList.list.array[iter]));
+	}
+
+	bool firstIteration = true;
+	pointXY previousPos;
+	for(auto& offsetPoint : offsetMap){
+
+		if(firstIteration){
+			previousPos = pointXY(leaderPos.x, leaderPos.y);
+			firstIteration = false;
+		}
+
+		Node_XY_22b_t* node = &offsetPoint.second->nodeOffsetPointxy.choice.node_XY2;
+		pointXY currentPos = pointXY(bg::get<0>(previousPos) + node->x/100, bg::get<1>(previousPos) + node->y/100);
+		reconstructedPositions.push_back(currentPos);
+		previousPos = currentPos;
+	}
+
+	Polygon_t reconstructedPolygon;
+	bg::assign_points(reconstructedPolygon, reconstructedPositions);
+	return reconstructedPolygon;
+}
+
+double VaService::velocityDifference(SpeedValue_t referenceSpeed, SpeedValue_t evaluatedSpeed)
+{
+	return (referenceSpeed > 0) ? std::abs(static_cast<double>(referenceSpeed - evaluatedSpeed))/referenceSpeed : 0.0;
 }
 
 void VaService::checkTriggeringConditions(const SimTime& T_now)
@@ -249,7 +270,7 @@ bool VaService::checkSpeedDelta() const
 
 bool VaService::checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality)
 {
-	return (distance <= mMaxVruDistance && velocityDifference <= mMaxClusterVelocityDifference && cardinality < mMaxClusterSize);
+	return (cardinality < mMaxClusterSize && distance <= mMaxVruDistance && velocityDifference <= mMaxClusterVelocityDifference);
 }
 
 void VaService::sendVam(const SimTime& T_now)
@@ -319,7 +340,7 @@ void VaService::clusterManagement(const SimTime& T_now)
 				vanetza::units::Length distanceVRU = bg::distance(point(VruEgoLon,VruEgoLat), point(mVlongitude,mVlatitude)) * vanetza::units::si::meter;	
 
 				auto mVSpeed = itr.second.object.asn1()->vam.vamParameters.vruHighFrequencyContainer->speed.speedValue;
-				double clusterVelocityDifference = (VruEgoSpeed > 0) ? std::abs(static_cast<double>(VruEgoSpeed - mVSpeed))/VruEgoSpeed : 0.0;
+				double clusterVelocityDifference = velocityDifference(VruEgoSpeed, mVSpeed);
 
 				//update mVruClusterMap when distance, velocity and cardinality constraints are met		
 				if(checkClusteringConditions(distanceVRU,clusterVelocityDifference,mVruClusterMap.size()+1)) {	
