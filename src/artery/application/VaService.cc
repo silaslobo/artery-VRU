@@ -168,13 +168,12 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 	
 	// Check if node should join cluster
 	// TODO: Evaluate if some of the same verifications can be used for VRU-IDLE
+
 	if(vam_data.vamParameters.vruClusterInformationContainer && mVruActiveStandalone){
 		int clusterCardinalitySize = vam_data.vamParameters.vruClusterInformationContainer->clusterCardinalitySize;
 
-		if(clusterCardinalitySize > mMinClusterSize && clusterCardinalitySize < mMaxClusterSize){
+		if(clusterCardinalitySize < mMaxClusterSize){
 
-			PolyPointList_t& receivedOffsetList = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList;
-			
 			auto vruLeaderLon = vam_data.vamParameters.basicContainer.referencePosition.longitude/std::pow(10.0, 7);
 			auto vruLeaderLat = vam_data.vamParameters.basicContainer.referencePosition.latitude/std::pow(10.0, 7);
 
@@ -184,14 +183,28 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 			libsumo::TraCIPosition vruTraCIPos = position_cast(traci::Boundary(api->simulation.getNetBoundary()), mPersonDataProvider->position());
 			pointXY vruPos = pointXY(vruTraCIPos.x, vruTraCIPos.y);
 
+			bool withinBoundingBox;
+
+			if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterPolygon){
+				PolyPointList_t& receivedOffsetList = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList;
+				Polygon_t receivedBoundingBox = reconstructPolygon(receivedOffsetList,leaderTraCIPos);
+				withinBoundingBox = bg::within(vruPos, receivedBoundingBox);
+
+			}else if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterCircle){
+				Circle_t receivedBoundingBox = buildCircle(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius, leaderPos);
+				withinBoundingBox = bg::within(vruPos, receivedBoundingBox);
+				
+				std::cout << "Circle BB | radius " << vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius << " - " << bg::dsv(receivedBoundingBox) << std::endl;
+				
+			}
+
 			auto vruLeaderSpeed = vam_data.vamParameters.vruHighFrequencyContainer->speed.speedValue;
 			auto vruSpeed = buildVAMSpeedValue(mPersonDataProvider->speed());
 
 			if(velocityDifference(vruLeaderSpeed,vruSpeed) <= mMaxClusterVelocityDifference){
-				bool withinBoundingBox = bg::within(vruPos, reconstructPolygon(receivedOffsetList,leaderTraCIPos));
 
 				if(withinBoundingBox || bg::distance(vruPos, leaderPos) <= mMaxClusterDistance){
-					std::cout << "The node " << mPersonDataProvider->station_id() << " should join!" << std::endl;
+					//std::cout << "The node " << mPersonDataProvider->station_id() << " should join!" << std::endl;
 					// Cluster join call
 				}
 			}
@@ -199,7 +212,7 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 	}
 }
 
-// Reconstructs Polygon Bounding Box and checks if node is within it
+// Reconstructs Polygon Bounding Box based on offset list
 artery::VaService::Polygon_t VaService::reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos)
 {
 	std::vector<pointXY> reconstructedPositions;
@@ -227,6 +240,20 @@ artery::VaService::Polygon_t VaService::reconstructPolygon(const PolyPointList_t
 	Polygon_t reconstructedPolygon;
 	bg::assign_points(reconstructedPolygon, reconstructedPositions);
 	return reconstructedPolygon;
+}
+
+artery::VaService::Circle_t VaService::buildCircle(const double radius, pointXY& leaderPos)
+{
+	// TODO: Evaluate different amount of points to produce a simpler shape
+	Circle_t builtCircle;
+	bg::strategy::buffer::distance_symmetric<double> distance_strategy(radius);
+	bg::strategy::buffer::point_circle circle_strategy(360);
+	bg::strategy::buffer::join_round join_strategy;
+	bg::strategy::buffer::end_round end_strategy;
+	bg::strategy::buffer::side_straight side_strategy;
+
+	bg::buffer(leaderPos, builtCircle, distance_strategy, side_strategy, join_strategy, end_strategy, circle_strategy);
+	return builtCircle;
 }
 
 double VaService::velocityDifference(SpeedValue_t referenceSpeed, SpeedValue_t evaluatedSpeed)
