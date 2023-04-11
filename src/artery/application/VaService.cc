@@ -194,7 +194,8 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 				Circle_t receivedBoundingBox = buildCircle(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius, leaderPos);
 				withinBoundingBox = bg::within(vruPos, receivedBoundingBox);
 				
-				std::cout << "Circle BB | radius " << vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius << " - " << bg::dsv(receivedBoundingBox) << std::endl;
+				// std::cout << "Circle BB | radius " << vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius << " - " << bg::dsv(receivedBoundingBox) << std::endl;
+				// std::cout << "Leader pos: " << bg::get<0>(leaderPos) << "," << bg::get<1>(leaderPos) << std::endl;
 				
 			}
 
