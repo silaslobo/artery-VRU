@@ -55,10 +55,12 @@ class VaService : public ItsG5BaseService
 	private:
 			
 		typedef boost::geometry::model::point <double,2,boost::geometry::cs::geographic <boost::geometry::degree> >point;
-		typedef boost::geometry::model::point <double,2,boost::geometry::cs::cartesian>pointXY;
+		typedef boost::geometry::model::point <long,2,boost::geometry::cs::cartesian>pointXY;
 		typedef boost::geometry::srs::spheroid <double> stype;
 		typedef boost::geometry::strategy::distance::vincenty <stype> vincenty_type;
 		typedef boost::geometry::model::polygon<pointXY, false> Polygon_t; 
+		typedef boost::geometry::model::multi_polygon<Polygon_t> Circle_t;
+		//typedef boost::geometry::ring_type<Circle_t>::type ring_type; 
 
 		BoundingBoxInfo_t mBoundingBoxInfo;
 
@@ -66,8 +68,12 @@ class VaService : public ItsG5BaseService
 		bool checkHeadingDelta() const;
 		bool checkPositionDelta() const;
 		bool checkSpeedDelta() const;
+		bool checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality);
 		void sendVam(const omnetpp::SimTime&);
 		void retrieveInformationFromVAM(const vanetza::asn1::Vam&);
+		artery::VaService::Polygon_t reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos);
+		artery::VaService::Circle_t buildCircle(const double radius, pointXY& leaderPos);
+		double velocityDifference(SpeedValue_t, SpeedValue_t);
 		
 		void clusterManagement(const omnetpp::SimTime&);
 		void checkSensorData(const omnetpp::SimTime&);	
@@ -99,8 +105,10 @@ class VaService : public ItsG5BaseService
 		vanetza::units::Velocity mSpeedDelta;
 		bool mDccRestriction;
 		bool mFixedRate;
-		bool mVRUstandAlone;
-		bool mClusterLeader;
+		bool mVruIdle;
+		bool mVruActiveStandalone;
+		bool mVruActiveClusterLeader;
+		bool mVruPassive;
 		bool mClusterContainer;
 		vanetza::units::Length mMaxVruDistance;
 
@@ -115,7 +123,7 @@ class VaService : public ItsG5BaseService
 		unsigned mClusterId;
 		unsigned mNumCreateCluster;
 		unsigned mMaxClusterDistance;
-		unsigned mMaxClusterVelocityDifference;
+		double mMaxClusterVelocityDifference;
 		unsigned mMaxCombinedClusterDistance;
 		unsigned mMinClusterSize;
 		unsigned mMaxClusterSize;

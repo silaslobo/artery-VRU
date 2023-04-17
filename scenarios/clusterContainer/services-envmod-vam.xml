@@ -7,10 +7,10 @@
 			</filters>
 	</service>
 
-	<service type="artery.application.EmergencyBrake">
+	<!-- <service type="artery.application.EmergencyBrake">
         <listener port="2018" />
         <filters><name pattern="VUT" /></filters>
-	</service>
+	</service> -->
 
 	<service type="artery.application.EmergencyBrake">
         <listener port="2009" />
