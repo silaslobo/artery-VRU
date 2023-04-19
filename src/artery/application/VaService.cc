@@ -4,6 +4,7 @@
 #include "artery/application/Asn1PacketVisitor.h"
 #include "artery/application/MultiChannelPolicy.h"
 #include "artery/application/PersonDataProvider.h"
+#include "artery/application/ClusterOperations.h"
 #include <artery/envmod/LocalEnvironmentModel.h>
 #include "artery/traci/PersonController.h"
 #include "artery/envmod/sensor/Sensor.h"
@@ -131,10 +132,16 @@ void VaService::initialize()
 	mClusterContainer = par("clusterContainer");
 
 	// Clustering timing parameters
+	mTimeClusterUniquenessThreshold = par("timeClusterUniquenessThreshold");
+	mTimeClusterBreakupWarning = par("timeClusterBreakupWarning");
 	mTimeClusterJoinNotification = par("timeClusterJoinNotification");
 	mTimeClusterJoinSuccess = par("timeClusterJoinSuccess");
+	mTimeClusterIdChangeNotification = par("timeClusterIdChangeNotification");
+	mTimeClusterIdPersist = par("timeClusterIdPersist");
 	mTimeClusterContinuity = par("timeClusterContinuity");
 	mTimeClusterLeaveNotification = par("timeClusterLeaveNotification");
+	mTimeCombinedVruClusterOpportunity = par("timeCombinedVruClusterOpportunity");  
+	
 }
 
 
@@ -149,22 +156,22 @@ void VaService::indicate(const vanetza::btp::DataIndication& ind, std::unique_pt
 	Enter_Method("indicate");
 
 	Asn1PacketVisitor<vanetza::asn1::Vam> visitor;
-	const vanetza::asn1::Vam* vam = boost::apply_visitor(visitor, *packet);
-	if (vam && vam->validate()) {
+	const vanetza::asn1::Vam* receivedVam = boost::apply_visitor(visitor, *packet);
+	if (receivedVam && receivedVam->validate()) {
 		VaObject obj = visitor.shared_wrapper;
 		emit(scSignalVamReceived, &obj);
 		mLocalDynamicMap->updateAwareness(obj);
 		vamReceiveCounter ++;
 		emit(SignalVamReceived,vamReceiveCounter);
 
-		retrieveInformationFromVAM(*vam);
+		retrieveInformationFromVAM(*receivedVam);
 
 	}
 }
 
-void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
+void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &receivedVam)
 {
-	VruAwareness_t vam_data = (*vam).vam;
+	VruAwareness_t vam_data = (*receivedVam).vam;
 	
 	// Check if node should join cluster
 	// TODO: Evaluate if some of the same verifications can be used for VRU-IDLE
@@ -205,8 +212,8 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 			if(velocityDifference(vruLeaderSpeed,vruSpeed) <= mMaxClusterVelocityDifference){
 
 				if(withinBoundingBox || bg::distance(vruPos, leaderPos) <= mMaxClusterDistance){
-					//std::cout << "The node " << mPersonDataProvider->station_id() << " should join!" << std::endl;
-					// Cluster join call
+					// TODO: Where and how to call ClusterOperations::joinNotification()
+					
 				}
 			}
 		}

@@ -35,15 +35,17 @@ class NetworkInterfaceTable;
 class Timer;
 class PersonDataProvider;
 class LocalEnvironmentModel;
-typedef struct BoundingBoxInfo{
-			std::string shape;
-			unsigned cardinalitySize;
-			std::vector<std::tuple<long,long>> polyOffsets;
-			const PersonDataProvider* leaderDataProvider;
-			double circleRadius;
-			long leaderId;
 
-		} BoundingBoxInfo_t;
+typedef struct BoundingBoxInfo{
+	std::string shape;
+	unsigned cardinalitySize;
+	std::vector<std::tuple<long,long>> polyOffsets;
+	const PersonDataProvider* leaderDataProvider;
+	double circleRadius;
+	long leaderId;
+
+} BoundingBoxInfo_t;
+
 class VaService : public ItsG5BaseService
 {
 	public:
@@ -130,10 +132,15 @@ class VaService : public ItsG5BaseService
 		unsigned mNumClusterVAMRepeat;
 
 		// Cluster timing
+		omnetpp::SimTime mTimeClusterUniquenessThreshold;
+		omnetpp::SimTime mTimeClusterBreakupWarning;
 		omnetpp::SimTime mTimeClusterJoinNotification;
 		omnetpp::SimTime mTimeClusterJoinSuccess;
+		omnetpp::SimTime mTimeClusterIdChangeNotification;
+		omnetpp::SimTime mTimeClusterIdPersist;
 		omnetpp::SimTime mTimeClusterContinuity;
 		omnetpp::SimTime mTimeClusterLeaveNotification;
+		omnetpp::SimTime mTimeCombinedVruClusterOpportunity;        
 
 		//access to control Person connection among Artery, Omnetpp, and SUMO
 		void personSumoData(const omnetpp::SimTime&);
