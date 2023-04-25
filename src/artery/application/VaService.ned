@@ -67,6 +67,7 @@ simple VaService like ItsG5Service
         double timeClusterIdChangeNotification @unit(s) = default(3.0s);
         double timeClusterIdPersist @unit(s) = default(3.0s);
         double timeClusterContinuity @unit(s) = default(2.0s);
+        double timeClusterLeaderWaiting @unit(s) = default(2.0s);
         double timeClusterLeaveNotification @unit(s) = default(1.0s);
         double timeCombinedVruClusterOpportunity @unit(s) = default(15.0s);
         

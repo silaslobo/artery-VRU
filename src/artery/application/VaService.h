@@ -113,8 +113,8 @@ class VaService : public ItsG5BaseService
 		bool mClusterContainer;
 		vanetza::units::Length mMaxVruDistance;
 
-		bool mVruShouldJoin;
-		bool mVruShouldLeave;
+		bool mVruShouldJoin = false;
+		bool mVruShouldLeave = false;
 		long mTargetClusterId;
 
 		std::string mBoundingBoxShape;
@@ -142,6 +142,7 @@ class VaService : public ItsG5BaseService
 		omnetpp::SimTime mTimeClusterIdChangeNotification;
 		omnetpp::SimTime mTimeClusterIdPersist;
 		omnetpp::SimTime mTimeClusterContinuity;
+		omnetpp::SimTime mTimeClusterLeaderWaiting;
 		omnetpp::SimTime mTimeClusterLeaveNotification;
 		omnetpp::SimTime mTimeCombinedVruClusterOpportunity;        
 

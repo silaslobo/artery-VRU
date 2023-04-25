@@ -138,11 +138,9 @@ void VaService::initialize()
 	mTimeClusterIdChangeNotification = par("timeClusterIdChangeNotification");
 	mTimeClusterIdPersist = par("timeClusterIdPersist");
 	mTimeClusterContinuity = par("timeClusterContinuity");
+	mTimeClusterContinuity = par("timeClusterLeaderWaiting");
 	mTimeClusterLeaveNotification = par("timeClusterLeaveNotification");
 	mTimeCombinedVruClusterOpportunity = par("timeCombinedVruClusterOpportunity");  
-
-	// Avoids the Target CLuster ID parameter from starting on an out-of-range value
-	mTargetClusterId = 0;
 	
 }
 
@@ -365,8 +363,6 @@ void VaService::clusterManagement(const SimTime& T_now)
 		auto lDM = mLocalDynamicMap->localMap();
 
 		if(mVruShouldJoin){
-			// JOIN
-			//std::cout << "VRU " << mPersonDataProvider->station_id() << " should join cluster " << mTargetClusterId << std::endl;
 			mClusterContainer = true;
 		}		
 		//check if there are VRUs on the LDM
