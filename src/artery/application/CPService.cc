@@ -208,7 +208,6 @@ void CPService::indicate(const vanetza::btp::DataIndication &ind, std::unique_pt
 
     if (cpm && cpm->validate()) {
         //printCPM(*cpm);        
-        std::cout << "cpm received" << std::endl;
         CPObject obj = visitor.shared_wrapper;
         retrieveInformationFromCPM(cpm);
         //InfoObject::printObjectsReceivedMap(mOjectsReceived);
