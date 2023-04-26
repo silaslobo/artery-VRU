@@ -35,15 +35,17 @@ class NetworkInterfaceTable;
 class Timer;
 class PersonDataProvider;
 class LocalEnvironmentModel;
-typedef struct BoundingBoxInfo{
-			std::string shape;
-			unsigned cardinalitySize;
-			std::vector<std::tuple<long,long>> polyOffsets;
-			const PersonDataProvider* leaderDataProvider;
-			double circleRadius;
-			long leaderId;
 
-		} BoundingBoxInfo_t;
+typedef struct BoundingBoxInfo{
+	std::string shape;
+	unsigned cardinalitySize;
+	std::vector<std::tuple<long,long>> polyOffsets;
+	const PersonDataProvider* leaderDataProvider;
+	double circleRadius;
+	long leaderId;
+
+} BoundingBoxInfo_t;
+
 class VaService : public ItsG5BaseService
 {
 	public:
@@ -60,7 +62,6 @@ class VaService : public ItsG5BaseService
 		typedef boost::geometry::strategy::distance::vincenty <stype> vincenty_type;
 		typedef boost::geometry::model::polygon<pointXY, false> Polygon_t; 
 		typedef boost::geometry::model::multi_polygon<Polygon_t> Circle_t;
-		//typedef boost::geometry::ring_type<Circle_t>::type ring_type; 
 
 		BoundingBoxInfo_t mBoundingBoxInfo;
 
@@ -68,9 +69,9 @@ class VaService : public ItsG5BaseService
 		bool checkHeadingDelta() const;
 		bool checkPositionDelta() const;
 		bool checkSpeedDelta() const;
-		bool checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality);
+		bool checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality, bool withinBoundingBox = false);
 		void sendVam(const omnetpp::SimTime&);
-		void retrieveInformationFromVAM(const vanetza::asn1::Vam&);
+		void retrieveInformationFromVAM(const vanetza::asn1::Vam*);
 		artery::VaService::Polygon_t reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos);
 		artery::VaService::Circle_t buildCircle(const double radius, pointXY& leaderPos);
 		double velocityDifference(SpeedValue_t, SpeedValue_t);
@@ -112,6 +113,10 @@ class VaService : public ItsG5BaseService
 		bool mClusterContainer;
 		vanetza::units::Length mMaxVruDistance;
 
+		bool mVruShouldJoin = false;
+		bool mVruShouldLeave = false;
+		long mTargetClusterId;
+
 		std::string mBoundingBoxShape;
 
 		double vamReceiveCounter = 0;
@@ -130,10 +135,16 @@ class VaService : public ItsG5BaseService
 		unsigned mNumClusterVAMRepeat;
 
 		// Cluster timing
+		omnetpp::SimTime mTimeClusterUniquenessThreshold;
+		omnetpp::SimTime mTimeClusterBreakupWarning;
 		omnetpp::SimTime mTimeClusterJoinNotification;
 		omnetpp::SimTime mTimeClusterJoinSuccess;
+		omnetpp::SimTime mTimeClusterIdChangeNotification;
+		omnetpp::SimTime mTimeClusterIdPersist;
 		omnetpp::SimTime mTimeClusterContinuity;
+		omnetpp::SimTime mTimeClusterLeaderWaiting;
 		omnetpp::SimTime mTimeClusterLeaveNotification;
+		omnetpp::SimTime mTimeCombinedVruClusterOpportunity;        
 
 		//access to control Person connection among Artery, Omnetpp, and SUMO
 		void personSumoData(const omnetpp::SimTime&);
@@ -145,6 +156,7 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider&, uint16_t
 void addLowFrequencyContainer(vanetza::asn1::Vam&, unsigned pathHistoryLength = 0);
 void addClusterInformationContainer(vanetza::asn1::Vam&, BoundingBoxInfo_t&);
 void addClusterOperationContainer(vanetza::asn1::Vam&);	
+void addJoinOperationContainer(vanetza::asn1::Vam&, long clusterId, omnetpp::SimTime timeToJoin);	
 
 } // namespace artery
 
