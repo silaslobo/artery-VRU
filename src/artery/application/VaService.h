@@ -71,7 +71,7 @@ class VaService : public ItsG5BaseService
 		bool checkSpeedDelta() const;
 		bool checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality, bool withinBoundingBox = false);
 		void sendVam(const omnetpp::SimTime&);
-		void retrieveInformationFromVAM(const vanetza::asn1::Vam&);
+		void retrieveInformationFromVAM(const vanetza::asn1::Vam*);
 		artery::VaService::Polygon_t reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos);
 		artery::VaService::Circle_t buildCircle(const double radius, pointXY& leaderPos);
 		double velocityDifference(SpeedValue_t, SpeedValue_t);
