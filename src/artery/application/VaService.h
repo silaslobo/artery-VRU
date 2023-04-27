@@ -18,6 +18,7 @@
 #include <string>
 #include <artery/envmod/LocalEnvironmentModel.h>
 #include <artery/envmod/EnvironmentModelObject.h>
+#include "artery/application/ClusterManagement.h"
 
 /*
 	ATTENTION:
@@ -35,6 +36,7 @@ class NetworkInterfaceTable;
 class Timer;
 class PersonDataProvider;
 class LocalEnvironmentModel;
+class ClusterManagement;
 
 typedef struct BoundingBoxInfo{
 	std::string shape;
@@ -71,7 +73,7 @@ class VaService : public ItsG5BaseService
 		bool checkSpeedDelta() const;
 		bool checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality, bool withinBoundingBox = false);
 		void sendVam(const omnetpp::SimTime&);
-		void retrieveInformationFromVAM(const vanetza::asn1::Vam*);
+		void retrieveInformationFromVAM(const vanetza::asn1::Vam&);
 		artery::VaService::Polygon_t reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos);
 		artery::VaService::Circle_t buildCircle(const double radius, pointXY& leaderPos);
 		double velocityDifference(SpeedValue_t, SpeedValue_t);
@@ -86,6 +88,7 @@ class VaService : public ItsG5BaseService
 		const NetworkInterfaceTable* mNetworkInterfaceTable = nullptr;
 		const PersonDataProvider* mPersonDataProvider = nullptr;
 		const Timer* mTimer = nullptr;
+		const ClusterManagement* mClusterManagement = nullptr;
 		
 		LocalDynamicMap* mLocalDynamicMap = nullptr;
 		std::map<LocalDynamicMap::StationID, artery::VaObject> mVruClusterMap;
