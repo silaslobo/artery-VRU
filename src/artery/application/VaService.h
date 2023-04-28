@@ -70,7 +70,7 @@ class VaService : public ItsG5BaseService
 		bool checkHeadingDelta() const;
 		bool checkPositionDelta() const;
 		bool checkSpeedDelta() const;
-		bool checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality);
+		bool checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality, bool withinBoundingBox=false);
 		void sendVam(const omnetpp::SimTime&);
 		void retrieveInformationFromVAM(const vanetza::asn1::Vam&);
 		artery::VaService::Polygon_t reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos);
@@ -131,6 +131,9 @@ class VaService : public ItsG5BaseService
 		unsigned mMinClusterSize;
 		unsigned mMaxClusterSize;
 		unsigned mNumClusterVAMRepeat;
+		bool mVruShouldLeave = false;
+		bool mVruShouldJoin = false;
+		long mTargetClusterId;
 
 		// Cluster timing
 		omnetpp::SimTime mTimeClusterJoinNotification;
