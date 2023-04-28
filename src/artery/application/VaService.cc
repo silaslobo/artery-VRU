@@ -132,17 +132,10 @@ void VaService::initialize()
 	mClusterContainer = par("clusterContainer");
 
 	// Clustering timing parameters
-	mTimeClusterUniquenessThreshold = par("timeClusterUniquenessThreshold");
-	mTimeClusterBreakupWarning = par("timeClusterBreakupWarning");
 	mTimeClusterJoinNotification = par("timeClusterJoinNotification");
 	mTimeClusterJoinSuccess = par("timeClusterJoinSuccess");
-	mTimeClusterIdChangeNotification = par("timeClusterIdChangeNotification");
-	mTimeClusterIdPersist = par("timeClusterIdPersist");
 	mTimeClusterContinuity = par("timeClusterContinuity");
-	mTimeClusterContinuity = par("timeClusterLeaderWaiting");
 	mTimeClusterLeaveNotification = par("timeClusterLeaveNotification");
-	mTimeCombinedVruClusterOpportunity = par("timeCombinedVruClusterOpportunity");  
-	
 }
 
 
@@ -157,7 +150,7 @@ void VaService::indicate(const vanetza::btp::DataIndication& ind, std::unique_pt
 	Enter_Method("indicate");
 
 	Asn1PacketVisitor<vanetza::asn1::Vam> visitor;
-	const vanetza::asn1::Vam *vam = boost::apply_visitor(visitor, *packet);
+	const vanetza::asn1::Vam* vam = boost::apply_visitor(visitor, *packet);
 	if (vam && vam->validate()) {
 		VaObject obj = visitor.shared_wrapper;
 		emit(scSignalVamReceived, &obj);
@@ -174,21 +167,22 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 {
 	VruAwareness_t vam_data = (*vam).vam;
 
+
 	if(vam_data.vamParameters.vruClusterInformationContainer && !mVruActiveClusterLeader){
 		int clusterCardinalitySize = vam_data.vamParameters.vruClusterInformationContainer->clusterCardinalitySize;
 
 		auto vruLeaderLon = vam_data.vamParameters.basicContainer.referencePosition.longitude/std::pow(10.0, 7);
 		auto vruLeaderLat = vam_data.vamParameters.basicContainer.referencePosition.latitude/std::pow(10.0, 7);
-
-		libsumo::TraCIPosition leaderTraCIPos = api->simulation.convertGeo(vruLeaderLon,vruLeaderLat, true);
+    
+    libsumo::TraCIPosition leaderTraCIPos = api->simulation.convertGeo(vruLeaderLon,vruLeaderLat, true);
 		pointXY leaderPos = pointXY(leaderTraCIPos.x,leaderTraCIPos.y);
-
-		libsumo::TraCIPosition vruTraCIPos = position_cast(traci::Boundary(api->simulation.getNetBoundary()), mPersonDataProvider->position());
+    
+    libsumo::TraCIPosition vruTraCIPos = position_cast(traci::Boundary(api->simulation.getNetBoundary()), mPersonDataProvider->position());
 		pointXY vruPos = pointXY(vruTraCIPos.x, vruTraCIPos.y);
-
-		bool withinBoundingBox;
-
-		if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterPolygon){
+    
+    bool withinBoundingBox;
+    
+    if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterPolygon){
 			PolyPointList_t& receivedOffsetList = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList;
 
 			// for(int iter = 0; iter < receivedOffsetList.list.size; iter++){
@@ -203,6 +197,16 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 			withinBoundingBox = bg::within(vruPos, receivedBoundingBox);
 					
 		}
+    
+    
+    
+
+		
+
+			
+
+
+		
 
 		auto vruLeaderSpeed = vam_data.vamParameters.vruHighFrequencyContainer->speed.speedValue;
 		auto vruSpeed = buildVAMSpeedValue(mPersonDataProvider->speed());
@@ -211,18 +215,17 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 			if(mVruActiveStandalone){
 				mVruShouldJoin = true;
 				mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
-			}
-		}else{
-			if(mVruPassive){
-				mVruShouldLeave = true;
-			}
-		}
-	}
-
-	if(vam_data.vamParameters.vruClusterOperationContainer && mVruActiveClusterLeader){
+     }else{
+      if(mVruPassive){
+        mVruShouldLeave = true;
+      }
+      }
+    }
+        
+    if(vam_data.vamParameters.vruClusterOperationContainer && mVruActiveClusterLeader){
 		//std::cout << "VRU " << mPersonDataProvider->getStationId() << " wants to join cluster "; 
 		//std::cout << vam_data.vamParameters.vruClusterOperationContainer->clusterJoinInfo->clusterId << std::endl;
-	}
+	}   
 }
 
 // Reconstructs Polygon Bounding Box based on offset list
@@ -293,8 +296,7 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 			if (++mGenVamLowDynamicsCounter >= mGenVamLowDynamicsLimit) {
 				T_GenVam = T_GenVamMax;
 			}
-		} 
-		
+		}
 	}
 
 }
@@ -309,9 +311,9 @@ bool VaService::checkSpeedDelta() const
 	return abs(mLastVamSpeed - mPersonDataProvider->speed()) > mSpeedDelta;
 }
 
-bool VaService::checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality, bool withinBoundingBox)
+bool VaService::checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality)
 {
-	return (cardinality < mMaxClusterSize && velocityDifference <= mMaxClusterVelocityDifference && (distance <= mMaxVruDistance || withinBoundingBox));
+	return (cardinality < mMaxClusterSize && distance <= mMaxVruDistance && velocityDifference <= mMaxClusterVelocityDifference);
 }
 
 void VaService::sendVam(const SimTime& T_now)
@@ -329,14 +331,9 @@ void VaService::sendVam(const SimTime& T_now)
 		mLastLowVamTimestamp = T_now;
 	}
 
-	if(mClusterContainer){
-		if(mVruActiveClusterLeader){
-			addClusterInformationContainer(vam, mBoundingBoxInfo);
-			clusterVamSentCounter ++;
-		}
-		else if(mVruActiveStandalone && mVruShouldJoin){
-			addJoinOperationContainer(vam, mTargetClusterId, T_now);
-		}
+	if(mClusterContainer && mVruActiveClusterLeader){
+		addClusterInformationContainer(vam, mBoundingBoxInfo);
+		clusterVamSentCounter ++;
 	}
 
 	using namespace vanetza;
@@ -359,21 +356,23 @@ void VaService::sendVam(const SimTime& T_now)
 	std::unique_ptr<convertible::byte_buffer> buffer { new VamByteBuffer(obj.shared_ptr()) };
 	payload->layer(OsiLayer::Application) = std::move(buffer);
 	this->request(request, std::move(payload));	
-
 }
 
 void VaService::clusterManagement(const SimTime& T_now)
 {		
+
 	if (mVruActiveStandalone || mVruActiveClusterLeader) {
 	
 		auto lDM = mLocalDynamicMap->localMap();
-
-		if(mVruShouldJoin){
-			mClusterContainer = true;
-		}		
+    
+    if(mVruShouldJoin) {
+      mClusterContainer = true;
+    }
 		//check if there are VRUs on the LDM
 		else if ((*lDM).size() > 0) {
-		
+	
+
+
 			vanetza::units::Length smallestDistance = mMaxVruDistance;
 			
 			//calculate distance between egoVRU and received VRU
@@ -398,7 +397,6 @@ void VaService::clusterManagement(const SimTime& T_now)
 					// obtains the minimum distance between Ego and the remaining nodes
 					if(distanceVRU < smallestDistance){smallestDistance = distanceVRU;}
 
-					// TODO: MAP UPDATE MUST ACTUALLY DEPEND ON JOIN MSGS
 					uint32_t stationID = itr.second.object.asn1()->header.stationID;
 					artery::VaObject awr = itr.second.object;
 					mVruClusterMap.insert(std::pair<LocalDynamicMap::StationID, artery::VaObject>(stationID, awr));
@@ -406,6 +404,7 @@ void VaService::clusterManagement(const SimTime& T_now)
 			}
 
 			// If it is the first VAM of a cluster, the bounding box must include only the leader
+
 			if(mVruClusterMap.size() > mNumCreateCluster){
 				if(clusterVamSentCounter == 0){
 					mBoundingBoxInfo.shape = "Circular";
@@ -430,7 +429,6 @@ void VaService::clusterManagement(const SimTime& T_now)
 				auto objLon = ((IT.second.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / geoBase);
 				auto vruDistance = bg::distance(point(VruEgoLon,VruEgoLat), point(objLon,objLat));				
 			}			
-							
 		}	
 	}
 	mVruClusterMap.clear();
@@ -608,25 +606,9 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, BoundingBoxInfo
 }
 
 void addClusterOperationContainer(vanetza::asn1::Vam& message){
+	VruClusterOperationContainer*& vcoc = message->vam.vamParameters.vruClusterOperationContainer;
+	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer>();
 
-	VruAwareness_t &vam = (*message).vam;
-
-	VruClusterOperationContainer_t* &vcoc = vam.vamParameters.vruClusterOperationContainer;
-	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer_t>();
-
-}
-
-void addJoinOperationContainer(vanetza::asn1::Vam& message, long clusterId, omnetpp::SimTime timeToJoin){
-
-	VruAwareness_t &vam = (*message).vam;
-
-	VruClusterOperationContainer_t* &vcoc = vam.vamParameters.vruClusterOperationContainer;
-	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer_t>();
-
-	ClusterJoinInfo* &clusterJoinInfo = vcoc->clusterJoinInfo;
-	clusterJoinInfo = vanetza::asn1::allocate<ClusterJoinInfo>();
-	clusterJoinInfo->clusterId = clusterId;
-	clusterJoinInfo->joinTime = timeToJoin.dbl();
 }
 
 } // namespace artery
