@@ -6,6 +6,7 @@ add_library(core SHARED
     application/CaService.cc
     application/VaService.cc
     application/VaObject.cc
+    application/ClusterManagement.cc
     application/DenmObject.cc
     application/DenService.cc
     application/ExampleService.cc

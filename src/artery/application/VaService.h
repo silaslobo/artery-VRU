@@ -18,6 +18,7 @@
 #include <string>
 #include <artery/envmod/LocalEnvironmentModel.h>
 #include <artery/envmod/EnvironmentModelObject.h>
+#include "artery/application/ClusterManagement.h"
 
 /*
 	ATTENTION:
@@ -35,6 +36,7 @@ class NetworkInterfaceTable;
 class Timer;
 class PersonDataProvider;
 class LocalEnvironmentModel;
+class ClusterManagement;
 typedef struct BoundingBoxInfo{
 			std::string shape;
 			unsigned cardinalitySize;
@@ -85,6 +87,7 @@ class VaService : public ItsG5BaseService
 		const NetworkInterfaceTable* mNetworkInterfaceTable = nullptr;
 		const PersonDataProvider* mPersonDataProvider = nullptr;
 		const Timer* mTimer = nullptr;
+		const ClusterManagement* mClusterManagement = nullptr;
 		
 		LocalDynamicMap* mLocalDynamicMap = nullptr;
 		std::map<LocalDynamicMap::StationID, artery::VaObject> mVruClusterMap;
