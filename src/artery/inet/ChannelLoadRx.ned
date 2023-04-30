@@ -6,9 +6,9 @@ simple ChannelLoadRx extends Rx
 {
     parameters:
         @class(ChannelLoadRx);
-        @signal[ChannelLoad](type=double);
-        //@statistic[ChannelLoad](record=timeavg,vector?);
-        @statistic[ChannelLoad](record=max, vector(max)?);
+        @signal[ChannelLoad];
+        @statistic[ChannelLoad](record=timeavg,vector?);
+        //@statistic[ChannelLoad](source=ChannelLoad, record=vector);
 
         bool cbrWithTx = default(false);
         bool asyncChannelReport = default(true);
