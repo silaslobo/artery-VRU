@@ -6,9 +6,4 @@
             VAService on each pedestrian of the personFlow -->
         <filters><name pattern="pedestrian.*" /></filters>
     </service>
-
-    <service type="artery.application.EmergencyBrake">
-        <listener port="2018" />
-        <filters><name pattern="VUT" /></filters>
-    </service>
 </services>

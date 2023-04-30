@@ -391,16 +391,13 @@ void VaService::clusterManagement(const SimTime& T_now)
 
 			// If it is the first VAM of a cluster, the bounding box must include only the leader
 
-			std::cout << "ClusterSize: " << mVruClusterMap.size() << " - Vrus for a cluster creation: " << mNumCreateCluster << std::endl;
-
 			if(mVruClusterMap.size() > mNumCreateCluster){
-				std::cout << "create cluster method" << std::endl;
 				if(clusterVamSentCounter == 0){
 					mBoundingBoxInfo.shape = "Circular";
 					mBoundingBoxInfo.cardinalitySize = mMinClusterSize;
 					mBoundingBoxInfo.circleRadius = (smallestDistance/vanetza::units::si::meter)*Radius_oneMeter*.5;
 					mBoundingBoxInfo.leaderId = omnetpp::intuniform(getRNG(0), 0, 255); 
-					std::cout << "New cluster with Id " << mBoundingBoxInfo.leaderId << " and detected " << mVruClusterMap.size() << " nearby VRUs" << std::endl;
+					//std::cout << "New cluster with Id " << mBoundingBoxInfo.leaderId << " and detected " << mVruClusterMap.size() << " nearby VRUs" << std::endl;
 				}else{
 					mBoundingBoxInfo.shape = mBoundingBoxShape;
 					mBoundingBoxInfo.cardinalitySize = mVruClusterMap.size() + 1;	
@@ -451,11 +448,11 @@ std::vector<std::tuple<long,long>>  VaService::clusterPoly(const std::map<LocalD
 	Polygon_t clusterPolygon, hull;
 	bg::assign_points(clusterPolygon, clusterPositions);
 
-	std::cout << "Original poly: " << bg::dsv(clusterPolygon) << std::endl;
+	//std::cout << "Original poly: " << bg::dsv(clusterPolygon) << std::endl;
 
 	bg::convex_hull(clusterPolygon, hull);
 
-	std::cout << "Hull poly: " << bg::dsv(hull) << std::endl;
+	//std::cout << "Hull poly: " << bg::dsv(hull) << std::endl;
 
 	// replaces original vertices with simplified polygon from convex hull
 	clusterPositions = hull.outer();
@@ -471,19 +468,19 @@ std::vector<std::tuple<long,long>>  VaService::clusterPoly(const std::map<LocalD
 		if(firstIteration){
 			firstIteration = false;
 			previousPos = vruEgoPos;
-			std::cout << "offset list leader: ";
+			//std::cout << "offset list leader: ";
 		}
 
 		// Offset in centimeters assuming a cartesian plane
 		deltaX = std::round(bg::get<0>(currentPos) - bg::get<0>(previousPos))*100; 
 		deltaY = std::round(bg::get<1>(currentPos) - bg::get<1>(previousPos))*100;
 
-		std::cout << "(" << std::to_string(deltaX) << "," << std::to_string(deltaY) << "),";
+		//std::cout << "(" << std::to_string(deltaX) << "," << std::to_string(deltaY) << "),";
 
 		distancesList.push_back(std::make_tuple(deltaX, deltaY));
 		previousPos = currentPos;
 	}
-	std::cout << std::endl;
+	//std::cout << std::endl;
 
 	return distancesList;
 }
