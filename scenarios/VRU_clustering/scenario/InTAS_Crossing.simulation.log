@@ -1,0 +1,24 @@
+Loading net-file from 'InTAS_Crossing.net.xml' ... done (5ms).
+Loading additional-files from 'buildings.poly.xml' ... done (13ms).
+Loading done.
+Simulation started with time: 0.00.
+Simulation ended at time: 144.40
+Performance: 
+ Duration: 48.35s
+ Real time factor: 2.98662
+ UPS: 1332.416389
+ UPS-Persons: 65525.512420
+Vehicles: 
+ Inserted: 188 (Loaded: 15076)
+ Running: 53
+ Waiting: 10773
+Teleports: 90 (Jam: 11, Yield: 77, Wrong Lane: 2)
+Persons: 
+ Inserted: 2915
+ Running: 2613
+ Jammed: 2426
+
+DijkstraRouter answered 207342 queries and explored 27.21 edges on average.
+DijkstraRouter spent 0.46s answering queries (0.00ms on average).
+DijkstraRouter answered 2915 queries and explored 30.98 edges on average.
+DijkstraRouter spent 0.01s answering queries (0.00ms on average).
