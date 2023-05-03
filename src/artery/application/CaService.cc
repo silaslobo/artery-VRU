@@ -29,6 +29,7 @@ using namespace omnetpp;
 
 static const simsignal_t scSignalCamReceived = cComponent::registerSignal("CamReceived");
 static const simsignal_t scSignalCamSent = cComponent::registerSignal("CamSent");
+static const simsignal_t scSignalCam2Mac = cComponent::registerSignal("Cam2Mac");
 static const auto scLowFrequencyContainerInterval = std::chrono::milliseconds(500);
 
 
@@ -173,6 +174,8 @@ void CaService::sendCam(const SimTime& T_now)
 
 	CaObject obj(std::move(cam));
 	emit(scSignalCamSent, &obj);
+
+	emit (scSignalCam2Mac, 1);
 
 	using CamByteBuffer = convertible::byte_buffer_impl<asn1::Cam>;
 	std::unique_ptr<geonet::DownPacket> payload { new geonet::DownPacket() };

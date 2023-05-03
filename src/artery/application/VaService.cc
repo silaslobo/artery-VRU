@@ -30,6 +30,8 @@
 #include "artery/traci/Cast.h"
 #include "traci/Core.h"
 #include "artery/application/ClusterManagement.h"
+#include "artery/networking/LimericDccEntity.h"
+#include "artery/networking/DccEntityBase.h"
 
 /*
 	ATTENTION:
@@ -336,8 +338,7 @@ void VaService::sendVam(const SimTime& T_now)
 	VaObject obj(std::move(vam));
 	emit(scSignalVamSent, &obj);
 
-	vamSentCounter ++;
-	emit (SignalVamSent, vamSentCounter);
+	emit (SignalVamSent, 1);
 
 	using VamByteBuffer = convertible::byte_buffer_impl<asn1::Vam>;
 	std::unique_ptr<geonet::DownPacket> payload { new geonet::DownPacket() };
