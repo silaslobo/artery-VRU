@@ -78,7 +78,7 @@ class VaService : public ItsG5BaseService
 		double velocityDifference(SpeedValue_t, SpeedValue_t);
 		
 		void clusterManagement(const omnetpp::SimTime&);
-		void checkSensorData(const omnetpp::SimTime&);	
+		void checkSensorData(const omnetpp::SimTime&);			
 		std::vector<std::tuple<long,long>> clusterPoly(const std::map<LocalDynamicMap::StationID, artery::VaObject>);
 
 		omnetpp::SimTime genVamDcc();
@@ -118,7 +118,6 @@ class VaService : public ItsG5BaseService
 		std::string mBoundingBoxShape;
 
 		double vamReceiveCounter = 0;
-		double vamSentCounter = 0;
 		double clusterVamSentCounter = 0;
 		float geoBase = 10000000;
 

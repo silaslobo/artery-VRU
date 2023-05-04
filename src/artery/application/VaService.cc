@@ -54,6 +54,7 @@ static const simsignal_t scSignalVamReceived = cComponent::registerSignal("VamRe
 static const simsignal_t scSignalVamSent = cComponent::registerSignal("VamSent");
 static const simsignal_t SignalVamReceived = cComponent::registerSignal("VamReceivedCounter");
 static const simsignal_t SignalVamSent = cComponent::registerSignal("VamSentCounter");
+static const simsignal_t scSignalDccTime = cComponent::registerSignal("delayDCC");
 
 static const auto scLowFrequencyContainerInterval = std::chrono::milliseconds(500);
 
@@ -275,6 +276,8 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 	const SimTime& T_GenVamMax = mGenVamMax;
 	const SimTime T_GenVamDcc = mDccRestriction ? genVamDcc() : T_GenVamMin;
 	const SimTime T_elapsed = T_now - mLastVamTimestamp;
+
+	emit(scSignalDccTime, genVamDcc());
 
 	if (T_elapsed >= T_GenVamDcc) {
 		if (mFixedRate) {

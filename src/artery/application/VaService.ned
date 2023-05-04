@@ -31,15 +31,16 @@ simple VaService like ItsG5Service
         @class(VaService);
         @signal[VamReceived](type=artery::VaObject);
         @signal[VamSent](type=artery::VaObject);
+        @signal[delayDCC](type=simtime_t);
         @signal[VamSentCounter];
         @signal[VamReceivedCounter];
 
         @statistic[reception](source=VamReceived;record=vector(vamStationId)?,vector(vamGenerationDeltaTime)?);
         @statistic[transmission](source=VamSent;record=vector(vamStationId)?,vector(vamGenerationDeltaTime)?);
-
-
+    
         @statistic[VamSentCounter](record=count,vector?);
         @statistic[VamReceivedCounter](record=count,vector?);
+        @statistic[delayDcc](source=delayDCC; record = vector?);
 
         // evaluate DCC transmission interval restrictions
         bool withDccRestriction = default(true);
@@ -70,7 +71,7 @@ simple VaService like ItsG5Service
         double maxInterval @unit(s) = default(5.0s);
 
         // generate at fixed rate (using minInterval, optionally restricted by DCC)
-        bool fixedRate = default(true);
+        bool fixedRate = default(false);
 
         // change in orientation triggering VAM generation (in degree)
         double headingDelta = default(0.2);
