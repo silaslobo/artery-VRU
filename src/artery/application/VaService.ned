@@ -45,25 +45,32 @@ simple VaService like ItsG5Service
         bool withDccRestriction = default(true);
 
         // VRU roles
-        bool vruIdle = default(false);
-        bool vruActiveStandalone = default(true);
-        bool vruActiveClusterLeader = default(false);
-        bool vruPassive = default(false);
+        // bool vruIdle = default(false);
+        // bool vruActiveStandalone = default(true);
+        // bool vruActiveClusterLeader = default(false);
+        // bool vruPassive = default(false);
 
         // cluster Information
-        bool clusterContainer = default(false);
-        double maxVruDistance @unit(m) = default(5.0m);
-        double maxClusterVelocityDifference = default(0.05);
-        int numCreateCluster = default(3);
-        int minClusterSize = default(1);
-        int maxClusterSize = default(20);
-        string boundingBoxShape = default("Polygon");
+        // bool clusterContainer = default(false);
+        // double maxVruDistance @unit(m) = default(5.0m);
+        // double maxClusterVelocityDifference = default(0.05);
+        // int numCreateCluster = default(3);
+        // int minClusterSize = default(1);
+        // int maxClusterSize = default(20);
+        // string boundingBoxShape = default("Polygon");
         
         // cluster timings
-        double timeClusterJoinNotification @unit(s) = default(3.0s);
-        double timeClusterJoinSuccess @unit(s) = default(0.5s);
-        double timeClusterContinuity @unit(s) = default(2.0s);
-        double timeClusterLeaveNotification @unit(s) = default(1.0s);
+        // double timeClusterUniquenessThreshold @unit(s) = default(30.0s);
+        // double timeClusterBreakupWarning @unit(s) = default(3.0s);
+        // double timeClusterJoinNotification @unit(s) = default(3.0s);
+        // double timeClusterJoinSuccess @unit(s) = default(0.5s);
+        // double timeClusterIdChangeNotification @unit(s) = default(3.0s);
+        // double timeClusterIdPersist @unit(s) = default(3.0s);
+        // double timeClusterContinuity @unit(s) = default(2.0s);
+        // double timeClusterLeaderWaiting @unit(s) = default(2.0s);
+        // double timeClusterLeaveNotification @unit(s) = default(1.0s);
+        // double timeCombinedVruClusterOpportunity @unit(s) = default(15.0s);
+        
 
         // generation interval boundaries
         double minInterval @unit(s) = default(0.1s);
