@@ -116,7 +116,7 @@ void CaService::checkTriggeringConditions(const SimTime& T_now)
 	const SimTime& T_GenCamMin = mGenCamMin;
 	const SimTime& T_GenCamMax = mGenCamMax;
 	const SimTime T_GenCamDcc = mDccRestriction ? genCamDcc() : T_GenCamMin;
-	const SimTime T_elapsed = T_now - mLastCamTimestamp;
+	const SimTime T_elapsed = T_now - mLastCamTimestamp;	
 
 	if (T_elapsed >= T_GenCamDcc) {
 		if (mFixedRate) {
