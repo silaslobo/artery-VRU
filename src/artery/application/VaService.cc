@@ -22,6 +22,7 @@
 #include <vanetza/dcc/transmission.hpp>
 #include <vanetza/dcc/transmit_rate_control.hpp>
 #include <vanetza/asn1/vam.hpp>
+#include <vanetza/facilities/cam_functions.hpp>
 #include <chrono>
 #include <bitset>
 #include "traci/API.h"
@@ -30,8 +31,7 @@
 #include "artery/traci/Cast.h"
 #include "traci/Core.h"
 #include "artery/application/ClusterManagement.h"
-#include "artery/networking/LimericDccEntity.h"
-#include "artery/networking/DccEntityBase.h"
+
 
 /*
 	ATTENTION:
@@ -310,6 +310,11 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 
 }
 
+bool VaService::checkHeadingDelta() const
+{
+	return !vanetza::facilities::similar_heading(mLastVamHeading, mPersonDataProvider->heading(), mHeadingDelta);
+}
+
 bool VaService::checkPositionDelta() const
 {
 	return (distance(mLastVamPosition, mPersonDataProvider->position()) > mPositionDelta);
@@ -333,7 +338,7 @@ void VaService::sendVam(const SimTime& T_now)
 	mLastVamPosition = mPersonDataProvider->position();
 	mLastVamSpeed = mPersonDataProvider->speed();
 
-	//mLastVamHeading = mPersonDataProvider->heading();
+	mLastVamHeading = mPersonDataProvider->heading();
 	mLastVamTimestamp = T_now;
 	if (T_now - mLastLowVamTimestamp >= artery::simtime_cast(scLowFrequencyContainerInterval)) {
 		//addLowFrequencyContainer(vam, par("pathHistoryLength"));
