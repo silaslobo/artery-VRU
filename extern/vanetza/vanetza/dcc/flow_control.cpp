@@ -6,7 +6,6 @@
 #include <vanetza/access/interface.hpp>
 #include <vanetza/common/runtime.hpp>
 #include <algorithm>
-#include <iostream>
 
 namespace vanetza
 {
