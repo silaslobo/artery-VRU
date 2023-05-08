@@ -356,7 +356,7 @@ void VaService::sendVam(const SimTime& T_now)
 	request.gn.its_aid = aid::VRU;
 	request.gn.transport_type = geonet::TransportType::SHB;
 	request.gn.maximum_lifetime = geonet::Lifetime { geonet::Lifetime::Base::One_Second, 1 };
-	request.gn.traffic_class.tc_id(static_cast<unsigned>(dcc::Profile::DP2));
+	request.gn.traffic_class.tc_id(static_cast<unsigned>(dcc::Profile::DP3));
 	request.gn.communication_profile = geonet::CommunicationProfile::ITS_G5;
 
 	VaObject obj(std::move(vam));
@@ -519,7 +519,7 @@ SimTime VaService::genVamDcc()
 		throw cRuntimeError("No DCC TRC found for VA's primary channel %i", mPrimaryChannel);
 	}
 	
-	static const vanetza::dcc::TransmissionLite va_tx(vanetza::dcc::Profile::DP2, 0);
+	static const vanetza::dcc::TransmissionLite va_tx(vanetza::dcc::Profile::DP3, 0);
 	vanetza::Clock::duration interval = trc->interval(va_tx);
 	SimTime dcc { std::chrono::duration_cast<std::chrono::milliseconds>(interval).count(), SIMTIME_MS };
 	return std::min(mGenVamMax, std::max(mGenVamMin, dcc));
