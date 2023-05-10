@@ -79,7 +79,7 @@ class VaService : public ItsG5BaseService
 		const NetworkInterfaceTable* mNetworkInterfaceTable = nullptr;
 		const PersonDataProvider* mPersonDataProvider = nullptr;
 		const Timer* mTimer = nullptr;
-		ClusterManagement* mClusterManagement = nullptr;
+		ClusterManagement mClusterManagement;
 		
 		LocalDynamicMap* mLocalDynamicMap = nullptr;
 		std::map<LocalDynamicMap::StationID, artery::VaObject> mVruClusterMap;

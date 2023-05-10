@@ -25,16 +25,18 @@ Define_Module(ClusterManagement)
 
 ClusterManagement::ClusterManagement(){}
 
-ClusterManagement::ClusterManagement(const PersonDataProvider& mPersonDataProvider, 
-									artery::LocalDynamicMap& mLocalDynamicMap, 
-									const traci::PersonController& mPersonController, 
-									VruRoleType initialVruRole) : currentVruRole(initialVruRole){} 
+// ClusterManagement::ClusterManagement(const PersonDataProvider* pdp, 
+// 									artery::LocalDynamicMap* ldm, 
+// 									const traci::PersonController* pc, 
+// 									VruRoleType initialVruRole) : 
+// 									mPersonDataProvider(pdp), 
+// 									mLocalDynamicMap(ldm), 
+// 									mPersonController(pc), 
+// 									currentVruRole(initialVruRole){} 
 
 void ClusterManagement::initialize(){
 
-	api = mPersonController->getTraCI();
-
-    // Clustering options and parameters
+	//Clustering options and parameters
 	mBoundingBoxShape = par("boundingBoxShape").stringValue();
 	mNumCreateCluster = par("numCreateCluster").intValue();
 	mMaxClusterDistance = par("maxClusterDistance").doubleValue() * vanetza::units::si::meter;
@@ -54,7 +56,18 @@ void ClusterManagement::initialize(){
 	mTimeClusterContinuity = par("timeClusterContinuity");
 	mTimeClusterContinuity = par("timeClusterLeaderWaiting");
 	mTimeClusterLeaveNotification = par("timeClusterLeaveNotification");
-	mTimeCombinedVruClusterOpportunity = par("timeCombinedVruClusterOpportunity");  
+	mTimeCombinedVruClusterOpportunity = par("timeCombinedVruClusterOpportunity"); 
+
+	setCurrentVruRole(VruActiveStandalone);
+}
+
+void ClusterManagement::simObjects(const PersonDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc){
+
+	mPersonDataProvider =  pdp;
+	mLocalDynamicMap = ldm;
+	mPersonController = pc;
+
+	api = mPersonController->getTraCI();
 }
 
 void ClusterManagement::setCurrentVruRole(VruRoleType newVruRole){currentVruRole = newVruRole;}

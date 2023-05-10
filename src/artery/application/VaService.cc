@@ -42,7 +42,6 @@ namespace artery
 namespace bg = boost::geometry;
 using namespace omnetpp;
 
-
 static const simsignal_t scSignalVamReceived = cComponent::registerSignal("VamReceived");
 static const simsignal_t scSignalVamSent = cComponent::registerSignal("VamSent");
 static const simsignal_t SignalVamReceived = cComponent::registerSignal("VamReceivedCounter");
@@ -79,6 +78,7 @@ VaService::VaService() :
 void VaService::initialize()
 {
 	ItsG5BaseService::initialize();
+	
 	mNetworkInterfaceTable = &getFacilities().get_const<NetworkInterfaceTable>();
 	mPersonDataProvider = &getFacilities().get_const<PersonDataProvider>();
 	mTimer = &getFacilities().get_const<Timer>();
@@ -113,7 +113,13 @@ void VaService::initialize()
 
 	// Clustering
 	mClusterContainer = par("clusterContainer");
-	mClusterManagement* = ClusterManagement(mPersonDataProvider, mLocalDynamicMap, mPersonController);
+	
+	// The lines below result in a runtime error: "(artery::ClusterManagement): Unknown parameter 'boundingBoxShape' -- in module (artery::VaService) World.node[1].middleware.VaService (id=168), at t=1.6s, event #26"
+	// Inspecting the ClusterManagement module type results in this other error, indicating that it's possible that the module is not generated properly: 
+	// "Warning: (artery::ClusterManagement)World.node[4].middleware.VaService.: Object has no associated cComponentType (maybe artery::ClusterManagement is not derived from cModule/cChannel?)"
+	mClusterManagement.initialize();
+	mClusterManagement.simObjects(mPersonDataProvider, mLocalDynamicMap, mPersonController);
+	
 	currentVruClusterOperation = noVruOperation;
 }
 
@@ -179,12 +185,14 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 	// VRU inspecting VAMs from Cluster Leaders
 	if(vam_data.vamParameters.vruClusterInformationContainer){
 
-		if(mClusterManagement->isVruStandalone() && mClusterManagement->vruShouldJoin(vam)){
-			mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
-			setVruClusterOperation(VruShouldJoin);
-		}else if(mClusterManagement->isVruPassive() && mClusterManagement->vruShouldLeave(vam)){
-			setVruClusterOperation(VruShouldLeave);
-		}
+		// FIXME: Commented while mClusterManagement instantiation is being fixed
+
+		// if(mClusterManagement.isVruStandalone() && mClusterManagement.vruShouldJoin(vam)){
+		// 	mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
+		// 	setVruClusterOperation(VruShouldJoin);
+		// }else if(mClusterManagement.isVruPassive() && mClusterManagement.vruShouldLeave(vam)){
+		// 	setVruClusterOperation(VruShouldLeave);
+		// }
 
 	}
 

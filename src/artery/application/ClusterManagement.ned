@@ -15,10 +15,10 @@
 
 package artery.application;
 
-simple ClusterManagement
+simple ClusterManagement 
 {
     parameters:
-        
+        @class(ClusterManagement);
         // based on ETSI TS 103 300-3 V2.2.1 (2023-02) Section 8
 
         // Parameters for VRU clustering decisions 

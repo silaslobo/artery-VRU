@@ -3,28 +3,32 @@
 
 #include "artery/application/ItsG5BaseService.h"
 #include "artery/application/VaObject.h"
-#include "artery/application/VaService.h"
 #include "artery/utility/Geometry.h"
 #include <vanetza/asn1/vam.hpp>
 #include <omnetpp/simtime.h>
+#include <omnetpp.h>
 #include <string>
+#include "artery/application/PersonDataProvider.h"
 #include <artery/envmod/LocalEnvironmentModel.h>
 #include <artery/envmod/EnvironmentModelObject.h>
 
 namespace artery{
 
-class VaService;
+using namespace omnetpp;
+
 class PersonDataProvider;
 class LocalEnvironmentModel;
 class ItsG5BaseService;
-
-class ClusterManagement : public omnetpp::cSimpleModule
+class ClusterManagement : public cSimpleModule 
 {
     public:
 
         enum VruRoleType {VruIdle, VruActiveStandalone, VruActiveClusterLeader, VruPassive};
         ClusterManagement();
-        ClusterManagement(const PersonDataProvider&, artery::LocalDynamicMap&, const traci::PersonController&, VruRoleType initialVruRole = VruActiveStandalone);
+        //ClusterManagement(const PersonDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc, VruRoleType initialVruRole = VruActiveStandalone);
+
+        virtual void initialize() override;
+        void simObjects(const PersonDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc);
 
         void setCurrentVruRole(VruRoleType newVruRole);
         VruRoleType getCurrentVruRole();
@@ -58,10 +62,8 @@ class ClusterManagement : public omnetpp::cSimpleModule
         void updateVruClusterMap();
         std::map<LocalDynamicMap::StationID, artery::VaObject> getVruClusterMap() const {return mVruClusterMap;}
 
-        long generateRandomClusterID() {return omnetpp::intuniform(getRNG(0), 0, 255);}
+        //long generateRandomClusterID() {return omnetpp::intuniform(getRNG(0), 0, 255);}
 
-    protected:
-        void initialize() override;
 
     private:
         VruRoleType currentVruRole;
@@ -117,9 +119,9 @@ class ClusterManagement : public omnetpp::cSimpleModule
 
         std::string mBoundingBoxShape;
 
-        LocalDynamicMap* mLocalDynamicMap = nullptr;
-        const PersonDataProvider* mPersonDataProvider = nullptr;
-        const traci::PersonController* mPersonController = nullptr;
+        LocalDynamicMap* mLocalDynamicMap;
+        const PersonDataProvider* mPersonDataProvider;
+        const traci::PersonController* mPersonController;
 		std::shared_ptr<const traci::API> api;
 
 };
