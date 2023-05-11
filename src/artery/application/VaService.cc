@@ -132,9 +132,9 @@ void VaService::trigger()
 
 void VaService::checkTriggeringConditions(const SimTime& T_now)
 {	
-	// TODO: If Role is Passive - sendVam only on shouldLeave = true
+	// TODO: If Role is Passive - sendVam only on VruShouldLeave
 	// TODO: If Role is Standalone - regular VAM timings
-	// TODO: If Role is Leader - use T_Cluster (transmit at a higher rate)
+	// TODO: If Role is Leader - use T_Cluster of 2.0s (transmit at a higher rate)
 
 	// provide variables named like in EN 302 637-2 V1.3.2 (section 6.1.3)
 	SimTime& T_GenVam = mGenVam;
@@ -182,7 +182,9 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 {
 	VruAwareness_t vam_data = (*vam).vam;
 
-	// VRU inspecting VAMs from Cluster Leaders
+	// POSSIBLE USE CASES
+	// - Standalone or Passive VRUs inspecting VAMs from Cluster Leaders
+	// - Cluster Leader checks for ID uniqueness
 	if(vam_data.vamParameters.vruClusterInformationContainer){
 
 		// FIXME: Commented while mClusterManagement instantiation is being fixed
@@ -196,7 +198,9 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 
 	}
 
-	// Cluster Leader looking for join/leave VAMs
+	// POSSIBLE USE CASES
+	// - Cluster Leader looking for join/leave VAMs
+	// - Passive VRU checking for breakup warnings
 	else if(vam_data.vamParameters.vruClusterOperationContainer){
 		//std::cout << "VRU " << mPersonDataProvider->getStationId() << " wants to join cluster "; 
 		//std::cout << vam_data.vamParameters.vruClusterOperationContainer->clusterJoinInfo->clusterId << std::endl;
@@ -230,7 +234,7 @@ void VaService::sendVam(const SimTime& T_now)
 
 	// Just a check to verify if ClusterManagement functions are properly linked to this instance in VaService
 	mClusterManagement.updateVruClusterMap();
-	std::cout << "> VRU " << mPersonDataProvider->getStationId() << " should create a cluster? " << mClusterManagement.vruShouldCreateCluster() << std::endl;
+	std::cout << "> VRU " << mPersonDataProvider->getStationId() << " should create a cluster? " << mClusterManagement.vruShouldCreateCluster() << "\n" << std::endl;
 
 	// TODO: Check which operation the VRU should do
 	// Add InfoContainer, JoinOperationContainer or LeaveOperationContainer 

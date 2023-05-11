@@ -45,6 +45,7 @@ void ClusterManagement::initialize(){
 	// mMinClusterSize = par("minClusterSize").intValue();
 	// mMaxClusterSize = par("maxClusterSize").intValue();
 	// mNumClusterVAMRepeat = par("numClusterVAMRepeat").intValue();
+
 	mBoundingBoxShape = "Polygon";
 	mNumCreateCluster = 3;
 	mMaxClusterDistance = 5.0 * vanetza::units::si::meter;
@@ -110,7 +111,7 @@ bool ClusterManagement::vruShouldLeave(const vanetza::asn1::Vam& vam){
 }
 
 bool ClusterManagement::vruShouldCreateCluster(){
-	// TODO: Should also evaluate if any available leader is nearby -> parse "recent" VAMs 
+	// TODO: Should also evaluate if any available leader is nearby -> parse a set of "recent" VAMs 
 	return (mVruClusterMap.size() + 1) >= mNumCreateCluster;
 }
 
