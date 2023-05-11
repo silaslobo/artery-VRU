@@ -228,6 +228,10 @@ void VaService::sendVam(const SimTime& T_now)
 		mLastLowVamTimestamp = T_now;
 	}
 
+	// Just a check to verify if ClusterManagement functions are properly linked to this instance in VaService
+	mClusterManagement.updateVruClusterMap();
+	std::cout << "> VRU " << mPersonDataProvider->getStationId() << " should create a cluster? " << mClusterManagement.vruShouldCreateCluster() << std::endl;
+
 	// TODO: Check which operation the VRU should do
 	// Add InfoContainer, JoinOperationContainer or LeaveOperationContainer 
 	

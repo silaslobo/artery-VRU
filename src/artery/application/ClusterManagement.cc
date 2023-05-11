@@ -37,26 +37,45 @@ ClusterManagement::ClusterManagement(){}
 void ClusterManagement::initialize(){
 
 	//Clustering options and parameters
-	mBoundingBoxShape = par("boundingBoxShape").stringValue();
-	mNumCreateCluster = par("numCreateCluster").intValue();
-	mMaxClusterDistance = par("maxClusterDistance").doubleValue() * vanetza::units::si::meter;
-	mMaxClusterVelocityDifference = par("maxClusterVelocityDifference").doubleValue();
-	mMaxCombinedClusterDistance = par("maxCombinedClusterDistance").doubleValue() * vanetza::units::si::meter;
-	mMinClusterSize = par("minClusterSize").intValue();
-	mMaxClusterSize = par("maxClusterSize").intValue();
-	mNumClusterVAMRepeat = par("numClusterVAMRepeat").intValue();
+	// mBoundingBoxShape = par("boundingBoxShape").stringValue();
+	// mNumCreateCluster = par("numCreateCluster").intValue();
+	// mMaxClusterDistance = par("maxClusterDistance").doubleValue() * vanetza::units::si::meter;
+	// mMaxClusterVelocityDifference = par("maxClusterVelocityDifference").doubleValue();
+	// mMaxCombinedClusterDistance = par("maxCombinedClusterDistance").doubleValue() * vanetza::units::si::meter;
+	// mMinClusterSize = par("minClusterSize").intValue();
+	// mMaxClusterSize = par("maxClusterSize").intValue();
+	// mNumClusterVAMRepeat = par("numClusterVAMRepeat").intValue();
+	mBoundingBoxShape = "Polygon";
+	mNumCreateCluster = 3;
+	mMaxClusterDistance = 5.0 * vanetza::units::si::meter;
+	mMaxClusterVelocityDifference = 0.05;
+	mMaxCombinedClusterDistance = 2 * vanetza::units::si::meter;
+	mMinClusterSize = 1;
+	mMaxClusterSize = 20;
+	mNumClusterVAMRepeat = 3;
 
 	// Clustering timing parameters
-	mTimeClusterUniquenessThreshold = par("timeClusterUniquenessThreshold");
-	mTimeClusterBreakupWarning = par("timeClusterBreakupWarning");
-	mTimeClusterJoinNotification = par("timeClusterJoinNotification");
-	mTimeClusterJoinSuccess = par("timeClusterJoinSuccess");
-	mTimeClusterIdChangeNotification = par("timeClusterIdChangeNotification");
-	mTimeClusterIdPersist = par("timeClusterIdPersist");
-	mTimeClusterContinuity = par("timeClusterContinuity");
-	mTimeClusterContinuity = par("timeClusterLeaderWaiting");
-	mTimeClusterLeaveNotification = par("timeClusterLeaveNotification");
-	mTimeCombinedVruClusterOpportunity = par("timeCombinedVruClusterOpportunity"); 
+	// mTimeClusterUniquenessThreshold = par("timeClusterUniquenessThreshold");
+	// mTimeClusterBreakupWarning = par("timeClusterBreakupWarning");
+	// mTimeClusterJoinNotification = par("timeClusterJoinNotification");
+	// mTimeClusterJoinSuccess = par("timeClusterJoinSuccess");
+	// mTimeClusterIdChangeNotification = par("timeClusterIdChangeNotification");
+	// mTimeClusterIdPersist = par("timeClusterIdPersist");
+	// mTimeClusterContinuity = par("timeClusterContinuity");
+	// mTimeClusterContinuity = par("timeClusterLeaderWaiting");
+	// mTimeClusterLeaveNotification = par("timeClusterLeaveNotification");
+	// mTimeCombinedVruClusterOpportunity = par("timeCombinedVruClusterOpportunity"); 
+	
+	mTimeClusterUniquenessThreshold = 30.0;
+	mTimeClusterBreakupWarning = 3.0;
+	mTimeClusterJoinNotification = 3.0;
+	mTimeClusterJoinSuccess = 0.5;
+	mTimeClusterIdChangeNotification = 3.0;
+	mTimeClusterIdPersist = 3.0;
+	mTimeClusterContinuity = 2.0;
+	mTimeClusterContinuity = 2.0;
+	mTimeClusterLeaveNotification = 1.0;
+	mTimeCombinedVruClusterOpportunity = 15.0; 
 
 	setCurrentVruRole(VruActiveStandalone);
 }
@@ -79,7 +98,7 @@ bool ClusterManagement::isVruStandalone(){return currentVruRole == VruActiveStan
 bool ClusterManagement::isVruClusterLeader(){return currentVruRole == VruActiveClusterLeader;}
 bool ClusterManagement::isVruPassive(){return currentVruRole == VruPassive;}
 
-// TODO: These two methods should probably be converted to a single function
+
 bool ClusterManagement::vruShouldJoin(const vanetza::asn1::Vam& vam){
 	ClusterParameters_t clusterPar = parseInformationContainer(vam);
 	return checkClusteringConditions(clusterPar.distance, clusterPar.velocityDifference, clusterPar.cardinality, clusterPar.withinBoundingBox);
@@ -88,6 +107,11 @@ bool ClusterManagement::vruShouldJoin(const vanetza::asn1::Vam& vam){
 bool ClusterManagement::vruShouldLeave(const vanetza::asn1::Vam& vam){
 	ClusterParameters_t clusterPar = parseInformationContainer(vam);
 	return !checkClusteringConditions(clusterPar.distance, clusterPar.velocityDifference, clusterPar.cardinality, clusterPar.withinBoundingBox);
+}
+
+bool ClusterManagement::vruShouldCreateCluster(){
+	// TODO: Should also evaluate if any available leader is nearby -> parse "recent" VAMs 
+	return (mVruClusterMap.size() + 1) >= mNumCreateCluster;
 }
 
 artery::ClusterManagement::ClusterParameters_t ClusterManagement::parseInformationContainer(const vanetza::asn1::Vam& vam){
@@ -281,7 +305,8 @@ void ClusterManagement::updateVruClusterMap(){
 			mVruClusterMap.insert(std::pair<LocalDynamicMap::StationID, artery::VaObject>(stationID, awr));
 		}
 	}
-
+	// Just a check to verify if PersonDataProvider is properly passed to this Class
+	std::cout << "VRU " << mPersonDataProvider->getStationId() << " found " << mVruClusterMap.size() << " compatible nodes nearby" << std::endl;
 }
 
 }

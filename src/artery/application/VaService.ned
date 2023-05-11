@@ -25,7 +25,7 @@
 
 package artery.application;
 
-simple VaService like ItsG5Service
+simple VaService 
 {
     parameters:
         @class(VaService);
@@ -67,7 +67,4 @@ simple VaService like ItsG5Service
         volatile int pathHistoryLength = default(23);
         
         bool ignorePersons = false;
-    
-    submodules:
-        clusterManagement: ClusterManagement;
 }

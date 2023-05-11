@@ -40,6 +40,7 @@ class ClusterManagement : public cSimpleModule
         // Operation conditions check
         bool vruShouldJoin(const vanetza::asn1::Vam&);
         bool vruShouldLeave(const vanetza::asn1::Vam&);
+        bool vruShouldCreateCluster();
 
         // Cluster parameter getters
         std::string boundingBoxShape() const {return mBoundingBoxShape;}
