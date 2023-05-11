@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <services>
     <service type="artery.application.VaService">
-        <listener port="2001" />
-        <!-- Usage of wildcard (*) on the filter to apply a 
-            VAService on each pedestrian of the personFlow -->
-        <filters><name pattern="pedestrian.*" /></filters>
+        <listener port="2018" />        
+            <filters>
+                <type pattern="artery.inet.Person" />
+            </filters>
     </service>
-
-    <service type="artery.application.EmergencyBrake">
-        <listener port="2018" />
-        <filters><name pattern="VUT" /></filters>
+    <service type="artery.application.CaService">
+        <listener port="2001" />        
+            <filters>
+                <type pattern="artery.inet.Person" match="inverse" />
+            </filters>
     </service>
+    
 </services>
