@@ -61,6 +61,7 @@ class VaService : public ItsG5BaseService
 		typedef boost::geometry::strategy::distance::vincenty <stype> vincenty_type;
 
 		InformationContainerData_t mInformationContainerData;
+		InformationContainerData_t generateDataForNewCluster();
 
 		void checkTriggeringConditions(const omnetpp::SimTime&);
 		bool checkHeadingDelta() const;
@@ -69,9 +70,7 @@ class VaService : public ItsG5BaseService
 		void sendVam(const omnetpp::SimTime&);
 		void retrieveInformationFromVAM(const vanetza::asn1::Vam&);
 		
-		//void clusterManagement(const omnetpp::SimTime&);
 		void checkSensorData(const omnetpp::SimTime&);	
-		//std::vector<std::tuple<long,long>> clusterPoly(const std::map<LocalDynamicMap::StationID, artery::VaObject>);
 
 		omnetpp::SimTime genVamDcc();
 

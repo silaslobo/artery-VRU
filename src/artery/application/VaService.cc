@@ -138,9 +138,6 @@ void VaService::initialize()
 
 	mClusterManagementParameters.DefaultBoundingBoxShape = par("defaultBoundingBoxShape").stringValue();
 	
-	// The lines below result in a runtime error: "(artery::ClusterManagement): Unknown parameter 'boundingBoxShape' -- in module (artery::VaService) World.node[1].middleware.VaService (id=168), at t=1.6s, event #26"
-	// Inspecting the ClusterManagement module type results in this other error, indicating that it's possible that the module is not generated properly: 
-	// "Warning: (artery::ClusterManagement)World.node[4].middleware.VaService.: Object has no associated cComponentType (maybe artery::ClusterManagement is not derived from cModule/cChannel?)"
 	mClusterManagement.initialize(mClusterManagementParameters);
 	mClusterManagement.simObjects(mPersonDataProvider, mLocalDynamicMap, mPersonController);
 	
@@ -156,9 +153,6 @@ void VaService::trigger()
 
 void VaService::checkTriggeringConditions(const SimTime& T_now)
 {	
-	// TODO: If Role is Passive - sendVam only on VruShouldLeave
-	// TODO: If Role is Standalone - regular VAM timings
-	// TODO: If Role is Leader - use T_Cluster of 2.0s (transmit at a higher rate)
 
 	// provide variables named like in EN 302 637-2 V1.3.2 (section 6.1.3)
 	SimTime& T_GenVam = mGenVam;
@@ -215,24 +209,23 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 	positionError((*vam).header.stationID,vruLat,vruLon);
 
 	// POSSIBLE USE CASES
-	// - Standalone or Passive VRUs inspecting VAMs from Cluster Leaders
-	// - Cluster Leader checks for ID uniqueness
+	// - Standalone VRUs inspecting VAMs from Cluster Leaders -> JoinOp
+	// - Passive VRUs inspecting VAMs from Cluster Leaders -> LeaveOp
+	// - Cluster Leader checks VAMs from other Leaders for ID uniqueness
 	if(vam_data.vamParameters.vruClusterInformationContainer){
 
-		// FIXME: Commented while mClusterManagement instantiation is being fixed
-
-		// if(mClusterManagement.isVruStandalone() && mClusterManagement.vruShouldJoin(vam)){
-		// 	mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
-		// 	setVruClusterOperation(VruShouldJoin);
-		// }else if(mClusterManagement.isVruPassive() && mClusterManagement.vruShouldLeave(vam)){
-		// 	setVruClusterOperation(VruShouldLeave);
-		// }
+		if(mClusterManagement.isVruStandalone() && mClusterManagement.vruShouldJoin(vam)){
+			mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
+			setVruClusterOperation(VruShouldJoin);
+		}else if(mClusterManagement.isVruPassive() && mClusterManagement.vruShouldLeave(vam)){
+			setVruClusterOperation(VruShouldLeave);
+		}
 
 	}
 
 	// POSSIBLE USE CASES
-	// - Cluster Leader looking for join/leave VAMs
-	// - Passive VRU checking for breakup warnings
+	// - Cluster Leader looking for Join/Leave VAMs
+	// - Passive VRU checking for Breakup warnings from the Leader
 	else if(vam_data.vamParameters.vruClusterOperationContainer){
 		//std::cout << "VRU " << mPersonDataProvider->getStationId() << " wants to join cluster "; 
 		//std::cout << vam_data.vamParameters.vruClusterOperationContainer->clusterJoinInfo->clusterId << std::endl;
@@ -264,29 +257,19 @@ void VaService::sendVam(const SimTime& T_now)
 		mLastLowVamTimestamp = T_now;
 	}
 
-	// Just a check to verify if ClusterManagement functions are properly linked to this instance in VaService
-	mClusterManagement.updateVruClusterMap();
-	std::cout << "> VRU " << mPersonDataProvider->getStationId() << " should create a cluster? " << mClusterManagement.vruShouldCreateCluster() << "\n" << std::endl;
+	// TODO: Check which operation the VRU should do and add the correct container:
+	// New InfoContainer, Update InfoContainer, JoinOperationContainer, LeaveOperationContainer, BreakupOperationContainer 
 
-	// TODO: Check which operation the VRU should do
-	// Add InfoContainer, JoinOperationContainer or LeaveOperationContainer 
-	
-	// This piece of code was previously used to fill a struct for the CIC
-	// TODO: Evaluate if some part of it can be used for the Cluster Leader
+	// New InfoContainer: Cluster creation 
+	if(mClusterManagement.isVruStandalone() && currentVruClusterOperation == noVruOperation){
+		mClusterManagement.createVruClusterMap();
 
-	// if(mVruClusterMap.size()+1 > mNumCreateCluster){
-	// 		if(clusterVamSentCounter == 0){
-	// 			mInformationContainerData.shape = "Circular";
-	// 			mInformationContainerData.cardinalitySize = mMinClusterSize;
-	// 			mInformationContainerData.circleRadius = (smallestDistance/vanetza::units::si::meter)*Radius_oneMeter*.5;
-	// 			mInformationContainerData.leaderId = omnetpp::intuniform(getRNG(0), 0, 255); 
-	// 			std::cout << "New cluster with Id " << mInformationContainerData.leaderId << " and detected " << mVruClusterMap.size() << " nearby VRUs" << std::endl;
-	// 		}else{
-	// 			mInformationContainerData.shape = mBoundingBoxShape;
-	// 			mInformationContainerData.cardinalitySize = mVruClusterMap.size() + 1;	
-	// 			mInformationContainerData.polyOffsets = clusterPoly(mVruClusterMap);			
-	// 		}
-	// }
+		if(mClusterManagement.vruShouldCreateCluster()){
+			mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveClusterLeader);
+			mInformationContainerData = generateDataForNewCluster();
+			addClusterInformationContainer(vam, mInformationContainerData);
+		}
+	}
 
 	using namespace vanetza;
 	btp::DataRequestB request;
@@ -372,6 +355,15 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& pdp, uint
 	}
 
 	return message;
+}
+
+InformationContainerData_t VaService::generateDataForNewCluster(){
+	InformationContainerData_t infoContainerData;
+	infoContainerData.shape = "Circular";
+	infoContainerData.cardinalitySize = mClusterManagementParameters.MinClusterSize;
+	infoContainerData.circleRadius = mClusterManagement.getSmallestDistanceToVru()*Radius_oneMeter*.5;
+	infoContainerData.leaderId = omnetpp::intuniform(getRNG(0), 0, 255);
+	return infoContainerData;
 }
 
 void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationContainerData_t& infoContainerData){

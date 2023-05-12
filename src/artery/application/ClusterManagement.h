@@ -88,8 +88,10 @@ class ClusterManagement
         omnetpp::SimTime timeClusterLeaveNotification() const {return mTimeClusterLeaveNotification;}
         omnetpp::SimTime timeCombinedVruClusterOpportunity() const {return mTimeCombinedVruClusterOpportunity;}  
 
+        void createVruClusterMap();
         void updateVruClusterMap();
         std::map<LocalDynamicMap::StationID, artery::VaObject> getVruClusterMap() const {return mVruClusterMap;}
+        double getSmallestDistanceToVru() const {return mSmallestDistanceToVru;}
 
         //long generateRandomClusterID() {return omnetpp::intuniform(getRNG(0), 0, 255);}
 
@@ -143,8 +145,7 @@ class ClusterManagement
 		unsigned mNumClusterVAMRepeat;
 
         std::map<LocalDynamicMap::StationID, artery::VaObject> mVruClusterMap;
-        //vanetza::units::Length mMaxVruDistance;
-        std::vector<vanetza::units::Length> mNearbyVruDistances;
+        double mSmallestDistanceToVru;
 
         std::string mBoundingBoxShape;
 

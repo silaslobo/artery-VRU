@@ -252,10 +252,11 @@ bool ClusterManagement::checkClusteringConditions(vanetza::units::Length distanc
 	return (cardinality < mMaxClusterSize && velocityDifference <= mMaxClusterVelocityDifference && (distance <= mMaxClusterDistance || withinBoundingBox));
 }
 
-void ClusterManagement::updateVruClusterMap(){
+void ClusterManagement::createVruClusterMap(){
 	
 	mVruClusterMap.clear();
-	mNearbyVruDistances.clear();
+
+	std::vector<double> mNearbyVruDistances;
 
 	auto lDM = mLocalDynamicMap->localMap();
 			
@@ -278,17 +279,26 @@ void ClusterManagement::updateVruClusterMap(){
 		double clusterVelocityDifference = velocityDifference(VruEgoSpeed, mVSpeed);
 
 		//update mVruClusterMap when distance, velocity and cardinality constraints are met		
-		if(checkClusteringConditions(distanceVRU,clusterVelocityDifference,mVruClusterMap.size()+1)) {	
+		if(checkClusteringConditions(distanceVRU,clusterVelocityDifference,mVruClusterMap.size()+1) && !itr.second.object.asn1()->vam.vamParameters.vruClusterInformationContainer) {	
 
-			mNearbyVruDistances.push_back(distanceVRU);
+			mNearbyVruDistances.push_back(distanceVRU/vanetza::units::si::meter);
 
 			uint32_t stationID = itr.second.object.asn1()->header.stationID;
 			artery::VaObject awr = itr.second.object;
 			mVruClusterMap.insert(std::pair<LocalDynamicMap::StationID, artery::VaObject>(stationID, awr));
 		}
 	}
-	// Just a check to verify if PersonDataProvider is properly passed to this Class
-	std::cout << "VRU " << mPersonDataProvider->getStationId() << " found " << mVruClusterMap.size() << " compatible nodes nearby" << std::endl;
+
+	if(mNearbyVruDistances.size() > 0){
+		mSmallestDistanceToVru = *std::min_element(mNearbyVruDistances.begin(), mNearbyVruDistances.end());
+	}
+
+}
+
+void ClusterManagement::updateVruClusterMap(){
+
+	// Should only update the content when there are valid join or leave operations
+
 }
 
 }
