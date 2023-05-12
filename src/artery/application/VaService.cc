@@ -115,8 +115,6 @@ void VaService::initialize()
 	// Clustering
 	mClusterContainer = par("clusterContainer");
 
-	ClusterManagementParameters_t clusterManagementPar;
-
 	//Clustering options and parameters
 	mClusterManagementParameters.NumCreateCluster = par("numCreateCluster").intValue();
 	mClusterManagementParameters.MaxClusterDistance = par("maxClusterDistance").doubleValue() * vanetza::units::si::meter;
