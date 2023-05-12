@@ -19,7 +19,34 @@ using namespace omnetpp;
 class PersonDataProvider;
 class LocalEnvironmentModel;
 class ItsG5BaseService;
-class ClusterManagement : public cSimpleModule 
+
+typedef struct ClusterManagementParameters{
+			
+			// Cluster timing
+			omnetpp::SimTime TimeClusterUniquenessThreshold;
+			omnetpp::SimTime TimeClusterBreakupWarning;
+			omnetpp::SimTime TimeClusterJoinNotification;
+			omnetpp::SimTime TimeClusterJoinSuccess;
+			omnetpp::SimTime TimeClusterIdChangeNotification;
+			omnetpp::SimTime TimeClusterIdPersist;
+			omnetpp::SimTime TimeClusterContinuity;
+			omnetpp::SimTime TimeClusterLeaderWaiting;
+			omnetpp::SimTime TimeClusterLeaveNotification;
+			omnetpp::SimTime TimeCombinedVruClusterOpportunity;  
+
+			//Cluster pparameters
+			unsigned NumCreateCluster;
+			vanetza::units::Length MaxClusterDistance;
+			double MaxClusterVelocityDifference;
+			vanetza::units::Length MaxCombinedClusterDistance;
+			unsigned MinClusterSize;
+			unsigned MaxClusterSize;
+			unsigned NumClusterVAMRepeat;
+
+			std::string DefaultBoundingBoxShape;
+
+} ClusterManagementParameters_t;
+class ClusterManagement 
 {
     public:
 
@@ -27,7 +54,8 @@ class ClusterManagement : public cSimpleModule
         ClusterManagement();
         //ClusterManagement(const PersonDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc, VruRoleType initialVruRole = VruActiveStandalone);
 
-        virtual void initialize() override;
+        //virtual void initialize() override;
+        void initialize(ClusterManagementParameters_t&);
         void simObjects(const PersonDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc);
 
         void setCurrentVruRole(VruRoleType newVruRole);

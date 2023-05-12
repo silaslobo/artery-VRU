@@ -114,11 +114,36 @@ void VaService::initialize()
 
 	// Clustering
 	mClusterContainer = par("clusterContainer");
+
+	ClusterManagementParameters_t clusterManagementPar;
+
+	//Clustering options and parameters
+	mClusterManagementParameters.NumCreateCluster = par("numCreateCluster").intValue();
+	mClusterManagementParameters.MaxClusterDistance = par("maxClusterDistance").doubleValue() * vanetza::units::si::meter;
+	mClusterManagementParameters.MaxClusterVelocityDifference = par("maxClusterVelocityDifference").doubleValue();
+	mClusterManagementParameters.MaxCombinedClusterDistance = par("maxCombinedClusterDistance").doubleValue() * vanetza::units::si::meter;
+	mClusterManagementParameters.MinClusterSize = par("minClusterSize").intValue();
+	mClusterManagementParameters.MaxClusterSize = par("maxClusterSize").intValue();
+	mClusterManagementParameters.NumClusterVAMRepeat = par("numClusterVAMRepeat").intValue();
+
+	// Clustering timing parameters
+	mClusterManagementParameters.TimeClusterUniquenessThreshold = par("timeClusterUniquenessThreshold");
+	mClusterManagementParameters.TimeClusterBreakupWarning = par("timeClusterBreakupWarning");
+	mClusterManagementParameters.TimeClusterJoinNotification = par("timeClusterJoinNotification");
+	mClusterManagementParameters.TimeClusterJoinSuccess = par("timeClusterJoinSuccess");
+	mClusterManagementParameters.TimeClusterIdChangeNotification = par("timeClusterIdChangeNotification");
+	mClusterManagementParameters.TimeClusterIdPersist = par("timeClusterIdPersist");
+	mClusterManagementParameters.TimeClusterContinuity = par("timeClusterContinuity");
+	mClusterManagementParameters.TimeClusterLeaderWaiting = par("timeClusterLeaderWaiting");
+	mClusterManagementParameters.TimeClusterLeaveNotification = par("timeClusterLeaveNotification");
+	mClusterManagementParameters.TimeCombinedVruClusterOpportunity = par("timeCombinedVruClusterOpportunity"); 
+
+	mClusterManagementParameters.DefaultBoundingBoxShape = par("defaultBoundingBoxShape").stringValue();
 	
 	// The lines below result in a runtime error: "(artery::ClusterManagement): Unknown parameter 'boundingBoxShape' -- in module (artery::VaService) World.node[1].middleware.VaService (id=168), at t=1.6s, event #26"
 	// Inspecting the ClusterManagement module type results in this other error, indicating that it's possible that the module is not generated properly: 
 	// "Warning: (artery::ClusterManagement)World.node[4].middleware.VaService.: Object has no associated cComponentType (maybe artery::ClusterManagement is not derived from cModule/cChannel?)"
-	mClusterManagement.initialize();
+	mClusterManagement.initialize(mClusterManagementParameters);
 	mClusterManagement.simObjects(mPersonDataProvider, mLocalDynamicMap, mPersonController);
 	
 	currentVruClusterOperation = noVruOperation;

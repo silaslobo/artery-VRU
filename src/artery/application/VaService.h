@@ -80,6 +80,7 @@ class VaService : public ItsG5BaseService
 		const PersonDataProvider* mPersonDataProvider = nullptr;
 		const Timer* mTimer = nullptr;
 		ClusterManagement mClusterManagement;
+		ClusterManagementParameters_t mClusterManagementParameters;
 		
 		LocalDynamicMap* mLocalDynamicMap = nullptr;
 		std::map<LocalDynamicMap::StationID, artery::VaObject> mVruClusterMap;

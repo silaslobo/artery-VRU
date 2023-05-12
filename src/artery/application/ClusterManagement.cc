@@ -21,7 +21,7 @@ namespace artery
 namespace bg = boost::geometry;
 using namespace omnetpp;
 
-Define_Module(ClusterManagement)
+//Define_Module(ClusterManagement)
 
 ClusterManagement::ClusterManagement(){}
 
@@ -34,49 +34,30 @@ ClusterManagement::ClusterManagement(){}
 // 									mPersonController(pc), 
 // 									currentVruRole(initialVruRole){} 
 
-void ClusterManagement::initialize(){
+void ClusterManagement::initialize(ClusterManagementParameters_t& cManagementPar){
 
 	//Clustering options and parameters
-	// mBoundingBoxShape = par("boundingBoxShape").stringValue();
-	// mNumCreateCluster = par("numCreateCluster").intValue();
-	// mMaxClusterDistance = par("maxClusterDistance").doubleValue() * vanetza::units::si::meter;
-	// mMaxClusterVelocityDifference = par("maxClusterVelocityDifference").doubleValue();
-	// mMaxCombinedClusterDistance = par("maxCombinedClusterDistance").doubleValue() * vanetza::units::si::meter;
-	// mMinClusterSize = par("minClusterSize").intValue();
-	// mMaxClusterSize = par("maxClusterSize").intValue();
-	// mNumClusterVAMRepeat = par("numClusterVAMRepeat").intValue();
-
-	mBoundingBoxShape = "Polygon";
-	mNumCreateCluster = 3;
-	mMaxClusterDistance = 5.0 * vanetza::units::si::meter;
-	mMaxClusterVelocityDifference = 0.05;
-	mMaxCombinedClusterDistance = 2 * vanetza::units::si::meter;
-	mMinClusterSize = 1;
-	mMaxClusterSize = 20;
-	mNumClusterVAMRepeat = 3;
+	mNumCreateCluster = cManagementPar.NumCreateCluster;
+	mMaxClusterDistance = cManagementPar.MaxClusterDistance;
+	mMaxClusterVelocityDifference = cManagementPar.MaxClusterVelocityDifference;
+	mMaxCombinedClusterDistance = cManagementPar.MaxCombinedClusterDistance;
+	mMinClusterSize = cManagementPar.MinClusterSize;
+	mMaxClusterSize = cManagementPar.MaxClusterSize;
+	mNumClusterVAMRepeat = cManagementPar.NumClusterVAMRepeat;
 
 	// Clustering timing parameters
-	// mTimeClusterUniquenessThreshold = par("timeClusterUniquenessThreshold");
-	// mTimeClusterBreakupWarning = par("timeClusterBreakupWarning");
-	// mTimeClusterJoinNotification = par("timeClusterJoinNotification");
-	// mTimeClusterJoinSuccess = par("timeClusterJoinSuccess");
-	// mTimeClusterIdChangeNotification = par("timeClusterIdChangeNotification");
-	// mTimeClusterIdPersist = par("timeClusterIdPersist");
-	// mTimeClusterContinuity = par("timeClusterContinuity");
-	// mTimeClusterContinuity = par("timeClusterLeaderWaiting");
-	// mTimeClusterLeaveNotification = par("timeClusterLeaveNotification");
-	// mTimeCombinedVruClusterOpportunity = par("timeCombinedVruClusterOpportunity"); 
+	mTimeClusterUniquenessThreshold = cManagementPar.TimeClusterUniquenessThreshold;
+	mTimeClusterBreakupWarning = cManagementPar.TimeClusterBreakupWarning;
+	mTimeClusterJoinNotification = cManagementPar.TimeClusterJoinNotification;
+	mTimeClusterJoinSuccess = cManagementPar.TimeClusterJoinSuccess;
+	mTimeClusterIdChangeNotification = cManagementPar.TimeClusterIdChangeNotification;
+	mTimeClusterIdPersist = cManagementPar.TimeClusterIdPersist;
+	mTimeClusterContinuity = cManagementPar.TimeClusterContinuity;
+	mTimeClusterLeaderWaiting = cManagementPar.TimeClusterLeaderWaiting;
+	mTimeClusterLeaveNotification = cManagementPar.TimeClusterLeaveNotification;
+	mTimeCombinedVruClusterOpportunity = cManagementPar.TimeCombinedVruClusterOpportunity; 
 	
-	mTimeClusterUniquenessThreshold = 30.0;
-	mTimeClusterBreakupWarning = 3.0;
-	mTimeClusterJoinNotification = 3.0;
-	mTimeClusterJoinSuccess = 0.5;
-	mTimeClusterIdChangeNotification = 3.0;
-	mTimeClusterIdPersist = 3.0;
-	mTimeClusterContinuity = 2.0;
-	mTimeClusterContinuity = 2.0;
-	mTimeClusterLeaveNotification = 1.0;
-	mTimeCombinedVruClusterOpportunity = 15.0; 
+	mBoundingBoxShape = cManagementPar.DefaultBoundingBoxShape;
 
 	setCurrentVruRole(VruActiveStandalone);
 }

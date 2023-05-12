@@ -69,4 +69,31 @@ simple VaService
         volatile int pathHistoryLength = default(23);
         
         bool ignorePersons = false;
+
+        // CLUSTERING PARAMETERS: based on ETSI TS 103 300-3 V2.2.1 (2023-02) Section 8
+
+        // Parameters for VRU clustering decisions 
+        int numCreateCluster = default(3);
+        double maxClusterDistance @unit(m) = default(5.0m);
+        double maxClusterVelocityDifference = default(0.05);
+        double maxCombinedClusterDistance @unit(m) = default(2.0m);
+        int minClusterSize = default(1);
+        int maxClusterSize = default(20);
+        int numClusterVAMRepeat = default(3);
+
+        // Clustering behavior on the simulation
+        string defaultBoundingBoxShape = default("Polygon");
+        
+        // Cluster membership parameters 
+        double timeClusterUniquenessThreshold @unit(s) = default(30.0s);
+        double timeClusterBreakupWarning @unit(s) = default(3.0s);
+        double timeClusterJoinNotification @unit(s) = default(3.0s);
+        double timeClusterJoinSuccess @unit(s) = default(0.5s);
+        double timeClusterIdChangeNotification @unit(s) = default(3.0s);
+        double timeClusterIdPersist @unit(s) = default(3.0s);
+        double timeClusterContinuity @unit(s) = default(2.0s);
+        double timeClusterLeaderWaiting @unit(s) = default(2.0s);
+        double timeClusterLeaveNotification @unit(s) = default(1.0s);
+        double timeCombinedVruClusterOpportunity @unit(s) = default(15.0s);
+        
 }
