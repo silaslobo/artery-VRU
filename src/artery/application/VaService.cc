@@ -55,6 +55,7 @@ static const simsignal_t scSignalVamSent = cComponent::registerSignal("VamSent")
 static const simsignal_t SignalVamReceived = cComponent::registerSignal("VamReceivedCounter");
 static const simsignal_t SignalVamSent = cComponent::registerSignal("VamSentCounter");
 static const simsignal_t scSignalDccTime = cComponent::registerSignal("delayDCC");
+static const simsignal_t scSignalErrorDistance = cComponent::registerSignal("errorDistance");
 
 static const auto scLowFrequencyContainerInterval = std::chrono::milliseconds(500);
 
@@ -169,6 +170,11 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 {
 	VruAwareness_t vam_data = (*vam).vam;
 
+	auto vruLon = vam_data.vamParameters.basicContainer.referencePosition.longitude/std::pow(10.0, 7);
+	auto vruLat = vam_data.vamParameters.basicContainer.referencePosition.latitude/std::pow(10.0, 7);
+
+	positionError((*vam).header.stationID,vruLat,vruLon);
+
 
 	if(vam_data.vamParameters.vruClusterInformationContainer && !mVruActiveClusterLeader){
 		int clusterCardinalitySize = vam_data.vamParameters.vruClusterInformationContainer->clusterCardinalitySize;
@@ -186,10 +192,6 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
     
 		if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterPolygon){
 				PolyPointList_t& receivedOffsetList = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList;
-
-				// for(int iter = 0; iter < receivedOffsetList.list.size; iter++){
-				// 	std::cout << receivedOffsetList.list.array[iter] << std::endl;
-				// }
 
 				Polygon_t receivedBoundingBox = reconstructPolygon(receivedOffsetList,leaderTraCIPos);
 				withinBoundingBox = bg::within(vruPos, receivedBoundingBox);
@@ -270,14 +272,15 @@ double VaService::velocityDifference(SpeedValue_t referenceSpeed, SpeedValue_t e
 
 void VaService::checkTriggeringConditions(const SimTime& T_now)
 {	
+	
+
 	// provide variables named like in EN 302 637-2 V1.3.2 (section 6.1.3)
 	SimTime& T_GenVam = mGenVam;
 	const SimTime& T_GenVamMin = mGenVamMin;
 	const SimTime& T_GenVamMax = mGenVamMax;
 	const SimTime T_GenVamDcc = mDccRestriction ? genVamDcc() : T_GenVamMin;
-	const SimTime T_elapsed = T_now - mLastVamTimestamp;
+	const SimTime T_elapsed = T_now - mLastVamTimestamp;	
 
-	emit(scSignalDccTime, genVamDcc());
 
 	/*
 	if (T_elapsed >= T_GenVamDcc) {
@@ -521,7 +524,7 @@ SimTime VaService::genVamDcc()
 	
 	static const vanetza::dcc::TransmissionLite va_tx(vanetza::dcc::Profile::DP3, 0);
 	vanetza::Clock::duration interval = trc->interval(va_tx);
-	SimTime dcc { std::chrono::duration_cast<std::chrono::milliseconds>(interval).count(), SIMTIME_MS };
+	SimTime dcc { std::chrono::duration_cast<std::chrono::milliseconds>(interval).count(), SIMTIME_MS };	
 	return std::min(mGenVamMax, std::max(mGenVamMin, dcc));
 }
 
@@ -621,5 +624,47 @@ void addClusterOperationContainer(vanetza::asn1::Vam& message){
 	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer>();
 
 }
+
+
+double VaService::getDCCToff(){
+    // network interface may not be ready yet during initialization, so look it up at this later point
+    auto netifc = mNetworkInterfaceTable->select(mPrimaryChannel);
+    vanetza::dcc::TransmitRateThrottle *trc = netifc ? netifc->getDccEntity().getTransmitRateThrottle() : nullptr;
+    if (!trc) {
+        throw cRuntimeError("No DCC TRC found for CP's primary channel %i", mPrimaryChannel);
+    }
+    static const vanetza::dcc::TransmissionLite va_tx(vanetza::dcc::Profile::DP3, 0);
+    vanetza::Clock::duration delay = trc->interval(va_tx);
+    SimTime dcc{std::chrono::duration_cast<std::chrono::milliseconds>(delay).count(), SIMTIME_MS};	
+    return dcc.dbl();
+}
+
+void VaService::positionError(StationID_t stationID, double lat, double lon){
+	uint32_t id = stationID;
+	auto vamLat = lat;
+	auto vamLon = lon;
+
+	libsumo::TraCIPosition vamPos = api->simulation.convertGeo(vamLon,vamLat,true);
+
+	std::string personID = std::to_string(stationID);
+	
+	std::string pID_end = personID.substr(5);
+
+	std::string pID_0 = {personID.at(0)};
+	std::string pID_1 = {personID.at(1)};
+	std::string pID_2 = {personID.at(2)};
+	std::string pID_3 = {personID.at(3)};
+	std::string pID_4 = {personID.at(4)};
+	std::string pID_sep = ".";
+	std::string pID = pID_0 + pID_1 + pID_2 + pID_3 + pID_4 + pID_sep + pID_end;
+
+	libsumo::TraCIPosition ActualPosition = api->person.getPosition(pID);
+	traci::TraCIGeoPosition traci_geo = api->convertGeo(ActualPosition);
+
+	double errorDistance = bg::distance(point(vamLon,vamLat),point(traci_geo.longitude,traci_geo.latitude));
+
+	emit(scSignalErrorDistance, errorDistance);
+}
+
 
 } // namespace artery

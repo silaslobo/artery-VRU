@@ -144,6 +144,9 @@ class VaService : public ItsG5BaseService
 		void personSumoData(const omnetpp::SimTime&);
 		const traci::PersonController* mPersonController = nullptr;
 		std::shared_ptr<const traci::API> api;
+
+		double getDCCToff();
+		void positionError(StationID_t, double lat, double lon);
 };
 
 vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider&, uint16_t genDeltaTime);
