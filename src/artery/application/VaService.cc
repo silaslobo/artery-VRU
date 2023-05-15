@@ -161,17 +161,18 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 	const SimTime T_GenVamDcc = mDccRestriction ? genVamDcc() : T_GenVamMin;
 	const SimTime T_elapsed = T_now - mLastVamTimestamp;
 
-	if (T_elapsed >= T_GenVamDcc) {
-		if (mFixedRate) {
-			sendVam(T_now);
-		} else if (T_elapsed >= T_GenVam) {
-			sendVam(T_now);
-			if (++mGenVamLowDynamicsCounter >= mGenVamLowDynamicsLimit) {
-				T_GenVam = T_GenVamMax;
+	if (!mClusterManagement.isVruPassive()){
+		if (T_elapsed >= T_GenVamDcc) {
+			if (mFixedRate) {
+				sendVam(T_now);
+			} else if (T_elapsed >= T_GenVam) {
+				sendVam(T_now);
+				if (++mGenVamLowDynamicsCounter >= mGenVamLowDynamicsLimit) {
+					T_GenVam = T_GenVamMax;
+				}
 			}
 		}
 	}
-
 }
 
 void VaService::indicate(const vanetza::btp::DataIndication& ind, std::unique_ptr<vanetza::UpPacket> packet)
@@ -218,6 +219,7 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 			mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
 			setVruClusterOperation(VruShouldJoin);
 		}else if(mClusterManagement.isVruPassive() && mClusterManagement.vruShouldLeave(vam)){
+			mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
 			setVruClusterOperation(VruShouldLeave);
 		}
 
@@ -270,6 +272,16 @@ void VaService::sendVam(const SimTime& T_now)
 			addClusterInformationContainer(vam, mInformationContainerData);
 		}
 	}
+
+	//Operation Container to join a Cluster
+	if (mClusterManagement.isVruStandalone() && mClusterManagement.vruShouldJoin(vam)){
+		addClusterJoinOperationContainer(vam, T_now);
+	}
+
+	if (mClusterManagement.isVruPassive() && mClusterManagement.vruShouldLeave(vam)){
+		addClusterLeaveOperationContainer(vam);
+	}
+
 
 	using namespace vanetza;
 	btp::DataRequestB request;
@@ -408,18 +420,31 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationCont
 
 }
 
-void addClusterJoinOperationContainer(vanetza::asn1::Vam& message){
+void VaService::addClusterJoinOperationContainer(vanetza::asn1::Vam& message, const SimTime& T_now){
+	omnetpp::SimTime joinTime = T_now;
 	VruClusterOperationContainer*& vcoc = message->vam.vamParameters.vruClusterOperationContainer;
 	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer>();
-	//vcoc->clusterJoinInfo->clusterId = 
-	//vcoc->clusterJoinInfo->joinTime = 
+
+	ClusterJoinInfo* joinInfo = vanetza::asn1::allocate<ClusterJoinInfo>();
+	joinInfo->clusterId = mTargetClusterId;
+	joinInfo->joinTime = joinTime.dbl();
+
+	ASN_SEQUENCE_ADD(&vcoc->clusterJoinInfo,joinInfo);
+
+	mClusterManagement.setCurrentVruRole(mClusterManagement.VruPassive);	
 }
 
-void addClusterLeaveOperationContainer(vanetza::asn1::Vam& message){
+void VaService::addClusterLeaveOperationContainer(vanetza::asn1::Vam& message){
 	VruClusterOperationContainer*& vcoc = message->vam.vamParameters.vruClusterOperationContainer;
 	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer>();
-	//vcoc->clusterLeaveInfo->clusterId =
-	vcoc->clusterLeaveInfo->clusterLeaveReason = ClusterLeaveReason_notProvided;
+
+	ClusterLeaveInfo* leaveInfo = vanetza::asn1::allocate<ClusterLeaveInfo>();
+	leaveInfo->clusterId = mTargetClusterId;
+	leaveInfo->clusterLeaveReason = ClusterLeaveReason_notProvided;
+
+	ASN_SEQUENCE_ADD(&vcoc->clusterLeaveInfo,leaveInfo);
+
+	mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveStandalone);
 }
 
 void VaService::positionError(StationID_t stationID, double lat, double lon){

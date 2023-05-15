@@ -36,7 +36,7 @@ class NetworkInterfaceTable;
 class Timer;
 class PersonDataProvider;
 class LocalEnvironmentModel;
-class ClusterManagement;
+//class ClusterManagement;
 typedef struct InformationContainerData{
 	std::string shape;
 	unsigned cardinalitySize;
@@ -95,6 +95,7 @@ class VaService : public ItsG5BaseService
 		vanetza::units::Angle mLastVamHeading;
 		omnetpp::SimTime mLastVamTimestamp;
 		omnetpp::SimTime mLastLowVamTimestamp;
+		omnetpp::SimTime T_leaveElepsed;
 		vanetza::units::Angle mHeadingDelta;
 		vanetza::units::Length mPositionDelta;
 		vanetza::units::Velocity mSpeedDelta;
@@ -120,14 +121,16 @@ class VaService : public ItsG5BaseService
 		const traci::PersonController* mPersonController = nullptr;
 		std::shared_ptr<const traci::API> api;
 
-		void positionError(StationID_t, double lat, double lon);
+		void positionError(StationID_t, double lat, double lon);		
+
+		void addClusterJoinOperationContainer(vanetza::asn1::Vam&, const SimTime&);	
+		void addClusterLeaveOperationContainer(vanetza::asn1::Vam&);	
 };
 
 vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider&, uint16_t genDeltaTime);
 void addLowFrequencyContainer(vanetza::asn1::Vam&, unsigned pathHistoryLength = 0);
 void addClusterInformationContainer(vanetza::asn1::Vam&, InformationContainerData_t&);
-void addClusterJoinOperationContainer(vanetza::asn1::Vam&);	
-void addClusterLeaveOperationContainer(vanetza::asn1::Vam&);	
+
 
 //TODO: Consider moving this method to an utilities class
 SpeedValue_t buildVAMSpeedValue(const vanetza::units::Velocity& v);

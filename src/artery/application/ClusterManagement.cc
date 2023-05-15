@@ -98,9 +98,11 @@ bool ClusterManagement::vruShouldCreateCluster(){
 
 artery::ClusterManagement::ClusterParameters_t ClusterManagement::parseInformationContainer(const vanetza::asn1::Vam& vam){
 
-	VruAwareness_t vam_data = (*vam).vam;
+	const VruAwareness_t vam_data = (*vam).vam;
 	ClusterParameters_t clusterParameters;
 
+	std::cout << vam_data.vamParameters.vruClusterInformationContainer->clusterCardinalitySize << std::endl;
+	
 	clusterParameters.cardinality = vam_data.vamParameters.vruClusterInformationContainer->clusterCardinalitySize;
 
 	double vruLeaderLon = vam_data.vamParameters.basicContainer.referencePosition.longitude/std::pow(10.0, 7);
