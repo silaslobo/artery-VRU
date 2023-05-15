@@ -46,6 +46,8 @@ typedef struct ClusterManagementParameters{
 			std::string DefaultBoundingBoxShape;
 
 } ClusterManagementParameters_t;
+
+typedef std::map<LocalDynamicMap::StationID, artery::VaObject> VruClusterMap_t;
 class ClusterManagement 
 {
     public:
@@ -70,6 +72,9 @@ class ClusterManagement
         bool vruShouldLeave(const vanetza::asn1::Vam&);
         bool vruShouldCreateCluster();
 
+        void registerLeaderId(long leaderId){mLeaderId = leaderId;}
+        long getLeaderId(){return mLeaderId;}
+
         // Cluster parameter getters
         std::string boundingBoxShape() const {return mBoundingBoxShape;}
 	    unsigned numCreateCluster() const {return mNumCreateCluster;}
@@ -89,23 +94,28 @@ class ClusterManagement
         omnetpp::SimTime timeCombinedVruClusterOpportunity() const {return mTimeCombinedVruClusterOpportunity;}  
 
         void createVruClusterMap();
-        void updateVruClusterMap();
-        std::map<LocalDynamicMap::StationID, artery::VaObject> getVruClusterMap() const {return mVruClusterMap;}
+        void updateVruClusterMap(const vanetza::asn1::Vam&, std::string);
+        void clearVruClusterMap() {mClusterMap.clear();}
+        VruClusterMap_t getVruClusterMap() const {return mClusterMap;} 
         double getSmallestDistanceToVru() const {return mSmallestDistanceToVru;}
+
+        std::vector<std::tuple<long,long>> getOffsetsFromMap(){return clusterPoly(mClusterMap);}
 
         //long generateRandomClusterID() {return omnetpp::intuniform(getRNG(0), 0, 255);}
 
 
     private:
         VruRoleType currentVruRole;
+        long mLeaderId;
 
         // Geometry
         typedef boost::geometry::model::point <long,2,boost::geometry::cs::cartesian>pointXY;
         typedef boost::geometry::model::polygon<pointXY, false> Polygon_t; 
 		typedef boost::geometry::model::multi_polygon<Polygon_t> Circle_t;
+        std::vector<std::tuple<long,long>> mPolyOffSetList;
         artery::ClusterManagement::Polygon_t reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos);
 		artery::ClusterManagement::Circle_t buildCircle(const double radius, pointXY& leaderPos);
-        std::vector<std::tuple<long,long>> clusterPoly(const std::map<LocalDynamicMap::StationID, artery::VaObject>);
+        std::vector<std::tuple<long,long>> clusterPoly(const VruClusterMap_t);
 
         // Parameter validation
         double velocityDifference(SpeedValue_t, SpeedValue_t);
@@ -144,7 +154,8 @@ class ClusterManagement
 		unsigned mMaxClusterSize;
 		unsigned mNumClusterVAMRepeat;
 
-        std::map<LocalDynamicMap::StationID, artery::VaObject> mVruClusterMap;
+        VruClusterMap_t mInitialClusterMap;
+        VruClusterMap_t mClusterMap;
         double mSmallestDistanceToVru;
 
         std::string mBoundingBoxShape;

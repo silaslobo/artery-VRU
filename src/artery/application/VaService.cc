@@ -228,9 +228,11 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 	// POSSIBLE USE CASES
 	// - Cluster Leader looking for Join/Leave VAMs
 	// - Passive VRU checking for Breakup warnings from the Leader
-	else if(vam_data.vamParameters.vruClusterOperationContainer){
-		//std::cout << "VRU " << mPersonDataProvider->getStationId() << " wants to join cluster "; 
-		//std::cout << vam_data.vamParameters.vruClusterOperationContainer->clusterJoinInfo->clusterId << std::endl;
+	if(vam_data.vamParameters.vruClusterOperationContainer->clusterJoinInfo){
+		if(mClusterManagement.isVruClusterLeader() && vam_data.vamParameters.vruClusterOperationContainer->clusterJoinInfo->clusterId == mClusterManagement.getLeaderId()){
+			mClusterManagement.updateVruClusterMap(vam, "include_VRU");
+			setVruClusterOperation(AddVruToCluster);
+		}
 	}   
 }
 
@@ -268,8 +270,17 @@ void VaService::sendVam(const SimTime& T_now)
 
 		if(mClusterManagement.vruShouldCreateCluster()){
 			mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveClusterLeader);
-			mInformationContainerData = generateDataForNewCluster();
-			addClusterInformationContainer(vam, mInformationContainerData);
+			auto initialInfoContainerData = generateDataForNewCluster();
+			addClusterInformationContainer(vam, initialInfoContainerData);
+		}
+	}
+
+	// Update InfoContainer: Cluster Expansion
+	if(mClusterManagement.isVruClusterLeader() && currentVruClusterOperation == AddVruToCluster){
+		VruClusterMap_t clusterMap = mClusterManagement.getVruClusterMap();
+		if(clusterMap.size()+1 >= 3){
+			auto polyInfoData = generateDataForPolyCluster();
+			addClusterInformationContainer(vam, polyInfoData);
 		}
 	}
 
@@ -369,12 +380,22 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& pdp, uint
 	return message;
 }
 
+// TODO: In the future evaluate moving these methods and the InformationContainerData_t struct to the ClusterManagement class
 InformationContainerData_t VaService::generateDataForNewCluster(){
 	InformationContainerData_t infoContainerData;
 	infoContainerData.shape = "Circular";
 	infoContainerData.cardinalitySize = mClusterManagementParameters.MinClusterSize;
 	infoContainerData.circleRadius = mClusterManagement.getSmallestDistanceToVru()*Radius_oneMeter*.5;
 	infoContainerData.leaderId = omnetpp::intuniform(getRNG(0), 0, 255);
+	mClusterManagement.registerLeaderId(infoContainerData.leaderId);
+	return infoContainerData;
+}
+
+InformationContainerData_t VaService::generateDataForPolyCluster(){
+	InformationContainerData_t infoContainerData;
+	infoContainerData.shape = "Polygon";
+	infoContainerData.cardinalitySize = mClusterManagement.getVruClusterMap().size()+1;
+	infoContainerData.polyOffsets = mClusterManagement.getOffsetsFromMap();
 	return infoContainerData;
 }
 

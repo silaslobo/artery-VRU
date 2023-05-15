@@ -93,7 +93,7 @@ bool ClusterManagement::vruShouldLeave(const vanetza::asn1::Vam& vam){
 
 bool ClusterManagement::vruShouldCreateCluster(){
 	// TODO: Should also evaluate if any available leader is nearby -> parse a set of "recent" VAMs 
-	return (mVruClusterMap.size() + 1) >= mNumCreateCluster;
+	return (mInitialClusterMap.size() + 1) >= mNumCreateCluster;
 }
 
 artery::ClusterManagement::ClusterParameters_t ClusterManagement::parseInformationContainer(const vanetza::asn1::Vam& vam){
@@ -179,21 +179,20 @@ artery::ClusterManagement::Circle_t ClusterManagement::buildCircle(const double 
 	return builtCircle;
 }
 
-std::vector<std::tuple<long,long>> ClusterManagement::clusterPoly(const std::map<LocalDynamicMap::StationID, artery::VaObject> vruMap)
+std::vector<std::tuple<long,long>> ClusterManagement::clusterPoly(VruClusterMap_t vruMap)
 {
-	std::map<LocalDynamicMap::StationID, artery::VaObject> clusterMap = vruMap;
 	std::vector<pointXY> clusterPositions;
-	pointXY previousPos, vruEgoPos;
+	pointXY previousPos, vruLeaderPos;
 	std::vector<std::tuple<long,long>> distancesList;
 
-	libsumo::TraCIPosition vruEgoTraCIPos = position_cast(traci::Boundary(api->simulation.getNetBoundary()), mPersonDataProvider->position());
-	vruEgoPos = pointXY(vruEgoTraCIPos.x, vruEgoTraCIPos.y);
-	clusterPositions.push_back(vruEgoPos);
+	libsumo::TraCIPosition vruLeaderTraCIPos = position_cast(traci::Boundary(api->simulation.getNetBoundary()), mPersonDataProvider->position());
+	vruLeaderPos = pointXY(vruLeaderTraCIPos.x, vruLeaderTraCIPos.y);
+	clusterPositions.push_back(vruLeaderPos);
 
 	//egoHeading
 	//auto egoVruHeading = Constants::round(mPersonDataProvider->heading(), Constants::decidegree);	
 
-	for (auto const& itr : clusterMap) {
+	for (auto const& itr : vruMap) {
 		auto vruLon = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / std::pow( 10.0, 7 ));
 		auto vruLat = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.latitude) / std::pow( 10.0, 7 ));
 		libsumo::TraCIPosition vruTraCIPos = api->simulation.convertGeo(vruLon,vruLat, true);
@@ -201,7 +200,7 @@ std::vector<std::tuple<long,long>> ClusterManagement::clusterPoly(const std::map
 	}
 
 	// Adds leader node again to close polygon
-	clusterPositions.push_back(vruEgoPos);
+	clusterPositions.push_back(vruLeaderPos);
 
 	// Using boost geometry, simplifies the original polygon with convex hull algorithm
 	Polygon_t clusterPolygon, hull;
@@ -226,7 +225,7 @@ std::vector<std::tuple<long,long>> ClusterManagement::clusterPoly(const std::map
 		// If the starting point is the vruEgo, a null first offset is expected
 		if(firstIteration){
 			firstIteration = false;
-			previousPos = vruEgoPos;
+			previousPos = vruLeaderPos;
 			std::cout << "offset list leader: ";
 		}
 
@@ -256,7 +255,7 @@ bool ClusterManagement::checkClusteringConditions(vanetza::units::Length distanc
 
 void ClusterManagement::createVruClusterMap(){
 	
-	mVruClusterMap.clear();
+	mInitialClusterMap.clear();
 
 	std::vector<double> mNearbyVruDistances;
 
@@ -265,7 +264,7 @@ void ClusterManagement::createVruClusterMap(){
 	//calculate distance between egoVRU and received VRU
 	double VruEgoLon = ((Constants::round(mPersonDataProvider->longitude(), Constants::microdegree) * Longitude_oneMicrodegreeEast) / std::pow( 10.0, 7 ));
 	double VruEgoLat = ((Constants::round(mPersonDataProvider->latitude(), Constants::microdegree) * Latitude_oneMicrodegreeNorth) / std::pow( 10.0, 7 )); 
-	libsumo::TraCIPosition vruEgoTraCIPos = api->simulation.convertGeo(VruEgoLon,VruEgoLat, true);
+	libsumo::TraCIPosition vruLeaderTraCIPos = api->simulation.convertGeo(VruEgoLon,VruEgoLat, true);
 	SpeedValue_t VruEgoSpeed = buildVAMSpeedValue(mPersonDataProvider->speed());
 
 	//collect data from the VRUs in the LDM and update mVruClusterMap		
@@ -275,19 +274,19 @@ void ClusterManagement::createVruClusterMap(){
 		double mVlongitude = ((itr.second.object.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / std::pow( 10.0, 7 ));			
 		libsumo::TraCIPosition mVTraCIPosition = api->simulation.convertGeo(mVlongitude, mVlatitude, true);
 				
-		vanetza::units::Length distanceVRU = bg::distance(pointXY(vruEgoTraCIPos.x,vruEgoTraCIPos.y), pointXY(mVTraCIPosition.x,mVTraCIPosition.y)) * vanetza::units::si::meter;	
+		vanetza::units::Length distanceVRU = bg::distance(pointXY(vruLeaderTraCIPos.x,vruLeaderTraCIPos.y), pointXY(mVTraCIPosition.x,mVTraCIPosition.y)) * vanetza::units::si::meter;	
 
 		SpeedValue_t mVSpeed = itr.second.object.asn1()->vam.vamParameters.vruHighFrequencyContainer->speed.speedValue;
 		double clusterVelocityDifference = velocityDifference(VruEgoSpeed, mVSpeed);
 
 		//update mVruClusterMap when distance, velocity and cardinality constraints are met		
-		if(checkClusteringConditions(distanceVRU,clusterVelocityDifference,mVruClusterMap.size()+1) && !itr.second.object.asn1()->vam.vamParameters.vruClusterInformationContainer) {	
+		if(checkClusteringConditions(distanceVRU,clusterVelocityDifference,mInitialClusterMap.size()+1) && !itr.second.object.asn1()->vam.vamParameters.vruClusterInformationContainer) {	
 
 			mNearbyVruDistances.push_back(distanceVRU/vanetza::units::si::meter);
 
 			uint32_t stationID = itr.second.object.asn1()->header.stationID;
 			artery::VaObject awr = itr.second.object;
-			mVruClusterMap.insert(std::pair<LocalDynamicMap::StationID, artery::VaObject>(stationID, awr));
+			mInitialClusterMap.insert(std::pair<LocalDynamicMap::StationID, artery::VaObject>(stationID, awr));
 		}
 	}
 
@@ -297,10 +296,15 @@ void ClusterManagement::createVruClusterMap(){
 
 }
 
-void ClusterManagement::updateVruClusterMap(){
+void ClusterManagement::updateVruClusterMap(const vanetza::asn1::Vam& vam, std::string operation){
 
-	// Should only update the content when there are valid join or leave operations
+	if(operation == "include_VRU"){
+		mClusterMap.insert(std::pair<LocalDynamicMap::StationID, artery::VaObject>(vam->header.stationID, VaObject(vam)));
+	}else if(operation == "remove_VRU"){
+		mClusterMap.erase(vam->header.stationID);
+	}
 
 }
+
 
 }

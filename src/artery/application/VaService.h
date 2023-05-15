@@ -60,8 +60,8 @@ class VaService : public ItsG5BaseService
 		typedef boost::geometry::srs::spheroid <double> stype;
 		typedef boost::geometry::strategy::distance::vincenty <stype> vincenty_type;
 
-		InformationContainerData_t mInformationContainerData;
 		InformationContainerData_t generateDataForNewCluster();
+		InformationContainerData_t generateDataForPolyCluster();
 
 		void checkTriggeringConditions(const omnetpp::SimTime&);
 		bool checkHeadingDelta() const;
@@ -112,7 +112,7 @@ class VaService : public ItsG5BaseService
 		double clusterVamSentCounter = 0;
 		unsigned mTargetClusterId;    
 		std::string mBoundingBoxShape; 
-		enum VruClusterOperation {noVruOperation, VruShouldJoin, VruShouldLeave}; 
+		enum VruClusterOperation {noVruOperation, VruShouldJoin, VruShouldLeave, RemoveVruFromCluster, AddVruToCluster}; 
 		VruClusterOperation currentVruClusterOperation;
 		void setVruClusterOperation(VruClusterOperation newVruClusterOperation);
 
