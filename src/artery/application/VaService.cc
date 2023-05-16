@@ -229,9 +229,9 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 	// - Cluster Leader looking for Join/Leave VAMs
 	// - Passive VRU checking for Breakup warnings from the Leader
 	
-	if(vam_data.vamParameters.vruClusterOperationContainer){		
-		if (vam_data.vamParameters.vruClusterOperationContainer->clusterJoinInfo){			
-			if(mClusterManagement.isVruClusterLeader() && vam_data.vamParameters.vruClusterOperationContainer->clusterJoinInfo->clusterId == mClusterManagement.getLeaderId()){
+	if(vam_data.vamParameters.vruClusterOperationContainer){	
+		if (vam_data.vamParameters.vruClusterOperationContainer->clusterJoinInfo){		
+			if(mClusterManagement.isVruClusterLeader() && vam_data.vamParameters.vruClusterOperationContainer->clusterJoinInfo->clusterId == mClusterManagement.getClusterId()){
 				mClusterManagement.updateVruClusterMap(vam, "include_VRU");
 				setVruClusterOperation(AddVruToCluster);
 			}
@@ -279,6 +279,7 @@ void VaService::sendVam(const SimTime& T_now)
 	// Update InfoContainer: Cluster Expansion
 	if(mClusterManagement.isVruClusterLeader() && currentVruClusterOperation == AddVruToCluster){
 		VruClusterMap_t clusterMap = mClusterManagement.getVruClusterMap();
+
 		if(clusterMap.size()+1 >= 3){
 			auto polyInfoData = generateDataForPolyCluster();
 			addClusterInformationContainer(vam, polyInfoData);
@@ -386,8 +387,8 @@ InformationContainerData_t VaService::generateDataForNewCluster(){
 	infoContainerData.shape = "Circular";
 	infoContainerData.cardinalitySize = mClusterManagementParameters.MinClusterSize;
 	infoContainerData.circleRadius = mClusterManagement.getSmallestDistanceToVru()*Radius_oneMeter*.5;
-	infoContainerData.leaderId = omnetpp::intuniform(getRNG(0), 0, 255);
-	mClusterManagement.registerLeaderId(infoContainerData.leaderId);
+	infoContainerData.clusterId = omnetpp::intuniform(getRNG(0), 0, 255);
+	mClusterManagement.registerClusterId(infoContainerData.clusterId);
 	return infoContainerData;
 }
 
@@ -406,7 +407,7 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationCont
 	VruClusterInformationContainer_t* &vcic = vam.vamParameters.vruClusterInformationContainer;
 	vcic = vanetza::asn1::allocate<VruClusterInformationContainer_t>();
 
-	vcic->clusterId = infoContainerData.leaderId;
+	vcic->clusterId = infoContainerData.clusterId;
 
 	if(infoContainerData.shape == "Circular"){
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterCircle;
@@ -439,6 +440,7 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationCont
 	vcic->clusterProfiles.bits_unused = 0;
 	vcic->clusterProfiles.buf[0] = static_cast<uint8_t>(e_ClusterProfiles::ClusterProfiles_pedestrian);
 
+
 }
 
 void VaService::addClusterJoinOperationContainer(vanetza::asn1::Vam& message, const SimTime& T_now){
@@ -446,7 +448,8 @@ void VaService::addClusterJoinOperationContainer(vanetza::asn1::Vam& message, co
 	VruClusterOperationContainer*& vcoc = message->vam.vamParameters.vruClusterOperationContainer;
 	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer>();
 
-	ClusterJoinInfo* joinInfo = vanetza::asn1::allocate<ClusterJoinInfo>();
+	ClusterJoinInfo*& joinInfo = vcoc->clusterJoinInfo; 
+	joinInfo = vanetza::asn1::allocate<ClusterJoinInfo>();
 	joinInfo->clusterId = mTargetClusterId;
 	joinInfo->joinTime = joinTime.dbl();
 
@@ -457,7 +460,8 @@ void VaService::addClusterLeaveOperationContainer(vanetza::asn1::Vam& message){
 	VruClusterOperationContainer*& vcoc = message->vam.vamParameters.vruClusterOperationContainer;
 	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer>();
 
-	ClusterLeaveInfo* leaveInfo = vanetza::asn1::allocate<ClusterLeaveInfo>();
+	ClusterLeaveInfo*& leaveInfo = vcoc->clusterLeaveInfo;
+	leaveInfo = vanetza::asn1::allocate<ClusterLeaveInfo>();
 	leaveInfo->clusterId = mTargetClusterId;
 	leaveInfo->clusterLeaveReason = ClusterLeaveReason_notProvided;
 

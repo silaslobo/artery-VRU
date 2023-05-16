@@ -72,8 +72,8 @@ class ClusterManagement
         bool vruShouldLeave(const vanetza::asn1::Vam&);
         bool vruShouldCreateCluster();
 
-        void registerLeaderId(long leaderId){mLeaderId = leaderId;}
-        long getLeaderId(){return mLeaderId;}
+        void registerClusterId(long clusterId){mClusterId = clusterId;}
+        long getClusterId(){return mClusterId;}
 
         // Cluster parameter getters
         std::string boundingBoxShape() const {return mBoundingBoxShape;}
@@ -106,7 +106,7 @@ class ClusterManagement
 
     private:
         VruRoleType currentVruRole;
-        long mLeaderId;
+        long mClusterId;
 
         // Geometry
         typedef boost::geometry::model::point <long,2,boost::geometry::cs::cartesian>pointXY;
