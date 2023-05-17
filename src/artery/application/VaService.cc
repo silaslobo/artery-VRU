@@ -213,8 +213,9 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 	// - Standalone VRUs inspecting VAMs from Cluster Leaders -> JoinOp
 	// - Passive VRUs inspecting VAMs from Cluster Leaders -> LeaveOp
 	// - Cluster Leader checks VAMs from other Leaders for ID uniqueness
-	if(vam_data.vamParameters.vruClusterInformationContainer){
 
+	// TODO: Develop a way to avoid join/leave requests to different leaders on each simulation step
+	if(vam_data.vamParameters.vruClusterInformationContainer){
 		if(mClusterManagement.isVruStandalone() && mClusterManagement.vruShouldJoin(vam)){
 			mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
 			setVruClusterOperation(VruShouldJoin);
@@ -222,21 +223,37 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 			mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
 			setVruClusterOperation(VruShouldLeave);
 		}
-
 	}
 
 	// POSSIBLE USE CASES
 	// - Cluster Leader looking for Join/Leave VAMs
 	// - Passive VRU checking for Breakup warnings from the Leader
-	
 	if(vam_data.vamParameters.vruClusterOperationContainer){	
 		if (vam_data.vamParameters.vruClusterOperationContainer->clusterJoinInfo){		
 			if(mClusterManagement.isVruClusterLeader() && vam_data.vamParameters.vruClusterOperationContainer->clusterJoinInfo->clusterId == mClusterManagement.getClusterId()){
 				mClusterManagement.updateVruClusterMap(vam, "include_VRU");
 				setVruClusterOperation(AddVruToCluster);
 			}
+		}else if (vam_data.vamParameters.vruClusterOperationContainer->clusterLeaveInfo){		
+			if(mClusterManagement.isVruClusterLeader() && vam_data.vamParameters.vruClusterOperationContainer->clusterLeaveInfo->clusterId == mClusterManagement.getClusterId()){
+				mClusterManagement.updateVruClusterMap(vam, "remove_VRU");
+				if(mClusterManagement.getCurrentClusterSize() < mClusterManagementParameters.MinClusterSize){
+					setVruClusterOperation(BreakupCluster);
+				}else{
+					setVruClusterOperation(RemoveVruFromCluster);
+				}
+			}
+		}else if(vam_data.vamParameters.vruClusterOperationContainer->clusterBreakupInfo){
+			if(mClusterManagement.isVruPassive() && vam_data.vamParameters.vruClusterInformationContainer->clusterId == mClusterManagement.getClusterId()){
+				//mPersonDataProvider->setStationId(Identity::randomStationId(getRNG(0)));
+				setVruClusterOperation(VruShouldLeave);
+			}
 		}
-	}   
+	}else{
+		if(mClusterManagement.isVruClusterLeader()){
+			setVruClusterOperation(KeepCluster);
+		}
+	}
 }
 
 bool VaService::checkPositionDelta() const
@@ -263,8 +280,7 @@ void VaService::sendVam(const SimTime& T_now)
 		mLastLowVamTimestamp = T_now;
 	}
 
-	// TODO: Check which operation the VRU should do and add the correct container:
-	// New InfoContainer, Update InfoContainer, JoinOperationContainer, LeaveOperationContainer, BreakupOperationContainer 
+	// TODO: In the future it might be best to change to a switch/case approach based on ClusterManagement::getCurrentVruRole()
 
 	// New InfoContainer: Cluster creation 
 	if(mClusterManagement.isVruStandalone() && currentVruClusterOperation == noVruOperation){		
@@ -273,27 +289,36 @@ void VaService::sendVam(const SimTime& T_now)
 			mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveClusterLeader);
 			auto initialInfoContainerData = generateDataForNewCluster();
 			addClusterInformationContainer(vam, initialInfoContainerData);
+			previousContainerData = initialInfoContainerData;
 		}
 	}
 
-	// Update InfoContainer: Cluster Expansion
-	if(mClusterManagement.isVruClusterLeader() && currentVruClusterOperation == AddVruToCluster){
-		VruClusterMap_t clusterMap = mClusterManagement.getVruClusterMap();
-
-		if(clusterMap.size()+1 >= 3){
-			auto polyInfoData = generateDataForPolyCluster();
-			addClusterInformationContainer(vam, polyInfoData);
-			std::cout << "Cluster size " << mClusterManagement.getVruClusterMap().size()+1 << std::endl;
+	// Update InfoContainer: Cluster size alteration
+	if(mClusterManagement.isVruClusterLeader()){
+		if(currentVruClusterOperation == AddVruToCluster || currentVruClusterOperation == RemoveVruFromCluster){
+			VruClusterMap_t clusterMap = mClusterManagement.getVruClusterMap();
+			// TODO: How should we treat clusters with size 2?
+			if(mClusterManagement.getCurrentClusterSize() >= mClusterManagementParameters.NumCreateCluster){
+				auto polyInfoData = generateDataForPolyCluster();
+				addClusterInformationContainer(vam, polyInfoData);
+				previousContainerData = polyInfoData;
+			}
+		}else if(currentVruClusterOperation == KeepCluster){
+			addClusterInformationContainer(vam, previousContainerData);
 		}
 	}
 
-	//Operation Container to join a Cluster
+	// Operation Container to join a Cluster
 	if (mClusterManagement.isVruStandalone() && currentVruClusterOperation == VruShouldJoin){
 		addClusterJoinOperationContainer(vam, T_now);
 	}
 
 	if (mClusterManagement.isVruPassive() && currentVruClusterOperation == VruShouldLeave){
 		addClusterLeaveOperationContainer(vam);
+	}
+
+	if(mClusterManagement.isVruClusterLeader() && currentVruClusterOperation == BreakupCluster){
+		addClusterBreakupOperationContainer(vam);
 	}
 
 
@@ -396,7 +421,7 @@ InformationContainerData_t VaService::generateDataForNewCluster(){
 InformationContainerData_t VaService::generateDataForPolyCluster(){
 	InformationContainerData_t infoContainerData;
 	infoContainerData.shape = "Polygon";
-	infoContainerData.cardinalitySize = mClusterManagement.getVruClusterMap().size()+1;
+	infoContainerData.cardinalitySize = mClusterManagement.getCurrentClusterSize();
 	infoContainerData.polyOffsets = mClusterManagement.getOffsetsFromMap();
 	infoContainerData.clusterId = mClusterManagement.getClusterId();
 	return infoContainerData;
@@ -442,7 +467,6 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationCont
 	vcic->clusterProfiles.bits_unused = 0;
 	vcic->clusterProfiles.buf[0] = static_cast<uint8_t>(e_ClusterProfiles::ClusterProfiles_pedestrian);
 
-
 }
 
 void VaService::addClusterJoinOperationContainer(vanetza::asn1::Vam& message, const SimTime& T_now){
@@ -466,6 +490,18 @@ void VaService::addClusterLeaveOperationContainer(vanetza::asn1::Vam& message){
 	leaveInfo = vanetza::asn1::allocate<ClusterLeaveInfo>();
 	leaveInfo->clusterId = mTargetClusterId;
 	leaveInfo->clusterLeaveReason = ClusterLeaveReason_notProvided;
+
+	mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveStandalone);
+}
+
+void VaService::addClusterBreakupOperationContainer(vanetza::asn1::Vam& message){
+	VruClusterOperationContainer*& vcoc = message->vam.vamParameters.vruClusterOperationContainer;
+	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer>();
+
+	ClusterBreakupInfo*& breakupInfo = vcoc->clusterBreakupInfo;
+	breakupInfo = vanetza::asn1::allocate<ClusterBreakupInfo>();
+	breakupInfo->breakupTime = mClusterManagementParameters.TimeClusterBreakupWarning.dbl();
+	breakupInfo->clusterBreakupReason = ClusterBreakupReason_notProvided;
 
 	mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveStandalone);
 }

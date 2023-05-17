@@ -97,6 +97,7 @@ class ClusterManagement
         void updateVruClusterMap(const vanetza::asn1::Vam&, std::string);
         void clearVruClusterMap() {mClusterMap.clear();}
         VruClusterMap_t getVruClusterMap() const {return mClusterMap;} 
+        unsigned getCurrentClusterSize() const {return getVruClusterMap().size()+1;}
         double getSmallestDistanceToVru() const {return mSmallestDistanceToVru;}
 
         std::vector<std::tuple<long,long>> getOffsetsFromMap(){return clusterPoly(mClusterMap);}

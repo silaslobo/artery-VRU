@@ -199,6 +199,8 @@ std::vector<std::tuple<long,long>> ClusterManagement::clusterPoly(VruClusterMap_
 	// Adds leader node again to close polygon
 	clusterPositions.push_back(vruLeaderPos);
 
+	std::cout << "Cluster #" << mClusterId << std::endl;
+
 	// Using boost geometry, simplifies the original polygon with convex hull algorithm
 	Polygon_t clusterPolygon, hull;
 	bg::assign_points(clusterPolygon, clusterPositions);
@@ -236,8 +238,6 @@ std::vector<std::tuple<long,long>> ClusterManagement::clusterPoly(VruClusterMap_
 		previousPos = currentPos;
 	}
 	std::cout << std::endl;
-
-	std::cout << "Polylist size: " << distancesList.size() << std::endl;
 
 	return distancesList;
 }
@@ -297,12 +297,12 @@ void ClusterManagement::createVruClusterMap(){
 
 void ClusterManagement::updateVruClusterMap(const vanetza::asn1::Vam& vam, std::string operation){
 
-	if(mClusterMap.find(vam->header.stationID) == mClusterMap.end() && mClusterMap.size() < mMaxClusterSize){
-		if(operation == "include_VRU"){
+	if(operation == "include_VRU"){
+		if(mClusterMap.size()+1 < mMaxClusterSize){
 			mClusterMap.insert(std::pair<LocalDynamicMap::StationID, artery::VaObject>(vam->header.stationID, VaObject(vam)));
-		}else if(operation == "remove_VRU"){
-			mClusterMap.erase(vam->header.stationID);
 		}
+	}else if(operation == "remove_VRU" && !mClusterMap.empty()){
+		mClusterMap.erase(vam->header.stationID);
 	}
 }
 

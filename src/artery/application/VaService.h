@@ -62,6 +62,7 @@ class VaService : public ItsG5BaseService
 
 		InformationContainerData_t generateDataForNewCluster();
 		InformationContainerData_t generateDataForPolyCluster();
+		InformationContainerData_t previousContainerData;
 
 		void checkTriggeringConditions(const omnetpp::SimTime&);
 		bool checkHeadingDelta() const;
@@ -111,8 +112,19 @@ class VaService : public ItsG5BaseService
 		bool mClusterContainer;
 		double clusterVamSentCounter = 0;
 		unsigned mTargetClusterId;    
+		unsigned mPreviousCardinalitySize;
 		std::string mBoundingBoxShape; 
-		enum VruClusterOperation {noVruOperation, VruShouldJoin, VruShouldLeave, RemoveVruFromCluster, AddVruToCluster}; 
+
+		enum VruClusterOperation {
+			noVruOperation, 
+			VruShouldJoin, 
+			VruShouldLeave, 
+			BreakupCluster, 
+			RemoveVruFromCluster, 
+			AddVruToCluster, 
+			KeepCluster
+		};
+
 		VruClusterOperation currentVruClusterOperation;
 		void setVruClusterOperation(VruClusterOperation newVruClusterOperation);
 
@@ -124,7 +136,8 @@ class VaService : public ItsG5BaseService
 		void positionError(StationID_t, double lat, double lon);		
 
 		void addClusterJoinOperationContainer(vanetza::asn1::Vam&, const SimTime&);	
-		void addClusterLeaveOperationContainer(vanetza::asn1::Vam&);	
+		void addClusterLeaveOperationContainer(vanetza::asn1::Vam&);
+		void addClusterBreakupOperationContainer(vanetza::asn1::Vam&);	
 };
 
 vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider&, uint16_t genDeltaTime);
