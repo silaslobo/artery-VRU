@@ -152,7 +152,7 @@ artery::ClusterManagement::Polygon_t ClusterManagement::reconstructPolygon(const
 			firstIteration = false;
 		}
 
-		Node_XY_22b_t* node = &offsetPoint.second->nodeOffsetPointxy.choice.node_XY2;
+		Node_XY_28b_t* node = &offsetPoint.second->nodeOffsetPointxy.choice.node_XY5;
 		pointXY currentPos = pointXY(bg::get<0>(previousPos) + node->x/100, bg::get<1>(previousPos) + node->y/100);
 		reconstructedPositions.push_back(currentPos);
 		previousPos = currentPos;
@@ -237,6 +237,8 @@ std::vector<std::tuple<long,long>> ClusterManagement::clusterPoly(VruClusterMap_
 	}
 	std::cout << std::endl;
 
+	std::cout << "Polylist size: " << distancesList.size() << std::endl;
+
 	return distancesList;
 }
 
@@ -295,12 +297,13 @@ void ClusterManagement::createVruClusterMap(){
 
 void ClusterManagement::updateVruClusterMap(const vanetza::asn1::Vam& vam, std::string operation){
 
-	if(operation == "include_VRU"){
-		mClusterMap.insert(std::pair<LocalDynamicMap::StationID, artery::VaObject>(vam->header.stationID, VaObject(vam)));
-	}else if(operation == "remove_VRU"){
-		mClusterMap.erase(vam->header.stationID);
+	if(mClusterMap.find(vam->header.stationID) == mClusterMap.end() && mClusterMap.size() < mMaxClusterSize){
+		if(operation == "include_VRU"){
+			mClusterMap.insert(std::pair<LocalDynamicMap::StationID, artery::VaObject>(vam->header.stationID, VaObject(vam)));
+		}else if(operation == "remove_VRU"){
+			mClusterMap.erase(vam->header.stationID);
+		}
 	}
-
 }
 
 

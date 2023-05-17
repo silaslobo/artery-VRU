@@ -283,6 +283,7 @@ void VaService::sendVam(const SimTime& T_now)
 		if(clusterMap.size()+1 >= 3){
 			auto polyInfoData = generateDataForPolyCluster();
 			addClusterInformationContainer(vam, polyInfoData);
+			std::cout << "Cluster size " << mClusterManagement.getVruClusterMap().size()+1 << std::endl;
 		}
 	}
 
@@ -397,6 +398,7 @@ InformationContainerData_t VaService::generateDataForPolyCluster(){
 	infoContainerData.shape = "Polygon";
 	infoContainerData.cardinalitySize = mClusterManagement.getVruClusterMap().size()+1;
 	infoContainerData.polyOffsets = mClusterManagement.getOffsetsFromMap();
+	infoContainerData.clusterId = mClusterManagement.getClusterId();
 	return infoContainerData;
 }
 
@@ -415,7 +417,7 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationCont
 
 	}else if(infoContainerData.shape == "Rectangular"){
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterRectangle;
-		vcic->clusterBoundingBoxShape.choice.clusterRectangle.nodeCenterPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY2;
+		vcic->clusterBoundingBoxShape.choice.clusterRectangle.nodeCenterPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY3;
 		// TODO: Implement proper size scaling of the rectangle's width and length
 		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMinorRangeLength = 17;
 		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeLength = 17;
@@ -426,9 +428,9 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationCont
 
 		for (auto &offsetValue : infoContainerData.polyOffsets){
 			OffsetPoint* offsetPoint = vanetza::asn1::allocate<OffsetPoint>();
-			offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY2;
-			offsetPoint->nodeOffsetPointxy.choice.node_XY2.x = std::get<0>(offsetValue);
-			offsetPoint->nodeOffsetPointxy.choice.node_XY2.y = std::get<1>(offsetValue);
+			offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY5;
+			offsetPoint->nodeOffsetPointxy.choice.node_XY5.x = std::get<0>(offsetValue);
+			offsetPoint->nodeOffsetPointxy.choice.node_XY5.y = std::get<1>(offsetValue);
 			ASN_SEQUENCE_ADD(&vcic->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList, offsetPoint);
 		}
 	}
