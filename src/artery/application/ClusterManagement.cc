@@ -127,6 +127,7 @@ artery::ClusterManagement::ClusterParameters_t ClusterManagement::parseInformati
 	}else if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterCircle){
 		Circle_t receivedBoundingBox = buildCircle(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius, leaderPos);
 		clusterParameters.withinBoundingBox = bg::within(vruPos, receivedBoundingBox);
+
 	}
 
 	return clusterParameters;
@@ -152,16 +153,53 @@ artery::ClusterManagement::Polygon_t ClusterManagement::reconstructPolygon(const
 			firstIteration = false;
 		}
 
-		Node_XY_28b_t* node = &offsetPoint.second->nodeOffsetPointxy.choice.node_XY5;
-		pointXY currentPos = pointXY(bg::get<0>(previousPos) + node->x/100, bg::get<1>(previousPos) + node->y/100);
+		std::tuple<long,long> nodeOffset = getOffsetValues(*offsetPoint.second); 
+		pointXY currentPos = pointXY(bg::get<0>(previousPos) + std::get<0>(nodeOffset), bg::get<1>(previousPos) + std::get<1>(nodeOffset));
 		reconstructedPositions.push_back(currentPos);
 		previousPos = currentPos;
 	}
 
 	Polygon_t reconstructedPolygon;
 	bg::assign_points(reconstructedPolygon, reconstructedPositions);
+	std::cout << "Reconstructed: " << bg::dsv(reconstructedPolygon) << std::endl;
 	return reconstructedPolygon;
 }
+
+std::tuple<long,long> ClusterManagement::getOffsetValues(const OffsetPoint_t& offsetPoint)
+{
+	long nodeX, nodeY;
+
+	if(offsetPoint.nodeOffsetPointxy.present == NodeOffsetPointXY_PR_node_XY1){
+		Node_XY_20b_t node = offsetPoint.nodeOffsetPointxy.choice.node_XY1;
+		nodeX = node.x;
+		nodeY = node.y;
+	}else if(offsetPoint.nodeOffsetPointxy.present == NodeOffsetPointXY_PR_node_XY2){
+		Node_XY_22b_t node = offsetPoint.nodeOffsetPointxy.choice.node_XY2;
+		nodeX = node.x;
+		nodeY = node.y;
+	}else if(offsetPoint.nodeOffsetPointxy.present == NodeOffsetPointXY_PR_node_XY3){
+		Node_XY_24b_t node = offsetPoint.nodeOffsetPointxy.choice.node_XY3;
+		nodeX = node.x;
+		nodeY = node.y;
+	}else if(offsetPoint.nodeOffsetPointxy.present == NodeOffsetPointXY_PR_node_XY4){
+		Node_XY_26b_t node = offsetPoint.nodeOffsetPointxy.choice.node_XY4;
+		nodeX = node.x;
+		nodeY = node.y;
+	}else if(offsetPoint.nodeOffsetPointxy.present == NodeOffsetPointXY_PR_node_XY5){
+		Node_XY_28b_t node = offsetPoint.nodeOffsetPointxy.choice.node_XY5;
+		nodeX = node.x;
+		nodeY = node.y;
+	}else if(offsetPoint.nodeOffsetPointxy.present == NodeOffsetPointXY_PR_node_XY6){
+		Node_XY_32b_t node = offsetPoint.nodeOffsetPointxy.choice.node_XY6;
+		nodeX = node.x;
+		nodeY = node.y;
+	}else{
+		nodeX = 0;
+		nodeY = 0;
+	}
+
+	return std::make_tuple(nodeX/100,nodeY/100);
+} 
 
 artery::ClusterManagement::Circle_t ClusterManagement::buildCircle(const double radius, pointXY& leaderPos)
 {
@@ -183,6 +221,7 @@ std::vector<std::tuple<long,long>> ClusterManagement::clusterPoly(VruClusterMap_
 	std::vector<std::tuple<long,long>> distancesList;
 
 	libsumo::TraCIPosition vruLeaderTraCIPos = position_cast(traci::Boundary(api->simulation.getNetBoundary()), mPersonDataProvider->position());
+
 	vruLeaderPos = pointXY(vruLeaderTraCIPos.x, vruLeaderTraCIPos.y);
 	clusterPositions.push_back(vruLeaderPos);
 
@@ -198,8 +237,6 @@ std::vector<std::tuple<long,long>> ClusterManagement::clusterPoly(VruClusterMap_
 
 	// Adds leader node again to close polygon
 	clusterPositions.push_back(vruLeaderPos);
-
-	std::cout << "Cluster #" << mClusterId << std::endl;
 
 	// Using boost geometry, simplifies the original polygon with convex hull algorithm
 	Polygon_t clusterPolygon, hull;

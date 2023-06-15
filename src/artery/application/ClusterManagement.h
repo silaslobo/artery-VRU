@@ -102,9 +102,6 @@ class ClusterManagement
 
         std::vector<std::tuple<long,long>> getOffsetsFromMap(){return clusterPoly(mClusterMap);}
 
-        //long generateRandomClusterID() {return omnetpp::intuniform(getRNG(0), 0, 255);}
-
-
     private:
         VruRoleType currentVruRole;
         long mClusterId;
@@ -113,10 +110,12 @@ class ClusterManagement
         typedef boost::geometry::model::point <long,2,boost::geometry::cs::cartesian>pointXY;
         typedef boost::geometry::model::polygon<pointXY, false> Polygon_t; 
 		typedef boost::geometry::model::multi_polygon<Polygon_t> Circle_t;
+
         std::vector<std::tuple<long,long>> mPolyOffSetList;
         artery::ClusterManagement::Polygon_t reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos);
 		artery::ClusterManagement::Circle_t buildCircle(const double radius, pointXY& leaderPos);
         std::vector<std::tuple<long,long>> clusterPoly(const VruClusterMap_t);
+        std::tuple<long,long> getOffsetValues(const OffsetPoint_t&);
 
         // Parameter validation
         double velocityDifference(SpeedValue_t, SpeedValue_t);

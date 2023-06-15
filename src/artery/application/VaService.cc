@@ -23,7 +23,6 @@
 #include <vanetza/dcc/transmit_rate_control.hpp>
 #include <vanetza/asn1/vam.hpp>
 #include <chrono>
-#include <bitset>
 #include "traci/API.h"
 #include "traci/sumo/utils/traci/TraCIAPI.h"
 #include "traci/Boundary.h"
@@ -289,6 +288,7 @@ void VaService::sendVam(const SimTime& T_now)
 			mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveClusterLeader);
 			auto initialInfoContainerData = generateDataForNewCluster();
 			addClusterInformationContainer(vam, initialInfoContainerData);
+			clusterVamSentCounter++;
 			previousContainerData = initialInfoContainerData;
 		}
 	}
@@ -301,10 +301,12 @@ void VaService::sendVam(const SimTime& T_now)
 			if(mClusterManagement.getCurrentClusterSize() >= mClusterManagementParameters.NumCreateCluster){
 				auto polyInfoData = generateDataForPolyCluster();
 				addClusterInformationContainer(vam, polyInfoData);
+				clusterVamSentCounter++;
 				previousContainerData = polyInfoData;
 			}
 		}else if(currentVruClusterOperation == KeepCluster){
 			addClusterInformationContainer(vam, previousContainerData);
+			clusterVamSentCounter++;
 		}
 	}
 
@@ -320,7 +322,6 @@ void VaService::sendVam(const SimTime& T_now)
 	if(mClusterManagement.isVruClusterLeader() && currentVruClusterOperation == BreakupCluster){
 		addClusterBreakupOperationContainer(vam);
 	}
-
 
 	using namespace vanetza;
 	btp::DataRequestB request;
@@ -413,7 +414,7 @@ InformationContainerData_t VaService::generateDataForNewCluster(){
 	infoContainerData.shape = "Circular";
 	infoContainerData.cardinalitySize = mClusterManagementParameters.MinClusterSize;
 	infoContainerData.circleRadius = mClusterManagement.getSmallestDistanceToVru()*Radius_oneMeter*.5;
-	infoContainerData.clusterId = omnetpp::intuniform(getRNG(0), 0, 255);
+	infoContainerData.clusterId = omnetpp::intuniform(getRNG(0), 1, 255);
 	mClusterManagement.registerClusterId(infoContainerData.clusterId);
 	return infoContainerData;
 }
@@ -452,11 +453,7 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationCont
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterPolygon;
 
 		for (auto &offsetValue : infoContainerData.polyOffsets){
-			OffsetPoint* offsetPoint = vanetza::asn1::allocate<OffsetPoint>();
-			offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY5;
-			offsetPoint->nodeOffsetPointxy.choice.node_XY5.x = std::get<0>(offsetValue);
-			offsetPoint->nodeOffsetPointxy.choice.node_XY5.y = std::get<1>(offsetValue);
-			ASN_SEQUENCE_ADD(&vcic->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList, offsetPoint);
+			ASN_SEQUENCE_ADD(&vcic->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList, selectNodeType(offsetValue));
 		}
 	}
 
@@ -467,6 +464,47 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationCont
 	vcic->clusterProfiles.bits_unused = 0;
 	vcic->clusterProfiles.buf[0] = static_cast<uint8_t>(e_ClusterProfiles::ClusterProfiles_pedestrian);
 
+}
+
+OffsetPoint* selectNodeType(std::tuple<long,long> offsetTuple){
+
+	OffsetPoint* offsetPoint = vanetza::asn1::allocate<OffsetPoint>();
+
+	long absOffsetX = abs(std::get<0>(offsetTuple));
+	long absOffsetY = abs(std::get<1>(offsetTuple));
+ 	long largestOffsetValue = absOffsetX > absOffsetY ? absOffsetX : absOffsetY;
+
+	// Offset constraints given in cm
+	if(largestOffsetValue <= 511L){
+		offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY1;
+		offsetPoint->nodeOffsetPointxy.choice.node_XY1.x = std::get<0>(offsetTuple);
+		offsetPoint->nodeOffsetPointxy.choice.node_XY1.y = std::get<1>(offsetTuple);
+	}else if(largestOffsetValue <= 1023L){
+		offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY2;
+		offsetPoint->nodeOffsetPointxy.choice.node_XY2.x = std::get<0>(offsetTuple);
+		offsetPoint->nodeOffsetPointxy.choice.node_XY2.y = std::get<1>(offsetTuple);
+	}else if(largestOffsetValue <= 2047L){
+		offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY3;
+		offsetPoint->nodeOffsetPointxy.choice.node_XY3.x = std::get<0>(offsetTuple);
+		offsetPoint->nodeOffsetPointxy.choice.node_XY3.y = std::get<1>(offsetTuple);
+	}else if(largestOffsetValue <= 4095L){
+		offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY4;
+		offsetPoint->nodeOffsetPointxy.choice.node_XY4.x = std::get<0>(offsetTuple);
+		offsetPoint->nodeOffsetPointxy.choice.node_XY4.y = std::get<1>(offsetTuple);
+	}else if(largestOffsetValue <= 8191L){
+		offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY5;
+		offsetPoint->nodeOffsetPointxy.choice.node_XY5.x = std::get<0>(offsetTuple);
+		offsetPoint->nodeOffsetPointxy.choice.node_XY5.y = std::get<1>(offsetTuple);
+	}else if(largestOffsetValue <= 32767L){
+		offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY6;
+		offsetPoint->nodeOffsetPointxy.choice.node_XY6.x = std::get<0>(offsetTuple);
+		offsetPoint->nodeOffsetPointxy.choice.node_XY6.y = std::get<1>(offsetTuple);
+	}
+	else{
+		offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_NOTHING;
+	}
+
+	return offsetPoint;
 }
 
 void VaService::addClusterJoinOperationContainer(vanetza::asn1::Vam& message, const SimTime& T_now){

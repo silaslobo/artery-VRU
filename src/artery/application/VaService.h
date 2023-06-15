@@ -143,7 +143,7 @@ class VaService : public ItsG5BaseService
 vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider&, uint16_t genDeltaTime);
 void addLowFrequencyContainer(vanetza::asn1::Vam&, unsigned pathHistoryLength = 0);
 void addClusterInformationContainer(vanetza::asn1::Vam&, InformationContainerData_t&);
-
+OffsetPoint_t* selectNodeType(std::tuple<long,long>);
 
 //TODO: Consider moving this method to an utilities class
 SpeedValue_t buildVAMSpeedValue(const vanetza::units::Velocity& v);
