@@ -1,4 +1,4 @@
-//
+ //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -30,15 +30,14 @@ simple VaService
     parameters:
         @class(VaService);
         @signal[VamReceived](type=artery::VaObject);
-        @signal[VamSent](type=artery::VaObject);
+        @signal[VamSent](type=artery::VaObject);    
         @signal[errorDistance](double);
         @signal[VamSentCounter];
         @signal[VamReceivedCounter];
 
         @statistic[reception](source=VamReceived;record=vector(vamStationId)?,vector(vamGenerationDeltaTime)?);
         @statistic[transmission](source=VamSent;record=vector(vamStationId)?,vector(vamGenerationDeltaTime)?);
-
-
+    
         @statistic[VamSentCounter](record=count,vector?);
         @statistic[VamReceivedCounter](record=count,vector?);
         @statistic[errorDistance](source=errorDistance; record=vector?);

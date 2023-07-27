@@ -29,6 +29,7 @@ using namespace omnetpp;
 
 static const simsignal_t scSignalCamReceived = cComponent::registerSignal("CamReceived");
 static const simsignal_t scSignalCamSent = cComponent::registerSignal("CamSent");
+static const simsignal_t scSignalCam2Mac = cComponent::registerSignal("Cam2Mac");
 static const auto scLowFrequencyContainerInterval = std::chrono::milliseconds(500);
 
 
@@ -115,7 +116,7 @@ void CaService::checkTriggeringConditions(const SimTime& T_now)
 	const SimTime& T_GenCamMin = mGenCamMin;
 	const SimTime& T_GenCamMax = mGenCamMax;
 	const SimTime T_GenCamDcc = mDccRestriction ? genCamDcc() : T_GenCamMin;
-	const SimTime T_elapsed = T_now - mLastCamTimestamp;
+	const SimTime T_elapsed = T_now - mLastCamTimestamp;	
 
 	if (T_elapsed >= T_GenCamDcc) {
 		if (mFixedRate) {
@@ -173,6 +174,8 @@ void CaService::sendCam(const SimTime& T_now)
 
 	CaObject obj(std::move(cam));
 	emit(scSignalCamSent, &obj);
+
+	emit (scSignalCam2Mac, 1);
 
 	using CamByteBuffer = convertible::byte_buffer_impl<asn1::Cam>;
 	std::unique_ptr<geonet::DownPacket> payload { new geonet::DownPacket() };

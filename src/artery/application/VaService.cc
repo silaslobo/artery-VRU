@@ -22,6 +22,7 @@
 #include <vanetza/dcc/transmission.hpp>
 #include <vanetza/dcc/transmit_rate_control.hpp>
 #include <vanetza/asn1/vam.hpp>
+#include <vanetza/facilities/cam_functions.hpp>
 #include <chrono>
 #include "traci/API.h"
 #include "traci/sumo/utils/traci/TraCIAPI.h"
@@ -29,6 +30,7 @@
 #include "artery/traci/Cast.h"
 #include "traci/Core.h"
 #include "artery/application/ClusterManagement.h"
+
 
 /*
 	ATTENTION:
@@ -62,7 +64,6 @@ SpeedValue_t buildVAMSpeedValue(const vanetza::units::Velocity& v)
 	}
 	return speed;
 }
-
 
 Define_Module(VaService)
 
@@ -192,6 +193,7 @@ void VaService::indicate(const vanetza::btp::DataIndication& ind, std::unique_pt
 	}
 }
 
+
 void VaService::setVruClusterOperation(VruClusterOperation newVruClusterOperation){
 	currentVruClusterOperation = newVruClusterOperation;
 }
@@ -253,6 +255,11 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 			setVruClusterOperation(KeepCluster);
 		}
 	}
+
+	
+bool VaService::checkHeadingDelta() const
+{
+	return !vanetza::facilities::similar_heading(mLastVamHeading, mPersonDataProvider->heading(), mHeadingDelta);
 }
 
 bool VaService::checkPositionDelta() const
@@ -265,6 +272,7 @@ bool VaService::checkSpeedDelta() const
 	return abs(mLastVamSpeed - mPersonDataProvider->speed()) > mSpeedDelta;
 }
 
+
 void VaService::sendVam(const SimTime& T_now)
 {	
 	uint16_t genDeltaTimeMod = countTaiMilliseconds(mTimer->getTimeFor(mPersonDataProvider->updated()));
@@ -272,7 +280,7 @@ void VaService::sendVam(const SimTime& T_now)
 	mLastVamPosition = mPersonDataProvider->position();
 	mLastVamSpeed = mPersonDataProvider->speed();
 
-	//mLastVamHeading = mPersonDataProvider->heading();
+	mLastVamHeading = mPersonDataProvider->heading();
 	mLastVamTimestamp = T_now;
 	if (T_now - mLastLowVamTimestamp >= artery::simtime_cast(scLowFrequencyContainerInterval)) {
 		//addLowFrequencyContainer(vam, par("pathHistoryLength"));
@@ -329,14 +337,16 @@ void VaService::sendVam(const SimTime& T_now)
 	request.gn.its_aid = aid::VRU;
 	request.gn.transport_type = geonet::TransportType::SHB;
 	request.gn.maximum_lifetime = geonet::Lifetime { geonet::Lifetime::Base::One_Second, 1 };
-	request.gn.traffic_class.tc_id(static_cast<unsigned>(dcc::Profile::DP2));
+	request.gn.traffic_class.tc_id(static_cast<unsigned>(dcc::Profile::DP3));
 	request.gn.communication_profile = geonet::CommunicationProfile::ITS_G5;
 
 	VaObject obj(std::move(vam));
 	emit(scSignalVamSent, &obj);
 
+
 	vamSentCounter ++;
 	emit (SignalVamSent, vamSentCounter);
+
 	using VamByteBuffer = convertible::byte_buffer_impl<asn1::Vam>;
 	std::unique_ptr<geonet::DownPacket> payload { new geonet::DownPacket() };
 	std::unique_ptr<convertible::byte_buffer> buffer { new VamByteBuffer(obj.shared_ptr()) };
@@ -353,9 +363,9 @@ SimTime VaService::genVamDcc()
 		throw cRuntimeError("No DCC TRC found for VA's primary channel %i", mPrimaryChannel);
 	}
 	
-	static const vanetza::dcc::TransmissionLite va_tx(vanetza::dcc::Profile::DP2, 0);
+	static const vanetza::dcc::TransmissionLite va_tx(vanetza::dcc::Profile::DP3, 0);
 	vanetza::Clock::duration interval = trc->interval(va_tx);
-	SimTime dcc { std::chrono::duration_cast<std::chrono::milliseconds>(interval).count(), SIMTIME_MS };
+	SimTime dcc { std::chrono::duration_cast<std::chrono::milliseconds>(interval).count(), SIMTIME_MS };	
 	return std::min(mGenVamMax, std::max(mGenVamMin, dcc));
 }
 
@@ -570,5 +580,47 @@ void VaService::positionError(StationID_t stationID, double lat, double lon){
 
 	emit(scSignalErrorDistance, errorDistance);
 }
+
+
+double VaService::getDCCToff(){
+    // network interface may not be ready yet during initialization, so look it up at this later point
+    auto netifc = mNetworkInterfaceTable->select(mPrimaryChannel);
+    vanetza::dcc::TransmitRateThrottle *trc = netifc ? netifc->getDccEntity().getTransmitRateThrottle() : nullptr;
+    if (!trc) {
+        throw cRuntimeError("No DCC TRC found for CP's primary channel %i", mPrimaryChannel);
+    }
+    static const vanetza::dcc::TransmissionLite va_tx(vanetza::dcc::Profile::DP3, 0);
+    vanetza::Clock::duration delay = trc->interval(va_tx);
+    SimTime dcc{std::chrono::duration_cast<std::chrono::milliseconds>(delay).count(), SIMTIME_MS};	
+    return dcc.dbl();
+}
+
+void VaService::positionError(StationID_t stationID, double lat, double lon){
+	uint32_t id = stationID;
+	auto vamLat = lat;
+	auto vamLon = lon;
+
+	libsumo::TraCIPosition vamPos = api->simulation.convertGeo(vamLon,vamLat,true);
+
+	std::string personID = std::to_string(stationID);
+	
+	std::string pID_end = personID.substr(5);
+
+	std::string pID_0 = {personID.at(0)};
+	std::string pID_1 = {personID.at(1)};
+	std::string pID_2 = {personID.at(2)};
+	std::string pID_3 = {personID.at(3)};
+	std::string pID_4 = {personID.at(4)};
+	std::string pID_sep = ".";
+	std::string pID = pID_0 + pID_1 + pID_2 + pID_3 + pID_4 + pID_sep + pID_end;
+
+	libsumo::TraCIPosition ActualPosition = api->person.getPosition(pID);
+	traci::TraCIGeoPosition traci_geo = api->convertGeo(ActualPosition);
+
+	double errorDistance = bg::distance(point(vamLon,vamLat),point(traci_geo.longitude,traci_geo.latitude));
+
+	emit(scSignalErrorDistance, errorDistance);
+}
+
 
 } // namespace artery

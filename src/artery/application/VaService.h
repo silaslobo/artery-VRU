@@ -128,6 +128,7 @@ class VaService : public ItsG5BaseService
 		VruClusterOperation currentVruClusterOperation;
 		void setVruClusterOperation(VruClusterOperation newVruClusterOperation);
 
+
 		//access to control Person connection among Artery, Omnetpp, and SUMO
 		void personSumoData(const omnetpp::SimTime&);
 		const traci::PersonController* mPersonController = nullptr;
@@ -138,6 +139,7 @@ class VaService : public ItsG5BaseService
 		void addClusterJoinOperationContainer(vanetza::asn1::Vam&, const SimTime&);	
 		void addClusterLeaveOperationContainer(vanetza::asn1::Vam&);
 		void addClusterBreakupOperationContainer(vanetza::asn1::Vam&);	
+
 };
 
 vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider&, uint16_t genDeltaTime);
