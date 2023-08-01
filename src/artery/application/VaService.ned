@@ -25,7 +25,7 @@
 
 package artery.application;
 
-simple VaService 
+simple VaService like ItsG5Service
 {
     parameters:
         @class(VaService);
