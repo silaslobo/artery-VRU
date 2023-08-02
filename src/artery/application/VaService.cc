@@ -554,31 +554,4 @@ void VaService::addClusterBreakupOperationContainer(vanetza::asn1::Vam& message)
 	mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveStandalone);
 }
 
-void VaService::positionError(StationID_t stationID, double lat, double lon){
-	uint32_t id = stationID;
-	auto vamLat = lat;
-	auto vamLon = lon;
-
-	libsumo::TraCIPosition vamPos = api->simulation.convertGeo(vamLon,vamLat,true);
-
-	std::string personID = std::to_string(stationID);
-	
-	std::string pID_end = personID.substr(5);
-
-	std::string pID_0 = {personID.at(0)};
-	std::string pID_1 = {personID.at(1)};
-	std::string pID_2 = {personID.at(2)};
-	std::string pID_3 = {personID.at(3)};
-	std::string pID_4 = {personID.at(4)};
-	std::string pID_sep = ".";
-	std::string pID = pID_0 + pID_1 + pID_2 + pID_3 + pID_4 + pID_sep + pID_end;
-
-	libsumo::TraCIPosition ActualPosition = api->person.getPosition(pID);
-	traci::TraCIGeoPosition traci_geo = api->convertGeo(ActualPosition);
-
-	double errorDistance = bg::distance(point(vamLon,vamLat),point(traci_geo.longitude,traci_geo.latitude));
-
-	emit(scSignalErrorDistance, errorDistance);
-}
-
 } // namespace artery
