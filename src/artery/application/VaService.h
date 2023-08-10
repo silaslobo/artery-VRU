@@ -132,9 +132,7 @@ class VaService : public ItsG5BaseService
 		//access to control Person connection among Artery, Omnetpp, and SUMO
 		void personSumoData(const omnetpp::SimTime&);
 		const traci::PersonController* mPersonController = nullptr;
-		std::shared_ptr<const traci::API> api;
-
-		void positionError(StationID_t, double lat, double lon);		
+		std::shared_ptr<const traci::API> api;			
 
 		void addClusterJoinOperationContainer(vanetza::asn1::Vam&, const SimTime&);	
 		void addClusterLeaveOperationContainer(vanetza::asn1::Vam&);

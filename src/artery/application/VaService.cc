@@ -47,7 +47,6 @@ static const simsignal_t scSignalVamReceived = cComponent::registerSignal("VamRe
 static const simsignal_t scSignalVamSent = cComponent::registerSignal("VamSent");
 static const simsignal_t SignalVamReceived = cComponent::registerSignal("VamReceivedCounter");
 static const simsignal_t SignalVamSent = cComponent::registerSignal("VamSentCounter");
-static const simsignal_t scSignalErrorDistance = cComponent::registerSignal("errorDistance");
 
 static const auto scLowFrequencyContainerInterval = std::chrono::milliseconds(500);
 
@@ -208,7 +207,6 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 	/**
 	* @note compute the position error from the leader in the message 
 	*/
-	positionError((*vam).header.stationID,vruLat,vruLon);
 
 	// POSSIBLE USE CASES
 	// - Standalone VRUs inspecting VAMs from Cluster Leaders -> JoinOp

@@ -31,7 +31,6 @@ simple VaService like ItsG5Service
         @class(VaService);
         @signal[VamReceived](type=artery::VaObject);
         @signal[VamSent](type=artery::VaObject);    
-        @signal[errorDistance](double);
         @signal[VamSentCounter];
         @signal[VamReceivedCounter];
 
@@ -40,7 +39,6 @@ simple VaService like ItsG5Service
     
         @statistic[VamSentCounter](record=count,vector?);
         @statistic[VamReceivedCounter](record=count,vector?);
-        @statistic[errorDistance](source=errorDistance; record=vector?);
 
         // evaluate DCC transmission interval restrictions
         bool withDccRestriction = default(true);
