@@ -21,18 +21,7 @@ namespace artery
 namespace bg = boost::geometry;
 using namespace omnetpp;
 
-//Define_Module(ClusterManagement)
-
 ClusterManagement::ClusterManagement(){}
-
-// ClusterManagement::ClusterManagement(const PersonDataProvider* pdp, 
-// 									artery::LocalDynamicMap* ldm, 
-// 									const traci::PersonController* pc, 
-// 									VruRoleType initialVruRole) : 
-// 									mPersonDataProvider(pdp), 
-// 									mLocalDynamicMap(ldm), 
-// 									mPersonController(pc), 
-// 									currentVruRole(initialVruRole){} 
 
 void ClusterManagement::initialize(ClusterManagementParameters_t& cManagementPar){
 
