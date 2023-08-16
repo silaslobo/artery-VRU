@@ -54,9 +54,7 @@ class ClusterManagement
 
         enum VruRoleType {VruIdle, VruActiveStandalone, VruActiveClusterLeader, VruPassive};
         ClusterManagement();
-        //ClusterManagement(const PersonDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc, VruRoleType initialVruRole = VruActiveStandalone);
-
-        //virtual void initialize() override;
+        
         void initialize(ClusterManagementParameters_t&);
         void simObjects(const PersonDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc);
 
