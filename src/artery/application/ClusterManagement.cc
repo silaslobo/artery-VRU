@@ -85,6 +85,11 @@ bool ClusterManagement::vruShouldCreateCluster(){
 	return (mInitialClusterMap.size() + 1) >= mNumCreateCluster;
 }
 
+artery::ClusterManagement::pointXY ClusterManagement::getVruLeaderXY(){
+	libsumo::TraCIPosition vruLeaderTraCIPos = position_cast(traci::Boundary(api->simulation.getNetBoundary()), mPersonDataProvider->position());
+	return pointXY(vruLeaderTraCIPos.x, vruLeaderTraCIPos.y);
+}
+
 artery::ClusterManagement::ClusterParameters_t ClusterManagement::parseInformationContainer(const vanetza::asn1::Vam& vam){
 
 	const VruAwareness_t vam_data = (*vam).vam;
@@ -112,46 +117,18 @@ artery::ClusterManagement::ClusterParameters_t ClusterManagement::parseInformati
 
 		Polygon_t receivedBoundingBox = reconstructPolygon(receivedOffsetList,leaderTraCIPos);
 		clusterParameters.withinBoundingBox = bg::within(vruPos, receivedBoundingBox);
+		// if(clusterParameters.withinBoundingBox == 1){
+		// 	std::cout << "Reconstructed (cluster " << vam_data.vamParameters.vruClusterInformationContainer->clusterId << "): " << bg::dsv(receivedBoundingBox) << std::endl;
+		// }
 
 	}else if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterCircle){
-		Circle_t receivedBoundingBox = buildCircle(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius, leaderPos);
+		Circle_t receivedBoundingBox = reconstructCircle(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius, leaderPos);
 		clusterParameters.withinBoundingBox = bg::within(vruPos, receivedBoundingBox);
 
 	}
 
 	return clusterParameters;
 	
-}
-
-// Reconstructs Polygon Bounding Box based on offset list
-artery::ClusterManagement::Polygon_t ClusterManagement::reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos)
-{
-	std::vector<pointXY> reconstructedPositions;
-
-	std::map<int,OffsetPoint_t*> offsetMap;
-	for(int iter = 0; iter < receivedOffsetList.list.count; iter++){
-		offsetMap.insert(std::pair<int, OffsetPoint_t*>(iter, receivedOffsetList.list.array[iter]));
-	}
-
-	bool firstIteration = true;
-	pointXY previousPos;
-	for(auto& offsetPoint : offsetMap){
-
-		if(firstIteration){
-			previousPos = pointXY(leaderPos.x, leaderPos.y);
-			firstIteration = false;
-		}
-
-		std::tuple<long,long> nodeOffset = getOffsetValues(*offsetPoint.second); 
-		pointXY currentPos = pointXY(bg::get<0>(previousPos) + std::get<0>(nodeOffset), bg::get<1>(previousPos) + std::get<1>(nodeOffset));
-		reconstructedPositions.push_back(currentPos);
-		previousPos = currentPos;
-	}
-
-	Polygon_t reconstructedPolygon;
-	bg::assign_points(reconstructedPolygon, reconstructedPositions);
-	//std::cout << "Reconstructed: " << bg::dsv(reconstructedPolygon) << std::endl;
-	return reconstructedPolygon;
 }
 
 std::tuple<long,long> ClusterManagement::getOffsetValues(const OffsetPoint_t& offsetPoint)
@@ -190,7 +167,37 @@ std::tuple<long,long> ClusterManagement::getOffsetValues(const OffsetPoint_t& of
 	return std::make_tuple(nodeX/100,nodeY/100);
 } 
 
-artery::ClusterManagement::Circle_t ClusterManagement::buildCircle(const double radius, pointXY& leaderPos)
+// Reconstructs Polygon Bounding Box based on offset list
+artery::ClusterManagement::Polygon_t ClusterManagement::reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos)
+{
+	std::vector<pointXY> reconstructedPositions;
+
+	std::map<int,OffsetPoint_t*> offsetMap;
+	for(int iter = 0; iter < receivedOffsetList.list.count; iter++){
+		offsetMap.insert(std::pair<int, OffsetPoint_t*>(iter, receivedOffsetList.list.array[iter]));
+	}
+
+	bool firstIteration = true;
+	pointXY previousPos;
+	for(auto& offsetPoint : offsetMap){
+
+		if(firstIteration){
+			previousPos = pointXY(leaderPos.x, leaderPos.y);
+			firstIteration = false;
+		}
+
+		std::tuple<long,long> nodeOffset = getOffsetValues(*offsetPoint.second); 
+		pointXY currentPos = pointXY(bg::get<0>(previousPos) + std::get<0>(nodeOffset), bg::get<1>(previousPos) + std::get<1>(nodeOffset));
+		reconstructedPositions.push_back(currentPos);
+		previousPos = currentPos;
+	}
+
+	Polygon_t reconstructedPolygon;
+	bg::assign_points(reconstructedPolygon, reconstructedPositions);
+	return reconstructedPolygon;
+}
+
+artery::ClusterManagement::Circle_t ClusterManagement::reconstructCircle(const double radius, pointXY& leaderPos)
 {
 	Circle_t builtCircle;
 	bg::strategy::buffer::distance_symmetric<double> distance_strategy(radius);
@@ -203,64 +210,55 @@ artery::ClusterManagement::Circle_t ClusterManagement::buildCircle(const double 
 	return builtCircle;
 }
 
-std::vector<std::tuple<long,long>> ClusterManagement::clusterPoly(VruClusterMap_t vruMap)
-{
-	std::vector<pointXY> clusterPositions;
-	pointXY previousPos, vruLeaderPos;
-	std::vector<std::tuple<long,long>> distancesList;
+ClusterManagement::Polygon_t ClusterManagement::generatePolygonFromMap(VruClusterMap_t vruMap){
+	Polygon_t resultingPolygon;
+	pointXY vruLeaderPos = getVruLeaderXY();
 
-	libsumo::TraCIPosition vruLeaderTraCIPos = position_cast(traci::Boundary(api->simulation.getNetBoundary()), mPersonDataProvider->position());
-
-	vruLeaderPos = pointXY(vruLeaderTraCIPos.x, vruLeaderTraCIPos.y);
-	clusterPositions.push_back(vruLeaderPos);
-
-	//egoHeading
-	//auto egoVruHeading = Constants::round(mPersonDataProvider->heading(), Constants::decidegree);	
+	bg::append(resultingPolygon, vruLeaderPos);
 
 	for (auto const& itr : vruMap) {
 		auto vruLon = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / std::pow( 10.0, 7 ));
 		auto vruLat = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.latitude) / std::pow( 10.0, 7 ));
 		libsumo::TraCIPosition vruTraCIPos = api->simulation.convertGeo(vruLon,vruLat, true);
-		clusterPositions.push_back(pointXY(vruTraCIPos.x, vruTraCIPos.y));			
+		bg::append(resultingPolygon, pointXY(vruTraCIPos.x, vruTraCIPos.y));	
 	}
 
-	// Adds leader node again to close polygon
-	clusterPositions.push_back(vruLeaderPos);
+	bg::append(resultingPolygon, vruLeaderPos);
 
-	// Using boost geometry, simplifies the original polygon with convex hull algorithm
-	Polygon_t clusterPolygon, hull;
-	bg::assign_points(clusterPolygon, clusterPositions);
+	return resultingPolygon;
+}
 
+std::tuple<long,long> ClusterManagement::calculateOffset(pointXY pointA, pointXY pointB){
+	// NodeOffsets are given in centimeters
+	long offsetX = std::round(bg::get<0>(pointB) - bg::get<0>(pointA))*100;
+	long offsetY = std::round(bg::get<1>(pointB) - bg::get<1>(pointA))*100;
+
+	//std::cout << "(" << offsetX << "," << offsetY << "), " ;
+
+	return std::make_tuple(offsetX, offsetY);
+}
+
+std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(VruClusterMap_t vruMap)
+{
+	std::vector<pointXY> clusterPositions;
+	pointXY previousPos;
+	std::vector<std::tuple<long,long>> distancesList;
+
+	Polygon_t clusterPolygon = generatePolygonFromMap(vruMap);
+	//std::cout << "ID: " << getClusterId() << std::endl;
 	//std::cout << "Original poly: " << bg::dsv(clusterPolygon) << std::endl;
 
+	// Using boost geometry, simplifies the original polygon with convex hull algorithm
+	Polygon_t hull;
 	bg::convex_hull(clusterPolygon, hull);
-
 	//std::cout << "Hull poly: " << bg::dsv(hull) << std::endl;
-
-	// replaces original vertices with simplified polygon from convex hull
 	clusterPositions = hull.outer();
 
 	// Obtains list of offsets
-	bool firstIteration = true;
+	//std::cout << "Offset: "; 
+	previousPos = getVruLeaderXY();
 	for (auto const& currentPos : clusterPositions){
-
-		long deltaX , deltaY;
-		
-		// First value is obtained from the offset between vruEgo and starting point of the polygon
-		// If the starting point is the vruEgo, a null first offset is expected
-		if(firstIteration){
-			firstIteration = false;
-			previousPos = vruLeaderPos;
-			//std::cout << "offset list leader: ";
-		}
-
-		// Offset in centimeters assuming a cartesian plane
-		deltaX = std::round(bg::get<0>(currentPos) - bg::get<0>(previousPos))*100; 
-		deltaY = std::round(bg::get<1>(currentPos) - bg::get<1>(previousPos))*100;
-
-		//std::cout << "(" << std::to_string(deltaX) << "," << std::to_string(deltaY) << "),";
-
-		distancesList.push_back(std::make_tuple(deltaX, deltaY));
+		distancesList.push_back(calculateOffset(previousPos,currentPos));
 		previousPos = currentPos;
 	}
 	//std::cout << std::endl;
@@ -332,6 +330,35 @@ void ClusterManagement::updateVruClusterMap(const vanetza::asn1::Vam& vam, std::
 	}
 }
 
+ClusterManagement::pointXY ClusterManagement::calculateCenterFromMap(VruClusterMap_t vruMap){
+	
+	Polygon_t pointsFromMap = generatePolygonFromMap(vruMap);
+	bg::model::box<pointXY> envelope;
+	pointXY centerPoint;
+
+	bg::envelope(pointsFromMap, envelope);
+	bg::centroid(envelope, centerPoint);
+
+	// std::cout << "Point in map (circle): " << bg::dsv(pointsFromMap) << std::endl;
+	// std::cout << "Centroid: " << bg::get<0>(centerPoint) << " , " << bg::get<1>(centerPoint) << std::endl;
+	
+	return centerPoint;
+}
+
+double ClusterManagement::calculateRadius(VruClusterMap_t vruMap, pointXY center){
+	std::vector<double> distanceList;
+
+	for (auto const& itr : vruMap) {
+		auto vruLon = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / std::pow( 10.0, 7 ));
+		auto vruLat = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.latitude) / std::pow( 10.0, 7 ));
+		libsumo::TraCIPosition vruTraCIPos = api->simulation.convertGeo(vruLon,vruLat, true);
+		distanceList.push_back(bg::distance(center, pointXY(vruTraCIPos.x, vruTraCIPos.y)));		
+	}
+	double radius = *std::max_element(distanceList.begin(), distanceList.end())*Radius_oneMeter;
+	//std::cout << "Radius: " << radius << std::endl;
+	return radius;
+}
+
 InformationContainerData_t ClusterManagement::generateDataForNewCluster(long id){
 	InformationContainerData_t infoContainerData;
 	infoContainerData.shape = "Circular";
@@ -352,7 +379,9 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 		//infoContainerData.polyOffsets = getOffsetsFromMap();
 		infoContainerData.polyOffsets = calculatePolyOffsetList(getVruClusterMap());
 	}else if(mBoundingBoxShape == "Circular"){
-
+		pointXY centerPoint = calculateCenterFromMap(mClusterMap);
+		infoContainerData.nodeOffset = calculateOffset(centerPoint, getVruLeaderXY());
+		infoContainerData.circleRadius = calculateRadius(mClusterMap, centerPoint);
 	}
 	
 	return infoContainerData;
