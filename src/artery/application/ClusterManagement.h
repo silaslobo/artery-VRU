@@ -47,6 +47,17 @@ typedef struct ClusterManagementParameters{
 
 } ClusterManagementParameters_t;
 
+typedef struct InformationContainerData{
+	std::string shape;
+	unsigned cardinalitySize;
+	std::tuple<long,long> nodeOffset;
+	std::vector<std::tuple<long,long>> polyOffsets;
+	const PersonDataProvider* leaderDataProvider;
+	double circleRadius;
+	long clusterId;
+
+} InformationContainerData_t;
+
 typedef std::map<LocalDynamicMap::StationID, artery::VaObject> VruClusterMap_t;
 class ClusterManagement 
 {
@@ -99,12 +110,14 @@ class ClusterManagement
         double getSmallestDistanceToVru() const {return mSmallestDistanceToVru;}
 
         std::vector<std::tuple<long,long>> getOffsetsFromMap(){return clusterPoly(mClusterMap);}
+        InformationContainerData_t generateDataForNewCluster(long);
+        InformationContainerData_t generateDataForCurrentCluster();
 
     private:
         VruRoleType currentVruRole;
         long mClusterId;
 
-        // Geometry
+        // Geometry definitions
         typedef boost::geometry::model::point <long,2,boost::geometry::cs::cartesian>pointXY;
         typedef boost::geometry::model::polygon<pointXY, false> Polygon_t; 
 		typedef boost::geometry::model::multi_polygon<Polygon_t> Circle_t;

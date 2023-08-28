@@ -292,7 +292,7 @@ void VaService::sendVam(const SimTime& T_now)
 		mClusterManagement.createVruClusterMap();
 		if(mClusterManagement.vruShouldCreateCluster()){
 			mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveClusterLeader);
-			auto initialInfoContainerData = generateDataForNewCluster();
+			auto initialInfoContainerData = mClusterManagement.generateDataForNewCluster(omnetpp::intuniform(getRNG(0), 1, 255));
 			addClusterInformationContainer(vam, initialInfoContainerData);
 			clusterVamSentCounter++;
 			previousContainerData = initialInfoContainerData;
@@ -305,10 +305,10 @@ void VaService::sendVam(const SimTime& T_now)
 			VruClusterMap_t clusterMap = mClusterManagement.getVruClusterMap();
 			// TODO: How should we treat clusters with size 2?
 			if(mClusterManagement.getCurrentClusterSize() >= mClusterManagementParameters.NumCreateCluster){
-				auto polyInfoData = generateDataForPolyCluster();
-				addClusterInformationContainer(vam, polyInfoData);
+				auto clusterInfoData = mClusterManagement.generateDataForCurrentCluster();
+				addClusterInformationContainer(vam, clusterInfoData);
 				clusterVamSentCounter++;
-				previousContainerData = polyInfoData;
+				previousContainerData = clusterInfoData;
 			}
 		}else if(currentVruClusterOperation == KeepCluster){
 			addClusterInformationContainer(vam, previousContainerData);
@@ -414,26 +414,6 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& pdp, uint
 	}
 
 	return message;
-}
-
-// TODO: In the future evaluate moving these methods and the InformationContainerData_t struct to the ClusterManagement class
-InformationContainerData_t VaService::generateDataForNewCluster(){
-	InformationContainerData_t infoContainerData;
-	infoContainerData.shape = "Circular";
-	infoContainerData.cardinalitySize = mClusterManagementParameters.MinClusterSize;
-	infoContainerData.circleRadius = mClusterManagement.getSmallestDistanceToVru()*Radius_oneMeter*.5;
-	infoContainerData.clusterId = omnetpp::intuniform(getRNG(0), 1, 255);
-	mClusterManagement.registerClusterId(infoContainerData.clusterId);
-	return infoContainerData;
-}
-
-InformationContainerData_t VaService::generateDataForPolyCluster(){
-	InformationContainerData_t infoContainerData;
-	infoContainerData.shape = "Polygon";
-	infoContainerData.cardinalitySize = mClusterManagement.getCurrentClusterSize();
-	infoContainerData.polyOffsets = mClusterManagement.getOffsetsFromMap();
-	infoContainerData.clusterId = mClusterManagement.getClusterId();
-	return infoContainerData;
 }
 
 void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationContainerData_t& infoContainerData){

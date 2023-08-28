@@ -332,5 +332,30 @@ void ClusterManagement::updateVruClusterMap(const vanetza::asn1::Vam& vam, std::
 	}
 }
 
+InformationContainerData_t ClusterManagement::generateDataForNewCluster(long id){
+	InformationContainerData_t infoContainerData;
+	infoContainerData.shape = "Circular";
+	infoContainerData.cardinalitySize = mMinClusterSize;
+	infoContainerData.circleRadius = getSmallestDistanceToVru()*Radius_oneMeter*.5; 
+	infoContainerData.clusterId = id;
+	registerClusterId(infoContainerData.clusterId);
+	return infoContainerData;
+}
+
+InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
+	InformationContainerData_t infoContainerData;
+	infoContainerData.cardinalitySize = getCurrentClusterSize();
+	infoContainerData.clusterId = getClusterId();
+	infoContainerData.shape = mBoundingBoxShape;
+
+	if(mBoundingBoxShape == "Polygon"){
+		//infoContainerData.polyOffsets = getOffsetsFromMap();
+		infoContainerData.polyOffsets = calculatePolyOffsetList(getVruClusterMap());
+	}else if(mBoundingBoxShape == "Circular"){
+
+	}
+	
+	return infoContainerData;
+}
 
 }
