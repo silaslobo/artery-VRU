@@ -109,7 +109,6 @@ class ClusterManagement
         unsigned getCurrentClusterSize() const {return getVruClusterMap().size()+1;}
         double getSmallestDistanceToVru() const {return mSmallestDistanceToVru;}
 
-        std::vector<std::tuple<long,long>> getOffsetsFromMap(){return clusterPoly(mClusterMap);}
         InformationContainerData_t generateDataForNewCluster(long);
         InformationContainerData_t generateDataForCurrentCluster();
 
@@ -125,9 +124,11 @@ class ClusterManagement
         std::vector<std::tuple<long,long>> mPolyOffSetList;
         artery::ClusterManagement::Polygon_t reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos);
 		artery::ClusterManagement::Circle_t buildCircle(const double radius, pointXY& leaderPos);
-        std::vector<std::tuple<long,long>> clusterPoly(const VruClusterMap_t);
+        
+        // Convert various NodeOffset types to a tuple
         std::tuple<long,long> getOffsetValues(const OffsetPoint_t&);
 
+        std::vector<std::tuple<long,long>> calculatePolyOffsetList(const VruClusterMap_t);
         // Parameter validation
         double velocityDifference(SpeedValue_t, SpeedValue_t);
         bool checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality, bool withinBoundingBox = false);
