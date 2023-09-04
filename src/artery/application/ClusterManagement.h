@@ -123,7 +123,7 @@ class ClusterManagement
 
         // Build shapes from received VAM data
         artery::ClusterManagement::Polygon_t reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos);
-		artery::ClusterManagement::Circle_t reconstructCircle(const double radius, pointXY& leaderPos);
+		artery::ClusterManagement::Circle_t reconstructCircle(const double radius, pointXY& centerPos);
         
         // Convert various NodeOffset types to a tuple
         std::tuple<long,long> getOffsetValues(const OffsetPoint_t&);

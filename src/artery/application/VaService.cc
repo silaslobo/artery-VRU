@@ -428,6 +428,7 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationCont
 	if(infoContainerData.shape == "Circular"){
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterCircle;
 		vcic->clusterBoundingBoxShape.choice.clusterCircle.radius = infoContainerData.circleRadius;
+		vcic->clusterBoundingBoxShape.choice.clusterCircle.nodeCenterPoint = selectNodeType(infoContainerData.nodeOffset);
 
 	}else if(infoContainerData.shape == "Rectangular"){
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterRectangle;

@@ -122,9 +122,16 @@ artery::ClusterManagement::ClusterParameters_t ClusterManagement::parseInformati
 		// }
 
 	}else if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterCircle){
-		Circle_t receivedBoundingBox = reconstructCircle(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius, leaderPos);
-		clusterParameters.withinBoundingBox = bg::within(vruPos, receivedBoundingBox);
-
+		std::tuple<long,long> centerOffset = getOffsetValues(*vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.nodeCenterPoint);
+		pointXY centerXY = pointXY(bg::get<0>(leaderPos)+std::get<0>(centerOffset), bg::get<1>(leaderPos)+std::get<1>(centerOffset));
+		// Circle_t receivedBoundingBox = reconstructCircle(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius, centerXY);
+		// clusterParameters.withinBoundingBox = bg::within(vruPos, receivedBoundingBox);
+		clusterParameters.withinBoundingBox = (bg::distance(vruPos,centerXY) <= vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius) ? 1 : 0;
+		// if(clusterParameters.withinBoundingBox == 1 && vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius > 0){
+		// 	std::cout << "Reconstructed cluster " << vam_data.vamParameters.vruClusterInformationContainer->clusterId << std::endl;
+		// 	std::cout << "Parsed radius: " << vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius << std::endl;
+		// 	std::cout << "Parsed center: (" << bg::get<0>(centerXY) << "," << bg::get<1>(centerXY) << ") \n" << std::endl;
+		// }
 	}
 
 	return clusterParameters;
@@ -197,16 +204,17 @@ artery::ClusterManagement::Polygon_t ClusterManagement::reconstructPolygon(const
 	return reconstructedPolygon;
 }
 
-artery::ClusterManagement::Circle_t ClusterManagement::reconstructCircle(const double radius, pointXY& leaderPos)
+artery::ClusterManagement::Circle_t ClusterManagement::reconstructCircle(const double radius, pointXY& centerPos)
 {
 	Circle_t builtCircle;
-	bg::strategy::buffer::distance_symmetric<double> distance_strategy(radius);
+	bg::strategy::buffer::distance_symmetric<double> distance_strategy(radius/Radius_oneMeter);
 	bg::strategy::buffer::point_circle circle_strategy(360);
 	bg::strategy::buffer::join_round join_strategy;
 	bg::strategy::buffer::end_round end_strategy;
 	bg::strategy::buffer::side_straight side_strategy;
 
-	bg::buffer(leaderPos, builtCircle, distance_strategy, side_strategy, join_strategy, end_strategy, circle_strategy);
+	bg::buffer(centerPos, builtCircle, distance_strategy, side_strategy, join_strategy, end_strategy, circle_strategy);
+	bg::unique(builtCircle);
 	return builtCircle;
 }
 
@@ -245,8 +253,8 @@ std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(Vr
 	std::vector<std::tuple<long,long>> distancesList;
 
 	Polygon_t clusterPolygon = generatePolygonFromMap(vruMap);
-	//std::cout << "ID: " << getClusterId() << std::endl;
-	//std::cout << "Original poly: " << bg::dsv(clusterPolygon) << std::endl;
+	// std::cout << "ID: " << getClusterId() << std::endl;
+	// std::cout << "Original poly: " << bg::dsv(clusterPolygon) << std::endl;
 
 	// Using boost geometry, simplifies the original polygon with convex hull algorithm
 	Polygon_t hull;
@@ -266,6 +274,7 @@ std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(Vr
 	return distancesList;
 }
 
+// TODO: Change to calculate both speed and heading
 double ClusterManagement::velocityDifference(SpeedValue_t referenceSpeed, SpeedValue_t evaluatedSpeed)
 {
 	return (referenceSpeed > 0) ? std::abs(static_cast<double>(referenceSpeed - evaluatedSpeed))/referenceSpeed : 0.0;
@@ -339,8 +348,10 @@ ClusterManagement::pointXY ClusterManagement::calculateCenterFromMap(VruClusterM
 	bg::envelope(pointsFromMap, envelope);
 	bg::centroid(envelope, centerPoint);
 
+	// std::cout << "ID: " << getClusterId() << std::endl;
+	// std::cout << "Leader: (" << bg::get<0>(getVruLeaderXY()) << "," << bg::get<1>(getVruLeaderXY()) << ")" << std::endl;
 	// std::cout << "Point in map (circle): " << bg::dsv(pointsFromMap) << std::endl;
-	// std::cout << "Centroid: " << bg::get<0>(centerPoint) << " , " << bg::get<1>(centerPoint) << std::endl;
+	// std::cout << "Centroid: (" << bg::get<0>(centerPoint) << "," << bg::get<1>(centerPoint) << ")" << std::endl;
 	
 	return centerPoint;
 }
@@ -354,8 +365,9 @@ double ClusterManagement::calculateRadius(VruClusterMap_t vruMap, pointXY center
 		libsumo::TraCIPosition vruTraCIPos = api->simulation.convertGeo(vruLon,vruLat, true);
 		distanceList.push_back(bg::distance(center, pointXY(vruTraCIPos.x, vruTraCIPos.y)));		
 	}
-	double radius = *std::max_element(distanceList.begin(), distanceList.end())*Radius_oneMeter;
-	//std::cout << "Radius: " << radius << std::endl;
+	
+	double radius = ceil(*std::max_element(distanceList.begin(), distanceList.end())*Radius_oneMeter);
+	// std::cout << "Radius: " << radius << std::endl;
 	return radius;
 }
 
@@ -376,11 +388,10 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 	infoContainerData.shape = mBoundingBoxShape;
 
 	if(mBoundingBoxShape == "Polygon"){
-		//infoContainerData.polyOffsets = getOffsetsFromMap();
 		infoContainerData.polyOffsets = calculatePolyOffsetList(getVruClusterMap());
 	}else if(mBoundingBoxShape == "Circular"){
 		pointXY centerPoint = calculateCenterFromMap(mClusterMap);
-		infoContainerData.nodeOffset = calculateOffset(centerPoint, getVruLeaderXY());
+		infoContainerData.nodeOffset = calculateOffset(getVruLeaderXY(), centerPoint);
 		infoContainerData.circleRadius = calculateRadius(mClusterMap, centerPoint);
 	}
 	
