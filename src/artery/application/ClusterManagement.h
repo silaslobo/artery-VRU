@@ -128,7 +128,7 @@ class ClusterManagement
         // Convert various NodeOffset types to a tuple
         std::tuple<long,long> getOffsetValues(const OffsetPoint_t&);
 
-        artery::ClusterManagement::pointXY getVruLeaderXY();
+        artery::ClusterManagement::pointXY getCurrentVruXY();
         
         // VruClusterMap manipulation
         artery::ClusterManagement::Polygon_t generatePolygonFromMap(const VruClusterMap_t);

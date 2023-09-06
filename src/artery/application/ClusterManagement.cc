@@ -85,7 +85,7 @@ bool ClusterManagement::vruShouldCreateCluster(){
 	return (mInitialClusterMap.size() + 1) >= mNumCreateCluster;
 }
 
-artery::ClusterManagement::pointXY ClusterManagement::getVruLeaderXY(){
+artery::ClusterManagement::pointXY ClusterManagement::getCurrentVruXY(){
 	libsumo::TraCIPosition vruLeaderTraCIPos = position_cast(traci::Boundary(api->simulation.getNetBoundary()), mPersonDataProvider->position());
 	return pointXY(vruLeaderTraCIPos.x, vruLeaderTraCIPos.y);
 }
@@ -220,7 +220,7 @@ artery::ClusterManagement::Circle_t ClusterManagement::reconstructCircle(const d
 
 ClusterManagement::Polygon_t ClusterManagement::generatePolygonFromMap(VruClusterMap_t vruMap){
 	Polygon_t resultingPolygon;
-	pointXY vruLeaderPos = getVruLeaderXY();
+	pointXY vruLeaderPos = getCurrentVruXY();
 
 	bg::append(resultingPolygon, vruLeaderPos);
 
@@ -264,7 +264,7 @@ std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(Vr
 
 	// Obtains list of offsets
 	//std::cout << "Offset: "; 
-	previousPos = getVruLeaderXY();
+	previousPos = getCurrentVruXY();
 	for (auto const& currentPos : clusterPositions){
 		distancesList.push_back(calculateOffset(previousPos,currentPos));
 		previousPos = currentPos;
@@ -349,7 +349,7 @@ ClusterManagement::pointXY ClusterManagement::calculateCenterFromMap(VruClusterM
 	bg::centroid(envelope, centerPoint);
 
 	// std::cout << "ID: " << getClusterId() << std::endl;
-	// std::cout << "Leader: (" << bg::get<0>(getVruLeaderXY()) << "," << bg::get<1>(getVruLeaderXY()) << ")" << std::endl;
+	// std::cout << "Leader: (" << bg::get<0>(getCurrentVruXY()) << "," << bg::get<1>(getCurrentVruXY()) << ")" << std::endl;
 	// std::cout << "Point in map (circle): " << bg::dsv(pointsFromMap) << std::endl;
 	// std::cout << "Centroid: (" << bg::get<0>(centerPoint) << "," << bg::get<1>(centerPoint) << ")" << std::endl;
 	
@@ -391,7 +391,7 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 		infoContainerData.polyOffsets = calculatePolyOffsetList(getVruClusterMap());
 	}else if(mBoundingBoxShape == "Circular"){
 		pointXY centerPoint = calculateCenterFromMap(mClusterMap);
-		infoContainerData.nodeOffset = calculateOffset(getVruLeaderXY(), centerPoint);
+		infoContainerData.nodeOffset = calculateOffset(getCurrentVruXY(), centerPoint);
 		infoContainerData.circleRadius = calculateRadius(mClusterMap, centerPoint);
 	}
 	
