@@ -164,7 +164,11 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 		if (T_elapsed >= T_GenVamDcc) {
 			if (mFixedRate) {
 				sendVam(T_now);
-			} else if (T_elapsed >= T_GenVam) {
+			}else if (checkHeadingDelta() || checkPositionDelta() || checkSpeedDelta()) {
+				sendVam(T_now);
+				T_GenVam = std::min(T_elapsed, T_GenVamMax); /*< if middleware update interval is too long */
+				mGenVamLowDynamicsCounter = 0;
+			}else if (T_elapsed >= T_GenVam) {
 				sendVam(T_now);
 				if (++mGenVamLowDynamicsCounter >= mGenVamLowDynamicsLimit) {
 					T_GenVam = T_GenVamMax;
