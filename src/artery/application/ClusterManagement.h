@@ -117,7 +117,7 @@ class ClusterManagement
         long mClusterId;
 
         // Geometry definitions
-        typedef boost::geometry::model::point <long,2,boost::geometry::cs::cartesian>pointXY;
+        typedef boost::geometry::model::point <double,2,boost::geometry::cs::cartesian>pointXY;
         typedef boost::geometry::model::polygon<pointXY, false> Polygon_t; 
 		typedef boost::geometry::model::multi_polygon<Polygon_t> Circle_t;
 
