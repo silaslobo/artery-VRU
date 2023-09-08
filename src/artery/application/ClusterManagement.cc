@@ -124,8 +124,6 @@ artery::ClusterManagement::ClusterParameters_t ClusterManagement::parseInformati
 	}else if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterCircle){
 		std::tuple<long,long> centerOffset = getOffsetValues(*vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.nodeCenterPoint);
 		pointXY centerXY = pointXY(bg::get<0>(leaderPos)+std::get<0>(centerOffset), bg::get<1>(leaderPos)+std::get<1>(centerOffset));
-		// Circle_t receivedBoundingBox = reconstructCircle(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius, centerXY);
-		// clusterParameters.withinBoundingBox = bg::within(vruPos, receivedBoundingBox);
 		clusterParameters.withinBoundingBox = (bg::distance(vruPos,centerXY) <= vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius) ? 1 : 0;
 		// if(clusterParameters.withinBoundingBox == 1 && vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius > 0){
 		// 	std::cout << "Reconstructed cluster " << vam_data.vamParameters.vruClusterInformationContainer->clusterId << std::endl;
@@ -202,20 +200,6 @@ artery::ClusterManagement::Polygon_t ClusterManagement::reconstructPolygon(const
 	Polygon_t reconstructedPolygon;
 	bg::assign_points(reconstructedPolygon, reconstructedPositions);
 	return reconstructedPolygon;
-}
-
-artery::ClusterManagement::Circle_t ClusterManagement::reconstructCircle(const double radius, pointXY& centerPos)
-{
-	Circle_t builtCircle;
-	bg::strategy::buffer::distance_symmetric<double> distance_strategy(radius/Radius_oneMeter);
-	bg::strategy::buffer::point_circle circle_strategy(360);
-	bg::strategy::buffer::join_round join_strategy;
-	bg::strategy::buffer::end_round end_strategy;
-	bg::strategy::buffer::side_straight side_strategy;
-
-	bg::buffer(centerPos, builtCircle, distance_strategy, side_strategy, join_strategy, end_strategy, circle_strategy);
-	bg::unique(builtCircle);
-	return builtCircle;
 }
 
 ClusterManagement::Polygon_t ClusterManagement::generatePolygonFromMap(VruClusterMap_t vruMap){
