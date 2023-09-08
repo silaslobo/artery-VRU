@@ -206,24 +206,32 @@ ClusterManagement::Polygon_t ClusterManagement::generatePolygonFromMap(VruCluste
 	Polygon_t resultingPolygon;
 	pointXY vruLeaderPos = getCurrentVruXY();
 
+	//std::cout << "ID: " << getClusterId() << std::endl;
+	//std::cout << "Members: (" << mPersonDataProvider->getStationId() << "*";
 	bg::append(resultingPolygon, vruLeaderPos);
-
 	for (auto const& itr : vruMap) {
 		auto vruLon = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / std::pow( 10.0, 7 ));
 		auto vruLat = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.latitude) / std::pow( 10.0, 7 ));
 		libsumo::TraCIPosition vruTraCIPos = api->simulation.convertGeo(vruLon,vruLat, true);
-		bg::append(resultingPolygon, pointXY(vruTraCIPos.x, vruTraCIPos.y));	
+		bg::append(resultingPolygon, pointXY(vruTraCIPos.x, vruTraCIPos.y));
+		//std::cout << ", " << itr.first;
 	}
-
+	//std::cout << ")" << std::endl;
 	bg::append(resultingPolygon, vruLeaderPos);
 
+	bg::correct(resultingPolygon);
+	bg::unique(resultingPolygon);
+	// std::cout << "Poly from map: " << std::setprecision(15) << bg::dsv(resultingPolygon) << std::endl;
+	// std::cout << "Area: " << bg::area(resultingPolygon)*std::pow(10.0,-4) << " cm2" << std::endl;
+	// std::cout << "Cardinality: " << vruMap.size()+1 << " VRUs" << std::endl;
+	// std::cout << "Density: " << bg::area(resultingPolygon)/(vruMap.size()+1) << " VRUs/cm2" << std::endl;
 	return resultingPolygon;
 }
 
 std::tuple<long,long> ClusterManagement::calculateOffset(pointXY pointA, pointXY pointB){
 	// NodeOffsets are given in centimeters
-	long offsetX = std::round(bg::get<0>(pointB) - bg::get<0>(pointA))*100;
-	long offsetY = std::round(bg::get<1>(pointB) - bg::get<1>(pointA))*100;
+	long offsetX = (bg::get<0>(pointB) - bg::get<0>(pointA))*100.0;
+	long offsetY = (bg::get<1>(pointB) - bg::get<1>(pointA))*100.0;
 
 	//std::cout << "(" << offsetX << "," << offsetY << "), " ;
 
@@ -237,8 +245,6 @@ std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(Vr
 	std::vector<std::tuple<long,long>> distancesList;
 
 	Polygon_t clusterPolygon = generatePolygonFromMap(vruMap);
-	// std::cout << "ID: " << getClusterId() << std::endl;
-	// std::cout << "Original poly: " << bg::dsv(clusterPolygon) << std::endl;
 
 	// Using boost geometry, simplifies the original polygon with convex hull algorithm
 	Polygon_t hull;
@@ -253,7 +259,7 @@ std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(Vr
 		distancesList.push_back(calculateOffset(previousPos,currentPos));
 		previousPos = currentPos;
 	}
-	//std::cout << std::endl;
+	//std::cout << "\n" << std::endl;
 
 	return distancesList;
 }
@@ -283,13 +289,12 @@ void ClusterManagement::createVruClusterMap(){
 	libsumo::TraCIPosition vruLeaderTraCIPos = api->simulation.convertGeo(VruEgoLon,VruEgoLat, true);
 	SpeedValue_t VruEgoSpeed = buildVAMSpeedValue(mPersonDataProvider->speed());
 
-	//collect data from the VRUs in the LDM and update mVruClusterMap		
+	//collect data from the VRUs in the LDM and update mVruClusterMap
 	for (auto const& itr : *lDM) {
 									
 		double mVlatitude = ((itr.second.object.asn1()->vam.vamParameters.basicContainer.referencePosition.latitude) / std::pow( 10.0, 7 ));				
 		double mVlongitude = ((itr.second.object.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / std::pow( 10.0, 7 ));			
 		libsumo::TraCIPosition mVTraCIPosition = api->simulation.convertGeo(mVlongitude, mVlatitude, true);
-				
 		vanetza::units::Length distanceVRU = bg::distance(pointXY(vruLeaderTraCIPos.x,vruLeaderTraCIPos.y), pointXY(mVTraCIPosition.x,mVTraCIPosition.y)) * vanetza::units::si::meter;	
 
 		SpeedValue_t mVSpeed = itr.second.object.asn1()->vam.vamParameters.vruHighFrequencyContainer->speed.speedValue;
@@ -332,10 +337,8 @@ ClusterManagement::pointXY ClusterManagement::calculateCenterFromMap(VruClusterM
 	bg::envelope(pointsFromMap, envelope);
 	bg::centroid(envelope, centerPoint);
 
-	// std::cout << "ID: " << getClusterId() << std::endl;
-	// std::cout << "Leader: (" << bg::get<0>(getCurrentVruXY()) << "," << bg::get<1>(getCurrentVruXY()) << ")" << std::endl;
-	// std::cout << "Point in map (circle): " << bg::dsv(pointsFromMap) << std::endl;
-	// std::cout << "Centroid: (" << bg::get<0>(centerPoint) << "," << bg::get<1>(centerPoint) << ")" << std::endl;
+	//std::cout << "Leader: (" << bg::get<0>(getCurrentVruXY()) << "," << bg::get<1>(getCurrentVruXY()) << ")" << std::endl;
+	//std::cout << "Centroid: (" << bg::get<0>(centerPoint) << "," << bg::get<1>(centerPoint) << ")" << std::endl;
 	
 	return centerPoint;
 }
@@ -351,7 +354,7 @@ double ClusterManagement::calculateRadius(VruClusterMap_t vruMap, pointXY center
 	}
 	
 	double radius = ceil(*std::max_element(distanceList.begin(), distanceList.end())*Radius_oneMeter);
-	// std::cout << "Radius: " << radius << std::endl;
+	//std::cout << "Radius: " << radius << " dm \n" << std::endl;
 	return radius;
 }
 
