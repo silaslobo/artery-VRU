@@ -164,7 +164,11 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 		if (T_elapsed >= T_GenVamDcc) {
 			if (mFixedRate) {
 				sendVam(T_now);
-			} else if (T_elapsed >= T_GenVam) {
+			}else if (checkHeadingDelta() || checkPositionDelta() || checkSpeedDelta()) {
+				sendVam(T_now);
+				T_GenVam = std::min(T_elapsed, T_GenVamMax); /*< if middleware update interval is too long */
+				mGenVamLowDynamicsCounter = 0;
+			}else if (T_elapsed >= T_GenVam) {
 				sendVam(T_now);
 				if (++mGenVamLowDynamicsCounter >= mGenVamLowDynamicsLimit) {
 					T_GenVam = T_GenVamMax;
@@ -292,7 +296,7 @@ void VaService::sendVam(const SimTime& T_now)
 		mClusterManagement.createVruClusterMap();
 		if(mClusterManagement.vruShouldCreateCluster()){
 			mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveClusterLeader);
-			auto initialInfoContainerData = generateDataForNewCluster();
+			auto initialInfoContainerData = mClusterManagement.generateDataForNewCluster(omnetpp::intuniform(getRNG(0), 1, 255));
 			addClusterInformationContainer(vam, initialInfoContainerData);
 			clusterVamSentCounter++;
 			previousContainerData = initialInfoContainerData;
@@ -305,10 +309,10 @@ void VaService::sendVam(const SimTime& T_now)
 			VruClusterMap_t clusterMap = mClusterManagement.getVruClusterMap();
 			// TODO: How should we treat clusters with size 2?
 			if(mClusterManagement.getCurrentClusterSize() >= mClusterManagementParameters.NumCreateCluster){
-				auto polyInfoData = generateDataForPolyCluster();
-				addClusterInformationContainer(vam, polyInfoData);
+				auto clusterInfoData = mClusterManagement.generateDataForCurrentCluster();
+				addClusterInformationContainer(vam, clusterInfoData);
 				clusterVamSentCounter++;
-				previousContainerData = polyInfoData;
+				previousContainerData = clusterInfoData;
 			}
 		}else if(currentVruClusterOperation == KeepCluster){
 			addClusterInformationContainer(vam, previousContainerData);
@@ -416,26 +420,6 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& pdp, uint
 	return message;
 }
 
-// TODO: In the future evaluate moving these methods and the InformationContainerData_t struct to the ClusterManagement class
-InformationContainerData_t VaService::generateDataForNewCluster(){
-	InformationContainerData_t infoContainerData;
-	infoContainerData.shape = "Circular";
-	infoContainerData.cardinalitySize = mClusterManagementParameters.MinClusterSize;
-	infoContainerData.circleRadius = mClusterManagement.getSmallestDistanceToVru()*Radius_oneMeter*.5;
-	infoContainerData.clusterId = omnetpp::intuniform(getRNG(0), 1, 255);
-	mClusterManagement.registerClusterId(infoContainerData.clusterId);
-	return infoContainerData;
-}
-
-InformationContainerData_t VaService::generateDataForPolyCluster(){
-	InformationContainerData_t infoContainerData;
-	infoContainerData.shape = "Polygon";
-	infoContainerData.cardinalitySize = mClusterManagement.getCurrentClusterSize();
-	infoContainerData.polyOffsets = mClusterManagement.getOffsetsFromMap();
-	infoContainerData.clusterId = mClusterManagement.getClusterId();
-	return infoContainerData;
-}
-
 void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationContainerData_t& infoContainerData){
 
 	VruAwareness_t &vam = (*message).vam;
@@ -448,6 +432,7 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationCont
 	if(infoContainerData.shape == "Circular"){
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterCircle;
 		vcic->clusterBoundingBoxShape.choice.clusterCircle.radius = infoContainerData.circleRadius;
+		vcic->clusterBoundingBoxShape.choice.clusterCircle.nodeCenterPoint = selectNodeType(infoContainerData.nodeOffset);
 
 	}else if(infoContainerData.shape == "Rectangular"){
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterRectangle;

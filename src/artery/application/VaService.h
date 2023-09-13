@@ -36,16 +36,6 @@ class NetworkInterfaceTable;
 class Timer;
 class PersonDataProvider;
 class LocalEnvironmentModel;
-//class ClusterManagement;
-typedef struct InformationContainerData{
-	std::string shape;
-	unsigned cardinalitySize;
-	std::vector<std::tuple<long,long>> polyOffsets;
-	const PersonDataProvider* leaderDataProvider;
-	double circleRadius;
-	long clusterId;
-
-} InformationContainerData_t;
 class VaService : public ItsG5BaseService
 {
 	public:
@@ -60,8 +50,6 @@ class VaService : public ItsG5BaseService
 		typedef boost::geometry::srs::spheroid <double> stype;
 		typedef boost::geometry::strategy::distance::vincenty <stype> vincenty_type;
 
-		InformationContainerData_t generateDataForNewCluster();
-		InformationContainerData_t generateDataForPolyCluster();
 		InformationContainerData_t previousContainerData;
 
 		void checkTriggeringConditions(const omnetpp::SimTime&);
