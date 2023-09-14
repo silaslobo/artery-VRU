@@ -44,7 +44,7 @@ simple VaService like ItsG5Service
         bool withDccRestriction = default(true);
 
         // cluster Information
-        bool clusterContainer = default(false);
+        bool withClusterSupport = default(false);
 
         // generation interval boundaries
         double minInterval @unit(s) = default(0.1s);
