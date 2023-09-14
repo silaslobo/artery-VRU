@@ -109,7 +109,7 @@ class VaService : public ItsG5BaseService
 		float geoBase = 10000000;
 
 		//Cluster Management
-		bool mClusterContainer;
+		bool mClusterSupport;
 		double clusterVamSentCounter = 0;
 		unsigned mTargetClusterId;    
 		unsigned mPreviousCardinalitySize;

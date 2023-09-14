@@ -44,7 +44,7 @@ simple VaService like ItsG5Service
         bool withDccRestriction = default(true);
 
         // cluster Information
-        bool clusterContainer = default(false);
+        bool withClusterSupport = default(false);
 
         // generation interval boundaries
         double minInterval @unit(s) = default(0.1s);
@@ -54,7 +54,7 @@ simple VaService like ItsG5Service
         bool fixedRate = default(false);
 
         // change in orientation triggering VAM generation (in degree)
-        double headingDelta = default(0.2);
+        double headingDelta = default(4.0);
 
         // change in position triggering VAM generation
         double positionDelta @unit(m) = default(4.0m);
