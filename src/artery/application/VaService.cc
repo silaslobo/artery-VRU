@@ -301,24 +301,28 @@ void VaService::sendVam(const SimTime& T_now)
 			mClusterManagement.createVruClusterMap();
 			if(mClusterManagement.vruShouldCreateCluster()){
 				mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveClusterLeader);
-				auto initialInfoContainerData = generateDataForNewCluster();
+				auto initialInfoContainerData = mClusterManagement.generateDataForNewCluster(omnetpp::intuniform(getRNG(0), 1, 255));
 				addClusterInformationContainer(vam, initialInfoContainerData);
 				clusterVamSentCounter++;
 				previousContainerData = initialInfoContainerData;
 			}
+		}
 
 
-
-	// Update InfoContainer: Cluster size alteration
-	if(mClusterManagement.isVruClusterLeader()){
-		if(currentVruClusterOperation == AddVruToCluster || currentVruClusterOperation == RemoveVruFromCluster){
-			VruClusterMap_t clusterMap = mClusterManagement.getVruClusterMap();
-			// TODO: How should we treat clusters with size 2?
-			if(mClusterManagement.getCurrentClusterSize() >= mClusterManagementParameters.NumCreateCluster){
-				auto clusterInfoData = mClusterManagement.generateDataForCurrentCluster();
-				addClusterInformationContainer(vam, clusterInfoData);
+		// Update InfoContainer: Cluster size alteration
+		if(mClusterManagement.isVruClusterLeader()){
+			if(currentVruClusterOperation == AddVruToCluster || currentVruClusterOperation == RemoveVruFromCluster){
+				VruClusterMap_t clusterMap = mClusterManagement.getVruClusterMap();
+				// TODO: How should we treat clusters with size 2?
+				if(mClusterManagement.getCurrentClusterSize() >= mClusterManagementParameters.NumCreateCluster){
+					auto clusterInfoData = mClusterManagement.generateDataForCurrentCluster();
+					addClusterInformationContainer(vam, clusterInfoData);
+					clusterVamSentCounter++;
+					previousContainerData = clusterInfoData;
+				}
+			} else if(currentVruClusterOperation == KeepCluster){
+				addClusterInformationContainer(vam, previousContainerData);
 				clusterVamSentCounter++;
-				previousContainerData = clusterInfoData;
 			}
 		}
 
@@ -356,7 +360,7 @@ void VaService::sendVam(const SimTime& T_now)
 	std::unique_ptr<convertible::byte_buffer> buffer { new VamByteBuffer(obj.shared_ptr()) };
 	payload->layer(OsiLayer::Application) = std::move(buffer);
 	this->request(request, std::move(payload));	
-}
+	}
 
 SimTime VaService::genVamDcc()
 {
