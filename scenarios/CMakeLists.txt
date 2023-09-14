@@ -4,7 +4,7 @@ add_subdirectory(highway-police)
 add_subdirectory(crash_junction_InTAS)
 add_subdirectory(VTS_2022_Fall)
 add_subdirectory(CPM_and_VAM)
-add_subdirectory(VRU_clustering)
+add_subdirectory(VAM_Clustering)
 add_subdirectory(clusterContainer)
 add_subdirectory(ITSC_2023)
 
