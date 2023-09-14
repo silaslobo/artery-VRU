@@ -1,0 +1,38 @@
+<configuration>
+	<input>
+		<net-file value="InTAS_Crossing.net.xml"/>
+		<route-files value="InTAS_Pedestrian_Route.rou.xml, vehJam.rou.xml"/>
+		<additional-files value="buildings.poly.xml"/>
+	</input>
+	<!--output>
+		<summary-output value="InTAS.simulation.summary.xml"/>
+		<tripinfo-output value="InTAS.simulation.tripinfo.xml"/>
+		<statistic-output value="InTAS.simulation.statistic.xml"/>
+		<person-summary-output value="InTAS.person.simulation.summary.xml"/>
+	</output-->
+	<time>
+		<begin value="0"/>
+		<step-length value="0.1"/>
+		<end value="30"/>
+	</time>
+	<processing>
+		<threads value="1"/>
+		<ignore-junction-blocker value="3"/>
+		<time-to-teleport value="5"/>
+		<default.carfollowmodel value="Krauss"/>
+		<pedestrian.model value="striping"/>
+		<pedestrian.striping.stripe-width value="0.50"/>
+		<pedestrian.striping.jamtime value="10"/>
+		<pedestrian.striping.jamtime.crossing value="10"/>
+		<pedestrian.striping.jamtime.narrow value="10"/>
+		<pedestrian.striping.reserve-oncoming value="0.5"/>	
+		<eager-insert value="true" />
+	</processing>
+	<report>
+		<no-warnings value="true"/>
+		<!--log value="InTAS_Crossing.simulation.log"/-->
+	</report>	
+	<gui-only>
+		<delay value="100" />
+	</gui-only>	
+</configuration>

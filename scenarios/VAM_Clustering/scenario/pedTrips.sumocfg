@@ -1,0 +1,14 @@
+<configuration>
+
+	<net-file value="InTAS_Crossing.net.xml"/>
+	<route-file value="InTAS_Pedestrian_Route.rou.xml"/>
+	<pedestrians />
+	<random-departpos/>
+	<random-arrivalpos/>
+	<begin value="0" />
+	<end value="30" />
+	<period value="0.01" />
+	<binomial value="1000" />
+
+		
+</configuration>
