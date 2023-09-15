@@ -47,6 +47,9 @@ static const simsignal_t scSignalVamReceived = cComponent::registerSignal("VamRe
 static const simsignal_t scSignalVamSent = cComponent::registerSignal("VamSent");
 static const simsignal_t SignalVamReceived = cComponent::registerSignal("VamReceivedCounter");
 static const simsignal_t SignalVamSent = cComponent::registerSignal("VamSentCounter");
+static const simsignal_t SignalVamPosition = cComponent::registerSignal("VamTriggerPosition");
+static const simsignal_t SignalVamHeading = cComponent::registerSignal("VamTriggerHeading");
+static const simsignal_t SignalVamSpeed = cComponent::registerSignal("VamTriggerSpeed");
 
 static const auto scLowFrequencyContainerInterval = std::chrono::milliseconds(500);
 
@@ -166,6 +169,15 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 			if (mFixedRate) {
 				sendVam(T_now);
 			}else if (checkHeadingDelta() || checkPositionDelta() || checkSpeedDelta()) {
+				if (checkHeadingDelta()){
+					emit(SignalVamHeading, 1);
+				}
+				if (checkPositionDelta()){
+					emit(SignalVamPosition, 1);
+				}
+				if (checkSpeedDelta()){
+					emit(SignalVamSpeed, 1);
+				}
 				sendVam(T_now);
 				T_GenVam = std::min(T_elapsed, T_GenVamMax); /*< if middleware update interval is too long */
 				mGenVamLowDynamicsCounter = 0;

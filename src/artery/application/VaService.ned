@@ -33,12 +33,20 @@ simple VaService like ItsG5Service
         @signal[VamSent](type=artery::VaObject);    
         @signal[VamSentCounter];
         @signal[VamReceivedCounter];
+        @signal[VamTriggerPosition];
+        @signal[VamTriggerHeading];
+        @signal[VamTriggerSpeed];
 
         @statistic[reception](source=VamReceived;record=vector(vamStationId)?,vector(vamGenerationDeltaTime)?);
         @statistic[transmission](source=VamSent;record=vector(vamStationId)?,vector(vamGenerationDeltaTime)?);
     
         @statistic[VamSentCounter](record=count,vector?);
         @statistic[VamReceivedCounter](record=count,vector?);
+
+        @statistic[PositionTrigger](source=VamTriggerPosition;record=count,vector?);
+        @statistic[HeadingTrigger](source=VamTriggerHeading;record=count,vector?);
+        @statistic[SpeedTrigger](source=VamTriggerSpeed;record=count,vector?);
+        
 
         // evaluate DCC transmission interval restrictions
         bool withDccRestriction = default(true);
