@@ -245,12 +245,10 @@ std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(Po
 	std::vector<std::tuple<long,long>> distancesList;
 
 	// Using boost geometry, simplifies the original polygon with convex hull algorithm
-	// Polygon_t hull;
-	// bg::convex_hull(basePoly, hull);
+	Polygon_t hull;
+	bg::convex_hull(basePoly, hull);
 	//std::cout << "Hull poly: " << bg::dsv(hull) << std::endl;
-	// clusterPositions = hull.outer();vanetza::units::Length ra
-
-	clusterPositions = basePoly.outer();
+	clusterPositions = hull.outer();
 
 	// Obtains list of offsets
 	//std::cout << "Offset: "; 
@@ -353,7 +351,7 @@ double ClusterManagement::calculateRadius(VruClusterMap_t vruMap, pointXY center
 	}
 	
 	double radius = Constants::round(*std::max_element(distanceList.begin(), distanceList.end()), Constants::decimeter)*Radius_oneMeter;
-	std::cout << "Radius: " << radius << " dm \n" << std::endl;
+	//std::cout << "Radius: " << radius << " dm \n" << std::endl;
 	return radius;
 }
 
