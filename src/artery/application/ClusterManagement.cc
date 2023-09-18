@@ -238,19 +238,19 @@ std::tuple<long,long> ClusterManagement::calculateOffset(pointXY pointA, pointXY
 	return std::make_tuple(offsetX, offsetY);
 }
 
-std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(VruClusterMap_t vruMap)
+std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(Polygon_t basePoly)
 {
 	std::vector<pointXY> clusterPositions;
 	pointXY previousPos;
 	std::vector<std::tuple<long,long>> distancesList;
 
-	Polygon_t clusterPolygon = generatePolygonFromMap(vruMap);
-
 	// Using boost geometry, simplifies the original polygon with convex hull algorithm
-	Polygon_t hull;
-	bg::convex_hull(clusterPolygon, hull);
+	// Polygon_t hull;
+	// bg::convex_hull(basePoly, hull);
 	//std::cout << "Hull poly: " << bg::dsv(hull) << std::endl;
-	clusterPositions = hull.outer();
+	// clusterPositions = hull.outer();vanetza::units::Length ra
+
+	clusterPositions = basePoly.outer();
 
 	// Obtains list of offsets
 	//std::cout << "Offset: "; 
@@ -328,13 +328,12 @@ void ClusterManagement::updateVruClusterMap(const vanetza::asn1::Vam& vam, std::
 	}
 }
 
-ClusterManagement::pointXY ClusterManagement::calculateCenterFromMap(VruClusterMap_t vruMap){
+ClusterManagement::pointXY ClusterManagement::calculateCenterFromBasePoly(Polygon_t basePoly){
 	
-	Polygon_t pointsFromMap = generatePolygonFromMap(vruMap);
 	bg::model::box<pointXY> envelope;
 	pointXY centerPoint;
 
-	bg::envelope(pointsFromMap, envelope);
+	bg::envelope(basePoly, envelope);
 	bg::centroid(envelope, centerPoint);
 
 	//std::cout << "Leader: (" << bg::get<0>(getCurrentVruXY()) << "," << bg::get<1>(getCurrentVruXY()) << ")" << std::endl;
@@ -344,18 +343,43 @@ ClusterManagement::pointXY ClusterManagement::calculateCenterFromMap(VruClusterM
 }
 
 double ClusterManagement::calculateRadius(VruClusterMap_t vruMap, pointXY center){
-	std::vector<double> distanceList;
+	std::vector<vanetza::units::Length> distanceList;
 
 	for (auto const& itr : vruMap) {
 		auto vruLon = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / std::pow( 10.0, 7 ));
 		auto vruLat = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.latitude) / std::pow( 10.0, 7 ));
 		libsumo::TraCIPosition vruTraCIPos = api->simulation.convertGeo(vruLon,vruLat, true);
-		distanceList.push_back(bg::distance(center, pointXY(vruTraCIPos.x, vruTraCIPos.y)));		
+		distanceList.push_back(bg::distance(center, pointXY(vruTraCIPos.x, vruTraCIPos.y))*vanetza::units::si::meter);		
 	}
 	
-	double radius = ceil(*std::max_element(distanceList.begin(), distanceList.end())*Radius_oneMeter);
-	//std::cout << "Radius: " << radius << " dm \n" << std::endl;
+	double radius = Constants::round(*std::max_element(distanceList.begin(), distanceList.end()), Constants::decimeter)*Radius_oneMeter;
+	std::cout << "Radius: " << radius << " dm \n" << std::endl;
 	return radius;
+}
+
+
+std::string ClusterManagement::selectBoundingBoxShape(Polygon_t basePoly){
+
+	//TODO: Develop a less reduntant way to obtain areas -> current solution repeats plenty of calculations
+	Polygon_t hullPoly;
+	bg::convex_hull(basePoly, hullPoly);
+	double areaPoly = bg::area(hullPoly);
+	
+	pointXY circleCenter = calculateCenterFromBasePoly(basePoly);
+	double circleRadius = calculateRadius(mClusterMap, circleCenter)/Radius_oneMeter;
+	double areaCircle = 2*boost::math::double_constants::pi*std::pow(circleRadius,2);
+
+	// Cluster shape selection based on highest Num_Clusters/m^2 (i.e. smaller area)
+	std::string selectedShape = areaPoly <= areaCircle ? "Polygon" : "Circular";
+
+	// std::cout << std::setprecision(14);
+	// std::cout << "For cluster " << getClusterId() << " : " << selectedShape << std::endl;
+	// std::cout << "Density | Poly " << getCurrentClusterSize()/areaPoly << " | Circle " << getCurrentClusterSize()/areaCircle << std::endl; 
+	// std::cout << "Base Poly: " << bg::dsv(basePoly) << std::endl;
+	// std::cout << "Hull Poly: " << bg::dsv(hullPoly) << std::endl;
+	// std::cout << "Circle: radius(" << circleRadius << ") and center(" << bg::get<0>(circleCenter) << "," << bg::get<1>(circleCenter) << ") \n" << std::endl;
+
+	return selectedShape;
 }
 
 InformationContainerData_t ClusterManagement::generateDataForNewCluster(long id){
@@ -372,15 +396,22 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 	InformationContainerData_t infoContainerData;
 	infoContainerData.cardinalitySize = getCurrentClusterSize();
 	infoContainerData.clusterId = getClusterId();
-	infoContainerData.shape = mBoundingBoxShape;
+
+	Polygon_t basePoly = generatePolygonFromMap(mClusterMap);
+
+	if(mBoundingBoxShape == "Autoselect"){
+		mBoundingBoxShape = selectBoundingBoxShape(basePoly);
+	}
 
 	if(mBoundingBoxShape == "Polygon"){
-		infoContainerData.polyOffsets = calculatePolyOffsetList(getVruClusterMap());
+		infoContainerData.polyOffsets = calculatePolyOffsetList(basePoly);
 	}else if(mBoundingBoxShape == "Circular"){
-		pointXY centerPoint = calculateCenterFromMap(mClusterMap);
+		pointXY centerPoint = calculateCenterFromBasePoly(basePoly);
 		infoContainerData.nodeOffset = calculateOffset(getCurrentVruXY(), centerPoint);
 		infoContainerData.circleRadius = calculateRadius(mClusterMap, centerPoint);
 	}
+
+	infoContainerData.shape = mBoundingBoxShape;
 	
 	return infoContainerData;
 }

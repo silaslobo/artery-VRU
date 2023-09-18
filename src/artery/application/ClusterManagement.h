@@ -133,10 +133,10 @@ class ClusterManagement
         // VruClusterMap manipulation
         artery::ClusterManagement::Polygon_t generatePolygonFromMap(const VruClusterMap_t);
         std::tuple<long,long> calculateOffset(const pointXY, const pointXY);
-        std::vector<std::tuple<long,long>> calculatePolyOffsetList(const VruClusterMap_t);
-        artery::ClusterManagement::pointXY calculateCenterFromMap(const VruClusterMap_t);
+        std::vector<std::tuple<long,long>> calculatePolyOffsetList(const Polygon_t);
+        artery::ClusterManagement::pointXY calculateCenterFromBasePoly(const Polygon_t);
         double calculateRadius(const VruClusterMap_t clusterMap, const pointXY center);
-        
+        std::string selectBoundingBoxShape(const Polygon_t);
 
         // Parameter validation
         double velocityDifference(SpeedValue_t, SpeedValue_t);
