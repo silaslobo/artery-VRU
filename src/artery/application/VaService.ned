@@ -78,8 +78,8 @@ simple VaService like ItsG5Service
         int maxClusterSize = default(20);
         int numClusterVAMRepeat = default(3);
 
-        // Clustering behavior on the simulation
-        string defaultBoundingBoxShape = default("Polygon");
+        // Clustering behavior on the simulation 
+        string defaultBoundingBoxShape = default("Polygon"); // Available options: Circular, Rectangular, Polygon or Autoselect
         
         // Cluster membership parameters 
         double timeClusterUniquenessThreshold @unit(s) = default(30.0s);
