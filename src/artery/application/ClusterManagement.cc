@@ -349,10 +349,12 @@ double ClusterManagement::calculateRadius(VruClusterMap_t vruMap, pointXY center
 		libsumo::TraCIPosition vruTraCIPos = api->simulation.convertGeo(vruLon,vruLat, true);
 		distanceList.push_back(bg::distance(center, pointXY(vruTraCIPos.x, vruTraCIPos.y))*vanetza::units::si::meter);		
 	}
-	
-	double radius = Constants::round(*std::max_element(distanceList.begin(), distanceList.end()), Constants::decimeter)*Radius_oneMeter;
-	//std::cout << "Radius: " << radius << " dm \n" << std::endl;
-	return radius;
+
+	auto radiusMeters = *std::max_element(distanceList.begin(), distanceList.end());
+	double radiusDecimeters = Constants::round(radiusMeters, Constants::decimeter);
+	//std::cout << "Radius: " <<  radiusMeters.value() << " m" << std::endl;
+	//std::cout << "Radius: " << radiusDecimeters << " dm" << std::endl;
+	return radiusDecimeters <= 0 ? 1 : radiusDecimeters;
 }
 
 
@@ -370,12 +372,12 @@ std::string ClusterManagement::selectBoundingBoxShape(Polygon_t basePoly){
 	// Cluster shape selection based on highest Num_Clusters/m^2 (i.e. smaller area)
 	std::string selectedShape = areaPoly <= areaCircle ? "Polygon" : "Circular";
 
-	// std::cout << std::setprecision(14);
+	//std::cout << std::setprecision(14);
 	// std::cout << "For cluster " << getClusterId() << " : " << selectedShape << std::endl;
 	// std::cout << "Density | Poly " << getCurrentClusterSize()/areaPoly << " | Circle " << getCurrentClusterSize()/areaCircle << std::endl; 
 	// std::cout << "Base Poly: " << bg::dsv(basePoly) << std::endl;
 	// std::cout << "Hull Poly: " << bg::dsv(hullPoly) << std::endl;
-	// std::cout << "Circle: radius(" << circleRadius << ") and center(" << bg::get<0>(circleCenter) << "," << bg::get<1>(circleCenter) << ") \n" << std::endl;
+	// std::cout << "Circle: radius(" << circleRadius << "m) and center(" << bg::get<0>(circleCenter) << "," << bg::get<1>(circleCenter) << ") \n" << std::endl;
 
 	return selectedShape;
 }
