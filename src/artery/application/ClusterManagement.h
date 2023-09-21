@@ -44,6 +44,7 @@ typedef struct ClusterManagementParameters{
 			unsigned NumClusterVAMRepeat;
 
 			std::string DefaultBoundingBoxShape;
+            bool EnableBoundingBoxPadding;
 
 } ClusterManagementParameters_t;
 
@@ -190,6 +191,7 @@ class ClusterManagement
         double mSmallestDistanceToVru;
 
         std::string mBoundingBoxShape;
+        bool mEnableBoundingBoxPadding;
 
         LocalDynamicMap* mLocalDynamicMap;
         const PersonDataProvider* mPersonDataProvider;

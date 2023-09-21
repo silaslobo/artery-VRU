@@ -80,6 +80,7 @@ simple VaService like ItsG5Service
 
         // Clustering behavior on the simulation 
         string defaultBoundingBoxShape = default("Polygon"); // Available options: Circular, Rectangular, Polygon or Autoselect
+        bool enableBoundingBoxPadding = default(false);
         
         // Cluster membership parameters 
         double timeClusterUniquenessThreshold @unit(s) = default(30.0s);

@@ -47,6 +47,7 @@ void ClusterManagement::initialize(ClusterManagementParameters_t& cManagementPar
 	mTimeCombinedVruClusterOpportunity = cManagementPar.TimeCombinedVruClusterOpportunity; 
 	
 	mBoundingBoxShape = cManagementPar.DefaultBoundingBoxShape;
+	mEnableBoundingBoxPadding = cManagementPar.EnableBoundingBoxPadding;
 
 	setCurrentVruRole(VruActiveStandalone);
 }

@@ -137,7 +137,8 @@ void VaService::initialize()
 		mClusterManagementParameters.TimeCombinedVruClusterOpportunity = par("timeCombinedVruClusterOpportunity"); 
 
 		mClusterManagementParameters.DefaultBoundingBoxShape = par("defaultBoundingBoxShape").stringValue();
-		
+		mClusterManagementParameters.EnableBoundingBoxPadding = par("enableBoundingBoxPadding");
+
 		mClusterManagement.initialize(mClusterManagementParameters);
 		mClusterManagement.simObjects(mPersonDataProvider, mLocalDynamicMap, mPersonController);
 		
