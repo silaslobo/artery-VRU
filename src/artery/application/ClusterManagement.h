@@ -55,6 +55,9 @@ typedef struct InformationContainerData{
 	const PersonDataProvider* leaderDataProvider;
 	double circleRadius;
 	long clusterId;
+    double orientationAngle;
+    double rectangleWidth;
+    double rectangleLength;
 
 } InformationContainerData_t;
 
@@ -120,6 +123,7 @@ class ClusterManagement
         typedef boost::geometry::model::point <double,2,boost::geometry::cs::cartesian>pointXY;
         typedef boost::geometry::model::polygon<pointXY, false> Polygon_t; 
 		typedef boost::geometry::model::multi_polygon<Polygon_t> Circle_t;
+        typedef boost::geometry::model::box<pointXY> Box_t;
 
         // Build shapes from received VAM data
         artery::ClusterManagement::Polygon_t reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos);
@@ -137,6 +141,12 @@ class ClusterManagement
         artery::ClusterManagement::pointXY calculateCenterFromBasePoly(const Polygon_t);
         double calculateRadius(const VruClusterMap_t clusterMap, const pointXY center);
         std::string selectBoundingBoxShape(const Polygon_t);
+        std::tuple<Polygon_t, double> getRotatedRectangle(const Polygon_t);
+
+        // Rectangle helper methods
+        double radiansToWGS84Angle(double radians);
+        artery::ClusterManagement::Polygon_t translatePoly(const Polygon_t, double offsetX, double offsetY);
+        artery::ClusterManagement::Polygon_t rotatePoly(const Polygon_t, double angle);
 
         // Parameter validation
         double velocityDifference(SpeedValue_t, SpeedValue_t);

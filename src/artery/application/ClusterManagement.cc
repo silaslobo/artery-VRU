@@ -221,7 +221,7 @@ ClusterManagement::Polygon_t ClusterManagement::generatePolygonFromMap(VruCluste
 
 	bg::correct(resultingPolygon);
 	bg::unique(resultingPolygon);
-	// std::cout << "Poly from map: " << std::setprecision(15) << bg::dsv(resultingPolygon) << std::endl;
+	//std::cout << "Poly from map: " << std::setprecision(15) << bg::dsv(resultingPolygon) << std::endl;
 	// std::cout << "Area: " << bg::area(resultingPolygon)*std::pow(10.0,-4) << " cm2" << std::endl;
 	// std::cout << "Cardinality: " << vruMap.size()+1 << " VRUs" << std::endl;
 	// std::cout << "Density: " << bg::area(resultingPolygon)/(vruMap.size()+1) << " VRUs/cm2" << std::endl;
@@ -247,7 +247,7 @@ std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(Po
 	// Using boost geometry, simplifies the original polygon with convex hull algorithm
 	Polygon_t hull;
 	bg::convex_hull(basePoly, hull);
-	//std::cout << "Hull poly: " << bg::dsv(hull) << std::endl;
+	std::cout << "Hull poly: " << bg::dsv(hull) << std::endl;
 	clusterPositions = hull.outer();
 
 	// Obtains list of offsets
@@ -328,7 +328,7 @@ void ClusterManagement::updateVruClusterMap(const vanetza::asn1::Vam& vam, std::
 
 ClusterManagement::pointXY ClusterManagement::calculateCenterFromBasePoly(Polygon_t basePoly){
 	
-	bg::model::box<pointXY> envelope;
+	Box_t envelope;
 	pointXY centerPoint;
 
 	bg::envelope(basePoly, envelope);
@@ -357,6 +357,59 @@ double ClusterManagement::calculateRadius(VruClusterMap_t vruMap, pointXY center
 	return radiusDecimeters <= 0 ? 1 : radiusDecimeters;
 }
 
+double ClusterManagement::radiansToWGS84Angle(double radians){
+	double WGSAngle = radians * 1800.0 / M_PI;
+	if(WGSAngle >= 2700.0){
+		WGSAngle -= 3600.0;
+	}
+	return WGSAngle += 900.0;
+}
+
+ClusterManagement::Polygon_t ClusterManagement::translatePoly(const Polygon_t originalPoly, double offsetX, double offsetY){
+	Polygon_t translatedPoly;
+	bg::strategy::transform::translate_transformer<double, 2, 2> applyOffset(offsetX, offsetY);
+	bg::transform(originalPoly, translatedPoly, applyOffset);
+	return translatedPoly;
+}
+
+ClusterManagement::Polygon_t ClusterManagement::rotatePoly(const Polygon_t originalPoly, double angle){
+	Polygon_t rotatedPoly;
+	bg::strategy::transform::rotate_transformer<bg::radian, double, 2, 2> applyRotation(angle);
+	bg::transform(originalPoly, rotatedPoly, applyRotation);
+	return rotatedPoly;
+}
+
+std::tuple<ClusterManagement::Polygon_t, double>  ClusterManagement::getRotatedRectangle(Polygon_t basePoly){
+	
+	Box_t outputEnvelope;
+	double minArea = std::numeric_limits<double>::max(), optimalAngle;
+
+	pointXY basePolyCenter = calculateCenterFromBasePoly(basePoly); 
+	Polygon_t offsetPoly = translatePoly(basePoly, -bg::get<0>(basePolyCenter), -bg::get<1>(basePolyCenter));
+
+	for (double currentAngle = 0.0; currentAngle <= 2*M_PI; currentAngle += 0.1) {
+
+		Box_t candidateEnvelope;
+		Polygon_t rotatedPoly = rotatePoly(offsetPoly, currentAngle);
+		bg::envelope(rotatedPoly, candidateEnvelope);
+        double rotatedArea = bg::area(candidateEnvelope);
+		
+        if (rotatedArea < minArea) {
+            minArea = rotatedArea;
+			outputEnvelope = candidateEnvelope;
+			optimalAngle = currentAngle;
+        }
+    }
+	
+	Polygon_t baseRectangle;
+	bg::convert(outputEnvelope, baseRectangle);
+
+	Polygon_t outputRectangle = rotatePoly(baseRectangle, -optimalAngle);
+	Polygon_t finalRectangle = translatePoly(outputRectangle, bg::get<0>(basePolyCenter), bg::get<1>(basePolyCenter));
+	
+	optimalAngle = radiansToWGS84Angle(optimalAngle);	
+	return std::make_tuple(finalRectangle, optimalAngle);
+}
 
 std::string ClusterManagement::selectBoundingBoxShape(Polygon_t basePoly){
 
@@ -409,6 +462,14 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 		pointXY centerPoint = calculateCenterFromBasePoly(basePoly);
 		infoContainerData.nodeOffset = calculateOffset(getCurrentVruXY(), centerPoint);
 		infoContainerData.circleRadius = calculateRadius(mClusterMap, centerPoint);
+	}else if(mBoundingBoxShape == "Rectangular"){
+		Polygon_t rectangle;
+		double angle;
+		std::tie(rectangle, angle) = getRotatedRectangle(basePoly);
+		infoContainerData.nodeOffset = calculateOffset(getCurrentVruXY(), calculateCenterFromBasePoly(rectangle));
+		infoContainerData.rectangleLength = bg::distance(rectangle.outer()[0], rectangle.outer()[1])*SemiRangeLength_oneMeter/2;
+		infoContainerData.rectangleWidth = bg::distance(rectangle.outer()[1], rectangle.outer()[2])*SemiRangeLength_oneMeter/2;
+		infoContainerData.orientationAngle = angle;
 	}
 
 	infoContainerData.shape = mBoundingBoxShape;

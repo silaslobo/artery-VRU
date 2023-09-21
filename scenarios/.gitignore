@@ -2,3 +2,4 @@
 .qtenvrc
 sumo-*.log
 results
+run_terminalMode.sh

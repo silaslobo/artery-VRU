@@ -328,7 +328,7 @@ void VaService::sendVam(const SimTime& T_now)
 
 		// Operation Container to join a Cluster
 		if (mClusterManagement.isVruStandalone() && currentVruClusterOperation == VruShouldJoin){
-			addClusterJoinOperationContainer(vam, T_now);
+			addClusterJoinOperationContainer(vam, T_now < 1 ? 1: T_now);
 		}
 
 		if (mClusterManagement.isVruPassive() && currentVruClusterOperation == VruShouldLeave){
@@ -442,11 +442,10 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationCont
 
 	}else if(infoContainerData.shape == "Rectangular"){
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterRectangle;
-		vcic->clusterBoundingBoxShape.choice.clusterRectangle.nodeCenterPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY3;
-		// TODO: Implement proper size scaling of the rectangle's width and length
-		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMinorRangeLength = 17;
-		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeLength = 17;
-		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeOrientation = Constants::round(infoContainerData.leaderDataProvider->heading(), Constants::decidegree);
+		vcic->clusterBoundingBoxShape.choice.clusterRectangle.nodeCenterPoint = selectNodeType(infoContainerData.nodeOffset);
+		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMinorRangeLength = infoContainerData.rectangleWidth;
+		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeLength = infoContainerData.rectangleLength;
+		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeOrientation = infoContainerData.orientationAngle;
 
 	}else if(infoContainerData.shape == "Polygon"){
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterPolygon;
