@@ -247,7 +247,7 @@ std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(Po
 	// Using boost geometry, simplifies the original polygon with convex hull algorithm
 	Polygon_t hull;
 	bg::convex_hull(basePoly, hull);
-	std::cout << "Hull poly: " << bg::dsv(hull) << std::endl;
+	//std::cout << "Hull poly: " << bg::dsv(hull) << std::endl;
 	clusterPositions = hull.outer();
 
 	// Obtains list of offsets
@@ -380,11 +380,11 @@ ClusterManagement::Polygon_t ClusterManagement::rotatePoly(const Polygon_t origi
 }
 
 std::tuple<ClusterManagement::Polygon_t, double>  ClusterManagement::getRotatedRectangle(Polygon_t basePoly){
-	
+
 	Box_t outputEnvelope;
 	double minArea = std::numeric_limits<double>::max(), optimalAngle;
 
-	pointXY basePolyCenter = calculateCenterFromBasePoly(basePoly); 
+	pointXY basePolyCenter = calculateCenterFromBasePoly(basePoly);
 	Polygon_t offsetPoly = translatePoly(basePoly, -bg::get<0>(basePolyCenter), -bg::get<1>(basePolyCenter));
 
 	for (double currentAngle = 0.0; currentAngle <= 2*M_PI; currentAngle += 0.1) {
@@ -393,21 +393,21 @@ std::tuple<ClusterManagement::Polygon_t, double>  ClusterManagement::getRotatedR
 		Polygon_t rotatedPoly = rotatePoly(offsetPoly, currentAngle);
 		bg::envelope(rotatedPoly, candidateEnvelope);
         double rotatedArea = bg::area(candidateEnvelope);
-		
+
         if (rotatedArea < minArea) {
             minArea = rotatedArea;
 			outputEnvelope = candidateEnvelope;
 			optimalAngle = currentAngle;
         }
     }
-	
+
 	Polygon_t baseRectangle;
 	bg::convert(outputEnvelope, baseRectangle);
 
 	Polygon_t outputRectangle = rotatePoly(baseRectangle, -optimalAngle);
 	Polygon_t finalRectangle = translatePoly(outputRectangle, bg::get<0>(basePolyCenter), bg::get<1>(basePolyCenter));
-	
-	optimalAngle = radiansToWGS84Angle(optimalAngle);	
+
+	optimalAngle = radiansToWGS84Angle(optimalAngle);
 	return std::make_tuple(finalRectangle, optimalAngle);
 }
 
