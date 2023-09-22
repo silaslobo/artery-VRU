@@ -149,6 +149,8 @@ class ClusterManagement
         artery::ClusterManagement::Polygon_t translatePoly(const Polygon_t, double offsetX, double offsetY);
         artery::ClusterManagement::Polygon_t rotatePoly(const Polygon_t, double angle);
 
+        // Bounding Box padding
+        double calculatePaddingAmount(const VruClusterMap_t);
         // Parameter validation
         double velocityDifference(SpeedValue_t, SpeedValue_t);
         bool checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality, bool withinBoundingBox = false);
