@@ -479,14 +479,20 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 }
 
 double ClusterManagement::calculatePaddingAmount(const VruClusterMap_t clusterMap){
-	SpeedValue_t maxSpeed = std::numeric_limits<double>::min();
+
+	double maxSpeed = 0.0;
 
 	for(auto& vru : clusterMap){
-		SpeedValue_t vruSpeed = vru.second.asn1()->vam.vamParameters.vruHighFrequencyContainer->speed.speedValue;
+		double vruSpeed = vru.second.asn1()->vam.vamParameters.vruHighFrequencyContainer->speed.speedValue;
 		maxSpeed = std::max(vruSpeed, maxSpeed);
 	}
 
-	auto messageTime = 150.0*Constants::milliseconds;
+	// 150ms determined experimentally
+	auto messageTime = 150.0*std::pow(10.0,-3);
+	//std::cout << "Buffer dist: " <<  (maxSpeed/100.0)*messageTime << std::endl;
+
+	return (maxSpeed/100.0)*messageTime;
+}
 
 	return maxSpeed*messageTime.value();
 }
