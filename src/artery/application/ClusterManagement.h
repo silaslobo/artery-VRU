@@ -123,12 +123,11 @@ class ClusterManagement
         // Geometry definitions
         typedef boost::geometry::model::point <double,2,boost::geometry::cs::cartesian>pointXY;
         typedef boost::geometry::model::polygon<pointXY, false> Polygon_t; 
-		typedef boost::geometry::model::multi_polygon<Polygon_t> Circle_t;
+		typedef boost::geometry::model::multi_polygon<Polygon_t> MultiPoly_t;
         typedef boost::geometry::model::box<pointXY> Box_t;
 
         // Build shapes from received VAM data
         artery::ClusterManagement::Polygon_t reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos);
-		artery::ClusterManagement::Circle_t reconstructCircle(const double radius, pointXY& centerPos);
         
         // Convert various NodeOffset types to a tuple
         std::tuple<long,long> getOffsetValues(const OffsetPoint_t&);
@@ -151,6 +150,8 @@ class ClusterManagement
 
         // Bounding Box padding
         double calculatePaddingAmount(const VruClusterMap_t);
+        artery::ClusterManagement::Polygon_t applyPaddingToPoly(const Polygon_t, double paddingAmount);
+
         // Parameter validation
         double velocityDifference(SpeedValue_t, SpeedValue_t);
         bool checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality, bool withinBoundingBox = false);

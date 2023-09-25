@@ -222,7 +222,7 @@ ClusterManagement::Polygon_t ClusterManagement::generatePolygonFromMap(VruCluste
 
 	bg::correct(resultingPolygon);
 	bg::unique(resultingPolygon);
-	//std::cout << "Poly from map: " << std::setprecision(15) << bg::dsv(resultingPolygon) << std::endl;
+	// std::cout << "Poly from map: " << std::setprecision(15) << bg::dsv(resultingPolygon) << std::endl;
 	// std::cout << "Area: " << bg::area(resultingPolygon)*std::pow(10.0,-4) << " cm2" << std::endl;
 	// std::cout << "Cardinality: " << vruMap.size()+1 << " VRUs" << std::endl;
 	// std::cout << "Density: " << bg::area(resultingPolygon)/(vruMap.size()+1) << " VRUs/cm2" << std::endl;
@@ -249,6 +249,11 @@ std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(Po
 	Polygon_t hull;
 	bg::convex_hull(basePoly, hull);
 	//std::cout << "Hull poly: " << bg::dsv(hull) << std::endl;
+
+	if(mEnableBoundingBoxPadding){
+		hull = applyPaddingToPoly(hull, calculatePaddingAmount(mClusterMap));		
+	}
+
 	clusterPositions = hull.outer();
 
 	// Obtains list of offsets
@@ -352,9 +357,17 @@ double ClusterManagement::calculateRadius(VruClusterMap_t vruMap, pointXY center
 	}
 
 	auto radiusMeters = *std::max_element(distanceList.begin(), distanceList.end());
-	double radiusDecimeters = Constants::round(radiusMeters, Constants::decimeter);
+
 	//std::cout << "Radius: " <<  radiusMeters.value() << " m" << std::endl;
-	//std::cout << "Radius: " << radiusDecimeters << " dm" << std::endl;
+
+	if(mEnableBoundingBoxPadding){
+		radiusMeters += calculatePaddingAmount(mClusterMap)*vanetza::units::si::meter;
+	}
+
+	double radiusDecimeters = Constants::round(radiusMeters, Constants::decimeter);
+
+	//std::cout << "Radius padded: " <<  radiusMeters.value() << " m" << std::endl;
+
 	return radiusDecimeters <= 0 ? 1 : radiusDecimeters;
 }
 
@@ -408,6 +421,12 @@ std::tuple<ClusterManagement::Polygon_t, double>  ClusterManagement::getRotatedR
 	Polygon_t outputRectangle = rotatePoly(baseRectangle, -optimalAngle);
 	Polygon_t finalRectangle = translatePoly(outputRectangle, bg::get<0>(basePolyCenter), bg::get<1>(basePolyCenter));
 
+	//std::cout << std::setprecision(14) << "Original rectangle: " << bg::dsv(finalRectangle) << std::endl;
+
+	if(mEnableBoundingBoxPadding){
+		finalRectangle = applyPaddingToPoly(finalRectangle, calculatePaddingAmount(mClusterMap));
+	}
+
 	optimalAngle = radiansToWGS84Angle(optimalAngle);
 	return std::make_tuple(finalRectangle, optimalAngle);
 }
@@ -426,7 +445,7 @@ std::string ClusterManagement::selectBoundingBoxShape(Polygon_t basePoly){
 	// Cluster shape selection based on highest Num_Clusters/m^2 (i.e. smaller area)
 	std::string selectedShape = areaPoly <= areaCircle ? "Polygon" : "Circular";
 
-	//std::cout << std::setprecision(14);
+	// std::cout << std::setprecision(14);
 	// std::cout << "For cluster " << getClusterId() << " : " << selectedShape << std::endl;
 	// std::cout << "Density | Poly " << getCurrentClusterSize()/areaPoly << " | Circle " << getCurrentClusterSize()/areaCircle << std::endl; 
 	// std::cout << "Base Poly: " << bg::dsv(basePoly) << std::endl;
@@ -494,7 +513,23 @@ double ClusterManagement::calculatePaddingAmount(const VruClusterMap_t clusterMa
 	return (maxSpeed/100.0)*messageTime;
 }
 
+ClusterManagement::Polygon_t ClusterManagement::applyPaddingToPoly(const Polygon_t originalPoly, double paddingAmount){
+
+	bg::strategy::buffer::distance_symmetric<double> distance_strategy(paddingAmount);
+    bg::strategy::buffer::join_miter join_strategy;
+    bg::strategy::buffer::end_flat end_strategy;
+    bg::strategy::buffer::point_square square_strategy;
+    bg::strategy::buffer::side_straight side_strategy;
+	MultiPoly_t paddedShape;
+
+	bg::buffer(originalPoly, paddedShape, distance_strategy, side_strategy, join_strategy, end_strategy, square_strategy);
+
+	//std::cout << "Padded poly: " << bg::dsv(paddedShape[0]) << std::endl;
+
 	return maxSpeed*messageTime.value();
+
+	return paddedShape[0];
+
 }
 
 }
