@@ -418,14 +418,16 @@ std::tuple<ClusterManagement::Polygon_t, double>  ClusterManagement::getRotatedR
 	Polygon_t baseRectangle;
 	bg::convert(outputEnvelope, baseRectangle);
 
+	//std::cout << "Original rectangle: " << bg::dsv(baseRectangle) << std::endl;
+
+	if(mEnableBoundingBoxPadding){
+		baseRectangle = applyPaddingToPoly(baseRectangle, calculatePaddingAmount(mClusterMap));
+	}
+
 	Polygon_t outputRectangle = rotatePoly(baseRectangle, -optimalAngle);
 	Polygon_t finalRectangle = translatePoly(outputRectangle, bg::get<0>(basePolyCenter), bg::get<1>(basePolyCenter));
 
-	//std::cout << std::setprecision(14) << "Original rectangle: " << bg::dsv(finalRectangle) << std::endl;
-
-	if(mEnableBoundingBoxPadding){
-		finalRectangle = applyPaddingToPoly(finalRectangle, calculatePaddingAmount(mClusterMap));
-	}
+	//std::cout << std::setprecision(14) << "Output rectangle: " << bg::dsv(finalRectangle) << "\n" << std::endl;
 
 	optimalAngle = radiansToWGS84Angle(optimalAngle);
 	return std::make_tuple(finalRectangle, optimalAngle);
@@ -526,7 +528,13 @@ ClusterManagement::Polygon_t ClusterManagement::applyPaddingToPoly(const Polygon
 
 	//std::cout << "Padded poly: " << bg::dsv(paddedShape[0]) << std::endl;
 
-	return maxSpeed*messageTime.value();
+	// Prevents padded rectangles from becoming polygons with > 4 vertices
+	if(mBoundingBoxShape == "Rectangular"){
+		Polygon_t simplifiedPoly;
+		bg::simplify(paddedShape[0], simplifiedPoly, paddingAmount);
+
+		return simplifiedPoly.outer().size() > 0 ? simplifiedPoly : paddedShape[0];
+	}
 
 	return paddedShape[0];
 
