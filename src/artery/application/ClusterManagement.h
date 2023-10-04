@@ -128,6 +128,7 @@ class ClusterManagement
 
         // Build shapes from received VAM data
         artery::ClusterManagement::Polygon_t reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos);
+        artery::ClusterManagement::Polygon_t reconstructRectangle(const pointXY center, long halfWidth, long halfLength, long angle);
         
         // Convert various NodeOffset types to a tuple
         std::tuple<long,long> getOffsetValues(const OffsetPoint_t&);
@@ -145,6 +146,7 @@ class ClusterManagement
 
         // Rectangle helper methods
         double radiansToWGS84Angle(double radians);
+        double WGS84AngleToRadians(double WGSAngle);
         artery::ClusterManagement::Polygon_t translatePoly(const Polygon_t, double offsetX, double offsetY);
         artery::ClusterManagement::Polygon_t rotatePoly(const Polygon_t, double angle);
 

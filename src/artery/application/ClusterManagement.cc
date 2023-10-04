@@ -131,6 +131,14 @@ artery::ClusterManagement::ClusterParameters_t ClusterManagement::parseInformati
 		// 	std::cout << "Parsed radius: " << vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius << std::endl;
 		// 	std::cout << "Parsed center: (" << bg::get<0>(centerXY) << "," << bg::get<1>(centerXY) << ") \n" << std::endl;
 		// }
+	}else if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterRectangle){
+		std::tuple<long,long> centerOffset = getOffsetValues(*vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterRectangle.nodeCenterPoint);
+		pointXY centerXY = pointXY(bg::get<0>(leaderPos)+std::get<0>(centerOffset), bg::get<1>(leaderPos)+std::get<1>(centerOffset));
+		long halfWidth = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterRectangle.semiMinorRangeLength;
+		long halfLength = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeLength;
+		long angle = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeOrientation;
+		Polygon_t receivedBoundingBox = reconstructRectangle(centerXY, halfWidth, halfLength, angle);
+		clusterParameters.withinBoundingBox = bg::within(vruPos, receivedBoundingBox);
 	}
 
 	return clusterParameters;
@@ -201,6 +209,31 @@ artery::ClusterManagement::Polygon_t ClusterManagement::reconstructPolygon(const
 	Polygon_t reconstructedPolygon;
 	bg::assign_points(reconstructedPolygon, reconstructedPositions);
 	return reconstructedPolygon;
+}
+
+artery::ClusterManagement::Polygon_t ClusterManagement::reconstructRectangle(const pointXY center, long halfWidth, long halfLength, long angle)
+{
+	Polygon_t reconstructedRectangle;
+
+	double halfLengthMeters = halfLength/10.0;
+	double halfWidthMeters = halfWidth/10.0;
+
+	pointXY bottomLeftmost = pointXY(bg::get<0>(center)-halfLengthMeters, bg::get<1>(center)-halfWidthMeters);
+	pointXY bottomRightmost = pointXY(bg::get<0>(center)+halfLengthMeters, bg::get<1>(center)-halfWidthMeters);
+	pointXY topRightmost = pointXY(bg::get<0>(center)+halfLengthMeters, bg::get<1>(center)+halfWidthMeters);
+	pointXY topLeftmost = pointXY(bg::get<0>(center)-halfLengthMeters, bg::get<1>(center)+halfWidthMeters);
+
+	bg::append(reconstructedRectangle, bottomLeftmost);
+	bg::append(reconstructedRectangle, bottomRightmost);
+	bg::append(reconstructedRectangle, topRightmost);
+	bg::append(reconstructedRectangle, topLeftmost);
+	bg::append(reconstructedRectangle, bottomLeftmost);
+
+	Polygon_t offsetPoly = translatePoly(reconstructedRectangle, -bg::get<0>(center), -bg::get<1>(center));
+	Polygon_t rotatedRectangle = rotatePoly(offsetPoly, WGS84AngleToRadians(angle));
+	reconstructedRectangle = translatePoly(rotatedRectangle, bg::get<0>(center), bg::get<1>(center));
+
+	return reconstructedRectangle;
 }
 
 ClusterManagement::Polygon_t ClusterManagement::generatePolygonFromMap(VruClusterMap_t vruMap){
@@ -373,10 +406,15 @@ double ClusterManagement::calculateRadius(VruClusterMap_t vruMap, pointXY center
 
 double ClusterManagement::radiansToWGS84Angle(double radians){
 	double WGSAngle = radians * 1800.0 / M_PI;
-	if(WGSAngle >= 2700.0){
-		WGSAngle -= 3600.0;
-	}
-	return WGSAngle += 900.0;
+	WGSAngle = 1800.0 - WGSAngle; 
+	if(WGSAngle < 0){
+		WGSAngle += 3600;
+	} 
+	return WGSAngle;
+}
+
+double ClusterManagement::WGS84AngleToRadians(double WGSAngle){
+	return WGSAngle * M_PI / 1800.0;
 }
 
 ClusterManagement::Polygon_t ClusterManagement::translatePoly(const Polygon_t originalPoly, double offsetX, double offsetY){
@@ -427,10 +465,9 @@ std::tuple<ClusterManagement::Polygon_t, double>  ClusterManagement::getRotatedR
 	Polygon_t outputRectangle = rotatePoly(baseRectangle, -optimalAngle);
 	Polygon_t finalRectangle = translatePoly(outputRectangle, bg::get<0>(basePolyCenter), bg::get<1>(basePolyCenter));
 
-	//std::cout << std::setprecision(14) << "Output rectangle: " << bg::dsv(finalRectangle) << "\n" << std::endl;
+	//std::cout << std::setprecision(14) << "Output rectangle: " << bg::dsv(finalRectangle) << std::endl;
 
-	optimalAngle = radiansToWGS84Angle(optimalAngle);
-	return std::make_tuple(finalRectangle, optimalAngle);
+	return std::make_tuple(finalRectangle, radiansToWGS84Angle(optimalAngle));
 }
 
 std::string ClusterManagement::selectBoundingBoxShape(Polygon_t basePoly){
@@ -489,9 +526,20 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 		double angle;
 		std::tie(rectangle, angle) = getRotatedRectangle(basePoly);
 		infoContainerData.nodeOffset = calculateOffset(getCurrentVruXY(), calculateCenterFromBasePoly(rectangle));
-		infoContainerData.rectangleLength = bg::distance(rectangle.outer()[0], rectangle.outer()[1])*SemiRangeLength_oneMeter/2;
-		infoContainerData.rectangleWidth = bg::distance(rectangle.outer()[1], rectangle.outer()[2])*SemiRangeLength_oneMeter/2;
+		infoContainerData.rectangleLength = bg::distance(rectangle.outer()[0], rectangle.outer()[1])*SemiRangeLength_oneMeter*.5;
+		infoContainerData.rectangleWidth = bg::distance(rectangle.outer()[1], rectangle.outer()[2])*SemiRangeLength_oneMeter*.5;
 		infoContainerData.orientationAngle = angle;
+
+		std::tuple<long,long> centerOffset = infoContainerData.nodeOffset;
+		pointXY centerXY = pointXY(bg::get<0>(getCurrentVruXY())+std::get<0>(centerOffset)/100.0, bg::get<1>(getCurrentVruXY())+std::get<1>(centerOffset)/100.0);
+		double halfWidth = infoContainerData.rectangleWidth;
+		double halfLength = infoContainerData.rectangleLength;
+		long receivedAngle = infoContainerData.orientationAngle;
+
+		//std::cout << "Center: (" << bg::get<0>(centerXY) << "," << bg::get<1>(centerXY) << ")" << std::endl; 
+		//std::cout << "Angle: " << receivedAngle << std::endl; 
+		Polygon_t reconstructedRectangle = reconstructRectangle(centerXY, halfWidth, halfLength, receivedAngle);
+		//std::cout << "Reconstructed rectangle: " << bg::dsv(reconstructedRectangle) << "\n" << std::endl;
 	}
 
 	infoContainerData.shape = mBoundingBoxShape;
