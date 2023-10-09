@@ -529,17 +529,6 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 		infoContainerData.rectangleLength = bg::distance(rectangle.outer()[0], rectangle.outer()[1])*SemiRangeLength_oneMeter*.5;
 		infoContainerData.rectangleWidth = bg::distance(rectangle.outer()[1], rectangle.outer()[2])*SemiRangeLength_oneMeter*.5;
 		infoContainerData.orientationAngle = angle;
-
-		std::tuple<long,long> centerOffset = infoContainerData.nodeOffset;
-		pointXY centerXY = pointXY(bg::get<0>(getCurrentVruXY())+std::get<0>(centerOffset)/100.0, bg::get<1>(getCurrentVruXY())+std::get<1>(centerOffset)/100.0);
-		double halfWidth = infoContainerData.rectangleWidth;
-		double halfLength = infoContainerData.rectangleLength;
-		long receivedAngle = infoContainerData.orientationAngle;
-
-		//std::cout << "Center: (" << bg::get<0>(centerXY) << "," << bg::get<1>(centerXY) << ")" << std::endl; 
-		//std::cout << "Angle: " << receivedAngle << std::endl; 
-		Polygon_t reconstructedRectangle = reconstructRectangle(centerXY, halfWidth, halfLength, receivedAngle);
-		//std::cout << "Reconstructed rectangle: " << bg::dsv(reconstructedRectangle) << "\n" << std::endl;
 	}
 
 	infoContainerData.shape = mBoundingBoxShape;
