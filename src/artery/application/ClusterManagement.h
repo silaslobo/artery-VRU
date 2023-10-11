@@ -82,7 +82,7 @@ class ClusterManagement
 
         // Operation conditions check
         bool vruShouldJoin(const vanetza::asn1::Vam&);
-        bool vruShouldLeave(const vanetza::asn1::Vam&);
+        bool vruShouldLeave(const vanetza::asn1::Vam&, const omnetpp::SimTime&);
         bool vruShouldCreateCluster();
 
         void registerClusterId(long clusterId){mClusterId = clusterId;}
@@ -105,6 +105,11 @@ class ClusterManagement
         omnetpp::SimTime timeClusterContinuity() const {return mTimeClusterContinuity;} 
         omnetpp::SimTime timeClusterLeaveNotification() const {return mTimeClusterLeaveNotification;}
         omnetpp::SimTime timeCombinedVruClusterOpportunity() const {return mTimeCombinedVruClusterOpportunity;}  
+
+        omnetpp::SimTime mLastLeaderVamTimestamp;
+
+        void setLeaveReason(long leaveReason){mLeaveReason = leaveReason;}
+        long getLeaveReason(){return mLeaveReason;}
 
         void createVruClusterMap();
         void updateVruClusterMap(const vanetza::asn1::Vam&, std::string);
@@ -157,6 +162,8 @@ class ClusterManagement
         // Parameter validation
         double velocityDifference(SpeedValue_t, SpeedValue_t);
         bool checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality, bool withinBoundingBox = false);
+
+        long mLeaveReason;
 
         // Clustering Containers Parsing
         typedef struct ClusterParameters{

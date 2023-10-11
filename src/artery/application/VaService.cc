@@ -222,20 +222,25 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 	* @note compute the position error from the leader in the message 
 	*/
 
+	omnetpp::SimTime T_now = simTime();
+
 	// POSSIBLE USE CASES
 	// - Standalone VRUs inspecting VAMs from Cluster Leaders -> JoinOp
 	// - Passive VRUs inspecting VAMs from Cluster Leaders -> LeaveOp
 	// - Cluster Leader checks VAMs from other Leaders for ID uniqueness
 
-	// TODO: Develop a way to avoid join/leave requests to different leaders on each simulation step
 	if (mClusterSupport){
 		if(vam_data.vamParameters.vruClusterInformationContainer){
 			if(mClusterManagement.isVruStandalone() && mClusterManagement.vruShouldJoin(vam)){
 				mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
 				setVruClusterOperation(VruShouldJoin);
-			}else if(mClusterManagement.isVruPassive() && mClusterManagement.vruShouldLeave(vam)){
-				mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
-				setVruClusterOperation(VruShouldLeave);
+			}else if(mClusterManagement.isVruPassive() && vam_data.vamParameters.vruClusterInformationContainer->clusterId == mTargetClusterId){
+				if(mClusterManagement.vruShouldLeave(vam, T_now)){
+					//mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
+					setVruClusterOperation(VruShouldLeave);
+				}
+
+				mClusterManagement.mLastLeaderVamTimestamp = T_now;
 			}
 		}
 
@@ -369,7 +374,7 @@ void VaService::sendVam(const SimTime& T_now)
 	std::unique_ptr<convertible::byte_buffer> buffer { new VamByteBuffer(obj.shared_ptr()) };
 	payload->layer(OsiLayer::Application) = std::move(buffer);
 	this->request(request, std::move(payload));	
-	}
+}
 
 SimTime VaService::genVamDcc()
 {
@@ -438,7 +443,6 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& pdp, uint
 void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationContainerData_t& infoContainerData){
 
 	VruAwareness_t &vam = (*message).vam;
-
 	VruClusterInformationContainer_t* &vcic = vam.vamParameters.vruClusterInformationContainer;
 	vcic = vanetza::asn1::allocate<VruClusterInformationContainer_t>();
 
@@ -458,7 +462,6 @@ void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationCont
 
 	}else if(infoContainerData.shape == "Polygon"){
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterPolygon;
-
 		for (auto &offsetValue : infoContainerData.polyOffsets){
 			ASN_SEQUENCE_ADD(&vcic->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList, selectNodeType(offsetValue));
 		}
@@ -534,7 +537,7 @@ void VaService::addClusterLeaveOperationContainer(vanetza::asn1::Vam& message){
 	ClusterLeaveInfo*& leaveInfo = vcoc->clusterLeaveInfo;
 	leaveInfo = vanetza::asn1::allocate<ClusterLeaveInfo>();
 	leaveInfo->clusterId = mTargetClusterId;
-	leaveInfo->clusterLeaveReason = ClusterLeaveReason_notProvided;
+	leaveInfo->clusterLeaveReason = mClusterManagement.getLeaveReason();
 
 	mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveStandalone);
 }

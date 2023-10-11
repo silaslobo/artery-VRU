@@ -49,6 +49,8 @@ void ClusterManagement::initialize(ClusterManagementParameters_t& cManagementPar
 	mBoundingBoxShape = cManagementPar.DefaultBoundingBoxShape;
 	mEnableBoundingBoxPadding = cManagementPar.EnableBoundingBoxPadding;
 
+	mLastLeaderVamTimestamp = simTime();
+
 	setCurrentVruRole(VruActiveStandalone);
 }
 
@@ -76,9 +78,29 @@ bool ClusterManagement::vruShouldJoin(const vanetza::asn1::Vam& vam){
 	return checkClusteringConditions(clusterPar.distance, clusterPar.velocityDifference, clusterPar.cardinality, clusterPar.withinBoundingBox);
 }
 
-bool ClusterManagement::vruShouldLeave(const vanetza::asn1::Vam& vam){
+bool ClusterManagement::vruShouldLeave(const vanetza::asn1::Vam& vam, const omnetpp::SimTime& T_now){
 	ClusterParameters_t clusterPar = parseInformationContainer(vam);
-	return !checkClusteringConditions(clusterPar.distance, clusterPar.velocityDifference, clusterPar.cardinality, clusterPar.withinBoundingBox);
+
+	if(clusterPar.cardinality > mMaxClusterSize){
+		setLeaveReason(ClusterLeaveReason_notProvided);
+		return true;
+
+	}else if(mLastLeaderVamTimestamp - T_now >= timeClusterContinuity()){
+		setLeaveReason(ClusterLeaveReason_clusterLeaderLost);
+		return true;
+
+	}else if(clusterPar.distance > mMaxClusterDistance || !clusterPar.withinBoundingBox){
+		setLeaveReason(ClusterLeaveReason_outOfClusterBoundingBox);
+		return true;
+
+	}else if(clusterPar.velocityDifference < mMaxClusterVelocityDifference){
+		setLeaveReason(ClusterLeaveReason_outOfClusterSpeedRange);
+		return true;
+
+	}else{
+		return false;
+	}
+
 }
 
 bool ClusterManagement::vruShouldCreateCluster(){
