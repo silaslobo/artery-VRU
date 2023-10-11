@@ -93,5 +93,8 @@ simple VaService like ItsG5Service
         double timeClusterLeaderWaiting @unit(s) = default(2.0s);
         double timeClusterLeaveNotification @unit(s) = default(1.0s);
         double timeCombinedVruClusterOpportunity @unit(s) = default(15.0s);
+
+        // Custom max interval between cluster VAMs due to timeClusterContinuity parameter
+        double clusterMaxInterval @unit(s) = default(2.0s);
         
 }

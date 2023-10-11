@@ -142,6 +142,8 @@ void VaService::initialize()
 		mClusterManagement.initialize(mClusterManagementParameters);
 		mClusterManagement.simObjects(mPersonDataProvider, mLocalDynamicMap, mPersonController);
 		
+		mClusterGenVamMax = par("clusterMaxInterval");
+
 		currentVruClusterOperation = noVruOperation;
 	}
 }
@@ -158,9 +160,15 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 	// provide variables named like in EN 302 637-2 V1.3.2 (section 6.1.3)
 	SimTime& T_GenVam = mGenVam;
 	const SimTime& T_GenVamMin = mGenVamMin;
-	const SimTime& T_GenVamMax = mGenVamMax;
+	SimTime T_GenVamMax;
 	const SimTime T_GenVamDcc = mDccRestriction ? genVamDcc() : T_GenVamMin;
 	const SimTime T_elapsed = T_now - mLastVamTimestamp;
+
+	if(mClusterSupport && mClusterManagement.isVruClusterLeader()){
+		T_GenVamMax = mClusterGenVamMax;
+	}else{
+		T_GenVamMax = mGenVamMax;
+	}
 
 	if (!mClusterManagement.isVruPassive() || !mClusterSupport){
 		if (T_elapsed >= T_GenVamDcc) {
