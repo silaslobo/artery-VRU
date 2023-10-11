@@ -306,8 +306,6 @@ void VaService::sendVam(const SimTime& T_now)
 		mLastLowVamTimestamp = T_now;
 	}
 
-	// TODO: In the future it might be best to change to a switch/case approach based on ClusterManagement::getCurrentVruRole()
-
 	// New InfoContainer: Cluster creation 
 
 	if (mClusterSupport){
