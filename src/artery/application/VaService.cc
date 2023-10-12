@@ -51,6 +51,17 @@ static const simsignal_t SignalVamPosition = cComponent::registerSignal("VamTrig
 static const simsignal_t SignalVamHeading = cComponent::registerSignal("VamTriggerHeading");
 static const simsignal_t SignalVamSpeed = cComponent::registerSignal("VamTriggerSpeed");
 
+static const simsignal_t SignalVamCluster = cComponent::registerSignal("VamCluster");
+static const simsignal_t SignalVamJoin = cComponent::registerSignal("VamJoin");
+static const simsignal_t SignalVamLeave = cComponent::registerSignal("VamLeave");
+static const simsignal_t SignalVamBreak = cComponent::registerSignal("VamBreak");
+static const simsignal_t SignalVamClusterCreation = cComponent::registerSignal("VamClusterCreation");
+static const simsignal_t SignalVamTime = cComponent::registerSignal("VamTime");
+
+static const simsignal_t SignalVamReceivedJoinID = cComponent::registerSignal("VamReceivedJoinId");
+static const simsignal_t SignalClusterMember = cComponent::registerSignal("ClusterMember");
+
+
 static const auto scLowFrequencyContainerInterval = std::chrono::milliseconds(500);
 
 SpeedValue_t buildVAMSpeedValue(const vanetza::units::Velocity& v)
@@ -182,8 +193,8 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 				T_GenVam = std::min(T_elapsed, T_GenVamMax); /*< if middleware update interval is too long */
 				mGenVamLowDynamicsCounter = 0;
 			}else if (T_elapsed >= T_GenVam) {
-
 				sendVam(T_now);
+				emit(SignalVamTime, 1);
 				if (++mGenVamLowDynamicsCounter >= mGenVamLowDynamicsLimit) {
 					T_GenVam = T_GenVamMax;
 				}
@@ -233,10 +244,11 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 	// TODO: Develop a way to avoid join/leave requests to different leaders on each simulation step
 	if (mClusterSupport){
 		if(vam_data.vamParameters.vruClusterInformationContainer){
-			if(mClusterManagement.isVruStandalone() && mClusterManagement.vruShouldJoin(vam)){
+			if(mClusterManagement.isVruStandalone() && mClusterManagement.vruShouldJoin(vam)){				
 				mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
+
 				setVruClusterOperation(VruShouldJoin);
-			}else if(mClusterManagement.isVruPassive() && mClusterManagement.vruShouldLeave(vam)){
+			}else if(mClusterManagement.isVruPassive() && mClusterManagement.vruShouldLeave(vam)){				
 				mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
 				setVruClusterOperation(VruShouldLeave);
 			}
@@ -247,8 +259,14 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 		// - Passive VRU checking for Breakup warnings from the Leader
 		if(vam_data.vamParameters.vruClusterOperationContainer){	
 			if (vam_data.vamParameters.vruClusterOperationContainer->clusterJoinInfo){		
-				if(mClusterManagement.isVruClusterLeader() && vam_data.vamParameters.vruClusterOperationContainer->clusterJoinInfo->clusterId == mClusterManagement.getClusterId()){
+				if(mClusterManagement.isVruClusterLeader() && vam_data.vamParameters.vruClusterOperationContainer->clusterJoinInfo->clusterId == mClusterManagement.getClusterId()){					
 					mClusterManagement.updateVruClusterMap(vam, "include_VRU");
+					emit(SignalVamReceivedJoinID,vam->header.stationID);
+					//std::vector<LocalDynamicMap::StationID> clusterMemberID;
+					for (auto const& itr : mClusterManagement.getVruClusterMap()){						
+						emit(SignalClusterMember, itr.first);
+					}
+					
 					setVruClusterOperation(AddVruToCluster);
 				}
 			}else if (vam_data.vamParameters.vruClusterOperationContainer->clusterLeaveInfo){		
@@ -311,11 +329,12 @@ void VaService::sendVam(const SimTime& T_now)
 	if (mClusterSupport){
 		if(mClusterManagement.isVruStandalone() && currentVruClusterOperation == noVruOperation){		
 			mClusterManagement.createVruClusterMap();
-			if(mClusterManagement.vruShouldCreateCluster()){
+			if(mClusterManagement.vruShouldCreateCluster()){				
 				mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveClusterLeader);
-				auto initialInfoContainerData = mClusterManagement.generateDataForNewCluster(omnetpp::intuniform(getRNG(0), 1, 255));
+				auto clusterCreationID = omnetpp::intuniform(getRNG(0), 1, 255);
+				auto initialInfoContainerData = mClusterManagement.generateDataForNewCluster(clusterCreationID);
 				addClusterInformationContainer(vam, initialInfoContainerData);
-				clusterVamSentCounter++;
+				emit(SignalVamClusterCreation, clusterCreationID);				
 				previousContainerData = initialInfoContainerData;
 			}
 		}
@@ -329,26 +348,29 @@ void VaService::sendVam(const SimTime& T_now)
 				if(mClusterManagement.getCurrentClusterSize() >= mClusterManagementParameters.NumCreateCluster){
 					auto clusterInfoData = mClusterManagement.generateDataForCurrentCluster();
 					addClusterInformationContainer(vam, clusterInfoData);
-					clusterVamSentCounter++;
+					emit(SignalVamCluster,1);									
 					previousContainerData = clusterInfoData;
 				}
 			} else if(currentVruClusterOperation == KeepCluster){
 				addClusterInformationContainer(vam, previousContainerData);
-				clusterVamSentCounter++;
+				emit(SignalVamCluster,1);				
 			}
 		}
 
 		// Operation Container to join a Cluster
 		if (mClusterManagement.isVruStandalone() && currentVruClusterOperation == VruShouldJoin){
-			addClusterJoinOperationContainer(vam, T_now);
+			addClusterJoinOperationContainer(vam, T_now + 1);				
+			emit(SignalVamJoin, mTargetClusterId);			
 		}
 
 		if (mClusterManagement.isVruPassive() && currentVruClusterOperation == VruShouldLeave){
 			addClusterLeaveOperationContainer(vam);
+			emit(SignalVamLeave, mTargetClusterId);			
 		}
 
 		if(mClusterManagement.isVruClusterLeader() && currentVruClusterOperation == BreakupCluster){
 			addClusterBreakupOperationContainer(vam);
+			emit(SignalVamBreak, 1);
 		}
 	}
 
@@ -363,16 +385,14 @@ void VaService::sendVam(const SimTime& T_now)
 
 	VaObject obj(std::move(vam));
 	emit(scSignalVamSent, &obj);
-
-	vamSentCounter ++;
-	emit (SignalVamSent, vamSentCounter);
+	emit (SignalVamSent, 1);
 
 	using VamByteBuffer = convertible::byte_buffer_impl<asn1::Vam>;
 	std::unique_ptr<geonet::DownPacket> payload { new geonet::DownPacket() };
 	std::unique_ptr<convertible::byte_buffer> buffer { new VamByteBuffer(obj.shared_ptr()) };
 	payload->layer(OsiLayer::Application) = std::move(buffer);
 	this->request(request, std::move(payload));	
-	}
+}
 
 SimTime VaService::genVamDcc()
 {

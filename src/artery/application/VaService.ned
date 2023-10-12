@@ -36,6 +36,14 @@ simple VaService like ItsG5Service
         @signal[VamTriggerPosition];
         @signal[VamTriggerHeading];
         @signal[VamTriggerSpeed];
+        @signal[VamClusterCreation];
+        @signal[VamCluster];
+        @signal[VamJoin];
+        @signal[VamBreak];
+        @signal[VamLeave];
+        @signal[VamTime];
+        @signal[VamReceivedJoinId];
+        @signal[ClusterMember];
 
         @statistic[reception](source=VamReceived;record=vector(vamStationId)?,vector(vamGenerationDeltaTime)?);
         @statistic[transmission](source=VamSent;record=vector(vamStationId)?,vector(vamGenerationDeltaTime)?);
@@ -46,13 +54,23 @@ simple VaService like ItsG5Service
         @statistic[PositionTrigger](source=VamTriggerPosition;record=count,vector?);
         @statistic[HeadingTrigger](source=VamTriggerHeading;record=count,vector?);
         @statistic[SpeedTrigger](source=VamTriggerSpeed;record=count,vector?);
+
+        @statistic[ClusterCreationCounter](source=VamClusterCreation;record=count,vector?);
+        @statistic[ClusterCounter](source=VamCluster;record=count,vector?);
+        @statistic[VamJoinCounter](source=VamJoin;record=count,vector?);
+        @statistic[VamBreakCounter](source=VamBreak;record=count,vector?);
+        @statistic[VamLeaveCounter](source=VamLeave;record=count,vector?);
+        @statistic[VamTimerCounter](source=VamTime;record=count,vector?);
+
+        @statistic[VamReceivedJoinID](source=VamReceivedJoinId;record=count,vector?);
+        @statistic[VamClusterMember](source=ClusterMember;record=count,vector?);
         
 
         // evaluate DCC transmission interval restrictions
         bool withDccRestriction = default(true);
 
         // cluster Information
-        bool withClusterSupport = default(false);
+        bool withClusterSupport = default(true);
 
         // generation interval boundaries
         double minInterval @unit(s) = default(0.1s);
