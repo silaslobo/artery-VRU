@@ -538,6 +538,11 @@ double ClusterManagement::calculatePaddingAmount(const VruClusterMap_t clusterMa
 
 ClusterManagement::Polygon_t ClusterManagement::applyPaddingToPoly(const Polygon_t originalPoly, double paddingAmount){
 
+	// Prevents null padding and shrinkage of the shape
+	if(paddingAmount <= 0){
+		return originalPoly;
+	}
+	
 	bg::strategy::buffer::distance_symmetric<double> distance_strategy(paddingAmount);
     bg::strategy::buffer::join_miter join_strategy;
     bg::strategy::buffer::end_flat end_strategy;
