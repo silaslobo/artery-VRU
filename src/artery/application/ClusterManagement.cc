@@ -471,7 +471,7 @@ std::string ClusterManagement::selectBoundingBoxShape(Polygon_t basePoly){
 	
 	pointXY circleCenter = calculateCenterFromBasePoly(basePoly);
 	double circleRadius = calculateRadius(mClusterMap, circleCenter)/Radius_oneMeter;
-	double areaCircle = 2*boost::math::double_constants::pi*std::pow(circleRadius,2);
+	double areaCircle = M_PI*std::pow(circleRadius,2);
 
 	// Cluster shape selection based on highest Num_Clusters/m^2 (i.e. smaller area)
 	std::string selectedShape = areaPoly <= areaCircle ? "Polygon" : "Circular";
