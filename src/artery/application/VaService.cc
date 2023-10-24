@@ -48,6 +48,10 @@ static const simsignal_t scSignalVamSent = cComponent::registerSignal("VamSent")
 static const simsignal_t SignalVamReceived = cComponent::registerSignal("VamReceivedCounter");
 static const simsignal_t SignalVamSent = cComponent::registerSignal("VamSentCounter");
 
+static const simsignal_t scSignalBoxArea = cComponent::registerSignal("BoundingBoxArea");
+static const simsignal_t scSignalBoxPerimeter = cComponent::registerSignal("BoundingBoxPerimeter");
+static const simsignal_t scInvalidPolyCounter = cComponent::registerSignal("InvalidPolyCounter");
+
 static const auto scLowFrequencyContainerInterval = std::chrono::milliseconds(500);
 
 SpeedValue_t buildVAMSpeedValue(const vanetza::units::Velocity& v)
@@ -328,11 +332,15 @@ void VaService::sendVam(const SimTime& T_now)
 				// TODO: How should we treat clusters with size 2?
 				if(mClusterManagement.getCurrentClusterSize() >= mClusterManagementParameters.NumCreateCluster){
 					auto clusterInfoData = mClusterManagement.generateDataForCurrentCluster();
+					emit(scSignalBoxArea,mClusterManagement.getBoundingBoxArea());
+					emit(scSignalBoxPerimeter,mClusterManagement.getBoundingBoxPerimeter());
 					addClusterInformationContainer(vam, clusterInfoData);
 					clusterVamSentCounter++;
 					previousContainerData = clusterInfoData;
 				}
 			} else if(currentVruClusterOperation == KeepCluster){
+				emit(scSignalBoxArea,mClusterManagement.getBoundingBoxArea());
+				emit(scSignalBoxPerimeter,mClusterManagement.getBoundingBoxPerimeter());
 				addClusterInformationContainer(vam, previousContainerData);
 				clusterVamSentCounter++;
 			}

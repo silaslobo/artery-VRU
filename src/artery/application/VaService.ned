@@ -40,6 +40,13 @@ simple VaService like ItsG5Service
         @statistic[VamSentCounter](record=count,vector?);
         @statistic[VamReceivedCounter](record=count,vector?);
 
+        // Geometric evaluations
+        @signal[BoundingBoxArea](type=double);
+        @signal[BoundingBoxPerimeter](type=double);
+
+        @statistic[BoundingBoxAreaStatistic](source=BoundingBoxArea;record=vector);
+        @statistic[BoundingBoxPerimeterStatistic](source=BoundingBoxPerimeter;record=vector);
+        
         // evaluate DCC transmission interval restrictions
         bool withDccRestriction = default(true);
 

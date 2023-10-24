@@ -118,6 +118,9 @@ class ClusterManagement
         unsigned getCurrentClusterSize() const {return getVruClusterMap().size()+1;}
         double getSmallestDistanceToVru() const {return mSmallestDistanceToVru;}
 
+        double getBoundingBoxArea() const {return mBoundingBoxArea;}
+        double getBoundingBoxPerimeter() const {return mBoundingBoxPerimeter;}
+
         InformationContainerData_t generateDataForNewCluster(long);
         InformationContainerData_t generateDataForCurrentCluster();
 
@@ -158,6 +161,12 @@ class ClusterManagement
         // Bounding Box padding
         double calculatePaddingAmount(const VruClusterMap_t);
         artery::ClusterManagement::Polygon_t applyPaddingToPoly(const Polygon_t, double paddingAmount);
+
+        // Geometries metrics 
+        double mBoundingBoxArea;
+        void setBoundingBoxArea(double area){mBoundingBoxArea = area;}
+        double mBoundingBoxPerimeter;
+        void setBoundingBoxPerimeter(double perimeter){mBoundingBoxPerimeter = perimeter;}
 
         // Parameter validation
         double velocityDifference(SpeedValue_t, SpeedValue_t);

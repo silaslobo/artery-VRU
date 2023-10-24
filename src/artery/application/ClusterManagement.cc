@@ -52,6 +52,8 @@ void ClusterManagement::initialize(ClusterManagementParameters_t& cManagementPar
 	mLastLeaderVamTimestamp = simTime();
 
 	setCurrentVruRole(VruActiveStandalone);
+	setBoundingBoxArea(0.0);
+	setBoundingBoxPerimeter(0.0);
 }
 
 void ClusterManagement::simObjects(const PersonDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc){
@@ -290,7 +292,7 @@ std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(Po
 	bg::convex_hull(basePoly, hull);
 
 	if(mEnableBoundingBoxPadding){
-		hull = applyPaddingToPoly(hull, calculatePaddingAmount(mClusterMap));		
+		hull = applyPaddingToPoly(hull, calculatePaddingAmount(mClusterMap));
 	}
 
 	bg::remove_spikes(hull);
@@ -298,6 +300,9 @@ std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(Po
 	bg::correct(hull);
 
 	clusterPositions = hull.outer();
+
+	setBoundingBoxArea(bg::area(hull));
+	setBoundingBoxPerimeter(bg::perimeter(hull));
 
 	// Obtains list of offsets
 	previousPos = getCurrentVruXY();
@@ -507,27 +512,33 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 	if(shapeFailureType == bg::failure_few_points){
 		infoContainerData.nodeOffset = std::make_tuple(0,0);
 		infoContainerData.circleRadius = 1;
+		setBoundingBoxArea(M_PI*std::pow(infoContainerData.circleRadius,2));
+		setBoundingBoxPerimeter(2*M_PI*infoContainerData.circleRadius);
 
 	}else if(shapeFailureType == bg::no_failure || shapeFailureType == bg::failure_self_intersections){
 
-	if(mBoundingBoxShape == "Autoselect"){
-		mBoundingBoxShape = selectBoundingBoxShape(basePoly);
-	}
+		if(mBoundingBoxShape == "Autoselect"){
+			mBoundingBoxShape = selectBoundingBoxShape(basePoly);
+		}
 
-	if(mBoundingBoxShape == "Polygon"){
-		infoContainerData.polyOffsets = calculatePolyOffsetList(basePoly);
-	}else if(mBoundingBoxShape == "Circular"){
-		pointXY centerPoint = calculateCenterFromBasePoly(basePoly);
-		infoContainerData.nodeOffset = calculateOffset(getCurrentVruXY(), centerPoint);
-		infoContainerData.circleRadius = calculateRadius(mClusterMap, centerPoint);
-	}else if(mBoundingBoxShape == "Rectangular"){
-		Polygon_t rectangle;
-		double angle;
-		std::tie(rectangle, angle) = getRotatedRectangle(basePoly);
-		infoContainerData.nodeOffset = calculateOffset(getCurrentVruXY(), calculateCenterFromBasePoly(rectangle));
-		infoContainerData.rectangleLength = bg::distance(rectangle.outer()[0], rectangle.outer()[1])*SemiRangeLength_oneMeter*.5;
-		infoContainerData.rectangleWidth = bg::distance(rectangle.outer()[1], rectangle.outer()[2])*SemiRangeLength_oneMeter*.5;
-		infoContainerData.orientationAngle = angle;
+		if(mBoundingBoxShape == "Polygon"){
+			infoContainerData.polyOffsets = calculatePolyOffsetList(basePoly);
+		}else if(mBoundingBoxShape == "Circular"){
+			pointXY centerPoint = calculateCenterFromBasePoly(basePoly);
+			infoContainerData.nodeOffset = calculateOffset(getCurrentVruXY(), centerPoint);
+			infoContainerData.circleRadius = calculateRadius(mClusterMap, centerPoint);
+			setBoundingBoxArea(M_PI*std::pow(infoContainerData.circleRadius,2));
+			setBoundingBoxPerimeter(2*M_PI*infoContainerData.circleRadius);
+		}else if(mBoundingBoxShape == "Rectangular"){
+			Polygon_t rectangle;
+			double angle;
+			std::tie(rectangle, angle) = getRotatedRectangle(basePoly);
+			infoContainerData.nodeOffset = calculateOffset(getCurrentVruXY(), calculateCenterFromBasePoly(rectangle));
+			infoContainerData.rectangleLength = bg::distance(rectangle.outer()[0], rectangle.outer()[1])*SemiRangeLength_oneMeter*.5;
+			infoContainerData.rectangleWidth = bg::distance(rectangle.outer()[1], rectangle.outer()[2])*SemiRangeLength_oneMeter*.5;
+			infoContainerData.orientationAngle = angle;
+			setBoundingBoxArea(bg::area(rectangle));
+			setBoundingBoxPerimeter(bg::perimeter(rectangle));
 		}
 	}
 
@@ -560,7 +571,7 @@ ClusterManagement::Polygon_t ClusterManagement::applyPaddingToPoly(const Polygon
 	
 	bg::strategy::buffer::distance_symmetric<double> distance_strategy(paddingAmount);
     bg::strategy::buffer::join_miter join_strategy;
-    bg::strategy::buffer::end_flat end_strategy;
+	bg::strategy::buffer::end_flat end_strategy;
     bg::strategy::buffer::point_square square_strategy;
     bg::strategy::buffer::side_straight side_strategy;
 	MultiPoly_t paddedShape;
