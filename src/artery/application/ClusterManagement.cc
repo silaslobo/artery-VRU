@@ -139,7 +139,7 @@ artery::ClusterManagement::ClusterParameters_t ClusterManagement::parseInformati
 		PolyPointList_t& receivedOffsetList = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList;
 
 		Polygon_t receivedBoundingBox = reconstructPolygon(receivedOffsetList,leaderTraCIPos);
-		clusterParameters.withinBoundingBox = bg::within(vruPos, receivedBoundingBox);
+		clusterParameters.withinBoundingBox = bg::covered_by(vruPos, receivedBoundingBox);
 
 	}else if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterCircle){
 		std::tuple<long,long> centerOffset = getOffsetValues(*vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.nodeCenterPoint);
@@ -153,7 +153,7 @@ artery::ClusterManagement::ClusterParameters_t ClusterManagement::parseInformati
 		long halfLength = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeLength;
 		long angle = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeOrientation;
 		Polygon_t receivedBoundingBox = reconstructRectangle(centerXY, halfWidth, halfLength, angle);
-		clusterParameters.withinBoundingBox = bg::within(vruPos, receivedBoundingBox);
+		clusterParameters.withinBoundingBox = bg::covered_by(vruPos, receivedBoundingBox);
 	}
 
 	return clusterParameters;
