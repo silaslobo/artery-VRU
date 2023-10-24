@@ -501,6 +501,15 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 
 	Polygon_t basePoly = generatePolygonFromMap(mClusterMap);
 
+	boost::geometry::validity_failure_type shapeFailureType;
+	bg::is_valid(basePoly, shapeFailureType);
+
+	if(shapeFailureType == bg::failure_few_points){
+		infoContainerData.nodeOffset = std::make_tuple(0,0);
+		infoContainerData.circleRadius = 1;
+
+	}else if(shapeFailureType == bg::no_failure || shapeFailureType == bg::failure_self_intersections){
+
 	if(mBoundingBoxShape == "Autoselect"){
 		mBoundingBoxShape = selectBoundingBoxShape(basePoly);
 	}
@@ -519,6 +528,7 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 		infoContainerData.rectangleLength = bg::distance(rectangle.outer()[0], rectangle.outer()[1])*SemiRangeLength_oneMeter*.5;
 		infoContainerData.rectangleWidth = bg::distance(rectangle.outer()[1], rectangle.outer()[2])*SemiRangeLength_oneMeter*.5;
 		infoContainerData.orientationAngle = angle;
+		}
 	}
 
 	infoContainerData.shape = mBoundingBoxShape;
