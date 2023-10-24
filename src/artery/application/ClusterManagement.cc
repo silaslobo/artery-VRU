@@ -551,13 +551,15 @@ ClusterManagement::Polygon_t ClusterManagement::applyPaddingToPoly(const Polygon
 	MultiPoly_t paddedShape;
 
 	bg::buffer(originalPoly, paddedShape, distance_strategy, side_strategy, join_strategy, end_strategy, square_strategy);
+	bg::correct(paddedShape[0]);
+	bg::unique(paddedShape[0]);
 
 	// Prevents padded rectangles from becoming polygons with > 4 vertices
-	if(mBoundingBoxShape == "Rectangular"){
-		Polygon_t simplifiedPoly;
-		bg::simplify(paddedShape[0], simplifiedPoly, paddingAmount);
+	if(mBoundingBoxShape == "Rectangular" && bg::num_segments(paddedShape[0]) > 4){
+		Polygon_t simplifiedShape;
+		bg::simplify(paddedShape[0], simplifiedShape, paddingAmount);
 
-		return simplifiedPoly.outer().size() > 0 ? simplifiedPoly : paddedShape[0];
+		return simplifiedShape.outer().size() > 0 ? simplifiedShape : paddedShape[0];
 	}
 
 	return paddedShape[0];
