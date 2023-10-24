@@ -264,8 +264,9 @@ ClusterManagement::Polygon_t ClusterManagement::generatePolygonFromMap(VruCluste
 	}
 	bg::append(resultingPolygon, vruLeaderPos);
 
-	bg::correct(resultingPolygon);
+	bg::remove_spikes(resultingPolygon);
 	bg::unique(resultingPolygon);
+	bg::correct(resultingPolygon);
 
 	return resultingPolygon;
 }
@@ -291,6 +292,10 @@ std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(Po
 	if(mEnableBoundingBoxPadding){
 		hull = applyPaddingToPoly(hull, calculatePaddingAmount(mClusterMap));		
 	}
+
+	bg::remove_spikes(hull);
+	bg::unique(hull);
+	bg::correct(hull);
 
 	clusterPositions = hull.outer();
 
