@@ -87,7 +87,7 @@ bool ClusterManagement::vruShouldLeave(const vanetza::asn1::Vam& vam, const omne
 		setLeaveReason(ClusterLeaveReason_notProvided);
 		return true;
 
-	}else if(mLastLeaderVamTimestamp - T_now >= timeClusterContinuity()){
+	}else if(T_now - mLastLeaderVamTimestamp >= timeClusterContinuity()){
 		setLeaveReason(ClusterLeaveReason_clusterLeaderLost);
 		return true;
 
