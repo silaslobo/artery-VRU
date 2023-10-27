@@ -47,6 +47,9 @@ simple VaService like ItsG5Service
         @statistic[BoundingBoxArea](source=BoundingBoxArea;record=vector);
         @statistic[BoundingBoxPerimeter](source=BoundingBoxPerimeter;record=vector);
 
+        // Cluster Parameter evaluations
+        @signal[CardinalitySize](type=unsigned long);
+        @statistic[CardinalitySize](source=CardinalitySize;record=vector);
         
         // evaluate DCC transmission interval restrictions
         bool withDccRestriction = default(true);

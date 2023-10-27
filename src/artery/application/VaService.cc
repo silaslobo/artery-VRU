@@ -50,7 +50,7 @@ static const simsignal_t SignalVamSent = cComponent::registerSignal("VamSentCoun
 
 static const simsignal_t scSignalBoxArea = cComponent::registerSignal("BoundingBoxArea");
 static const simsignal_t scSignalBoxPerimeter = cComponent::registerSignal("BoundingBoxPerimeter");
-static const simsignal_t scInvalidPolyCounter = cComponent::registerSignal("InvalidPolyCounter");
+static const simsignal_t scClusterCardinality = cComponent::registerSignal("CardinalitySize");
 
 static const auto scLowFrequencyContainerInterval = std::chrono::milliseconds(500);
 
@@ -323,6 +323,7 @@ void VaService::sendVam(const SimTime& T_now)
 				previousContainerData = initialInfoContainerData;
 				emit(scSignalBoxArea, mClusterManagement.getBoundingBoxArea());
 				emit(scSignalBoxPerimeter, mClusterManagement.getBoundingBoxPerimeter());
+				emit(scClusterCardinality, mClusterManagement.minClusterSize());
 			}
 		}
 
@@ -336,6 +337,7 @@ void VaService::sendVam(const SimTime& T_now)
 					auto clusterInfoData = mClusterManagement.generateDataForCurrentCluster();
 					emit(scSignalBoxArea,mClusterManagement.getBoundingBoxArea());
 					emit(scSignalBoxPerimeter,mClusterManagement.getBoundingBoxPerimeter());
+					emit(scClusterCardinality, mClusterManagement.getCurrentClusterSize());
 					addClusterInformationContainer(vam, clusterInfoData);
 					clusterVamSentCounter++;
 					previousContainerData = clusterInfoData;
@@ -343,6 +345,7 @@ void VaService::sendVam(const SimTime& T_now)
 			} else if(currentVruClusterOperation == KeepCluster){
 				emit(scSignalBoxArea, mClusterManagement.getBoundingBoxArea());
 				emit(scSignalBoxPerimeter, mClusterManagement.getBoundingBoxPerimeter());
+				emit(scClusterCardinality, mClusterManagement.getCurrentClusterSize());
 				addClusterInformationContainer(vam, previousContainerData);
 				clusterVamSentCounter++;
 			}
