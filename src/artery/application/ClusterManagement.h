@@ -82,7 +82,8 @@ class ClusterManagement
 
         // Operation conditions check
         bool vruShouldJoin(const vanetza::asn1::Vam&);
-        bool vruShouldLeave(const vanetza::asn1::Vam&, const omnetpp::SimTime&);
+        bool vruShouldLeave_VamParameters(const vanetza::asn1::Vam&);
+        bool vruShouldLeave_ElapsedTime(const omnetpp::SimTime&);
         bool vruShouldCreateCluster();
 
         void registerClusterId(long clusterId){mClusterId = clusterId;}

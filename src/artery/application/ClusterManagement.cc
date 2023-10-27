@@ -80,15 +80,11 @@ bool ClusterManagement::vruShouldJoin(const vanetza::asn1::Vam& vam){
 	return checkClusteringConditions(clusterPar.distance, clusterPar.velocityDifference, clusterPar.cardinality, clusterPar.withinBoundingBox);
 }
 
-bool ClusterManagement::vruShouldLeave(const vanetza::asn1::Vam& vam, const omnetpp::SimTime& T_now){
+bool ClusterManagement::vruShouldLeave_VamParameters(const vanetza::asn1::Vam& vam){
 	ClusterParameters_t clusterPar = parseInformationContainer(vam);
 
 	if(clusterPar.cardinality > mMaxClusterSize){
 		setLeaveReason(ClusterLeaveReason_notProvided);
-		return true;
-
-	}else if(mLastLeaderVamTimestamp - T_now >= timeClusterContinuity()){
-		setLeaveReason(ClusterLeaveReason_clusterLeaderLost);
 		return true;
 
 	}else if(clusterPar.distance > mMaxClusterDistance || !clusterPar.withinBoundingBox){
@@ -103,6 +99,15 @@ bool ClusterManagement::vruShouldLeave(const vanetza::asn1::Vam& vam, const omne
 		return false;
 	}
 
+}
+
+bool ClusterManagement::vruShouldLeave_ElapsedTime(const omnetpp::SimTime& T_now){
+	if(T_now - mLastLeaderVamTimestamp >= timeClusterContinuity()){
+		setLeaveReason(ClusterLeaveReason_clusterLeaderLost);
+		return true;
+	}else{
+		return false;
+	}
 }
 
 bool ClusterManagement::vruShouldCreateCluster(){

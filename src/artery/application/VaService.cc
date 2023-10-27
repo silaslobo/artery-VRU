@@ -190,6 +190,9 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 				}
 			}
 		}
+	}else if(mClusterManagement.vruShouldLeave_ElapsedTime(T_now)){
+		setVruClusterOperation(VruShouldLeave);
+		sendVam(T_now);
 	}
 }
 
@@ -239,8 +242,7 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 				mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
 				setVruClusterOperation(VruShouldJoin);
 			}else if(mClusterManagement.isVruPassive() && vam_data.vamParameters.vruClusterInformationContainer->clusterId == mTargetClusterId){
-				if(mClusterManagement.vruShouldLeave(vam, T_now)){
-					//mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
+				if(mClusterManagement.vruShouldLeave_VamParameters(vam)){
 					setVruClusterOperation(VruShouldLeave);
 				}
 
