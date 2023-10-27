@@ -169,7 +169,13 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 	const SimTime T_elapsed = T_now - mLastVamTimestamp;
 
 	if(mClusterSupport && mClusterManagement.isVruClusterLeader()){
-		T_GenVamMax = mClusterGenVamMax;
+		if(mClusterManagement.clusterShouldBreakup_ElapsedTime(T_now) && mClusterManagement.getCurrentClusterSize() < mClusterManagement.numCreateCluster()){
+			setVruClusterOperation(BreakupCluster);
+			sendVam(T_now);
+			return;
+		}else{
+			T_GenVamMax = mClusterGenVamMax;
+		}
 	}else{
 		T_GenVamMax = mGenVamMax;
 	}
@@ -318,6 +324,7 @@ void VaService::sendVam(const SimTime& T_now)
 		if(mClusterManagement.isVruStandalone() && currentVruClusterOperation == noVruOperation){		
 			mClusterManagement.createVruClusterMap();
 			if(mClusterManagement.vruShouldCreateCluster()){
+				mClusterManagement.mClusterCreationTimestamp = T_now;
 				mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveClusterLeader);
 				auto initialInfoContainerData = mClusterManagement.generateDataForNewCluster(omnetpp::intuniform(getRNG(0), 1, 255));
 				addClusterInformationContainer(vam, initialInfoContainerData);
@@ -564,6 +571,8 @@ void VaService::addClusterBreakupOperationContainer(vanetza::asn1::Vam& message)
 	breakupInfo->breakupTime = mClusterManagementParameters.TimeClusterBreakupWarning.dbl();
 	breakupInfo->clusterBreakupReason = ClusterBreakupReason_notProvided;
 
+	mClusterManagement.clearVruClusterMap();
+	setVruClusterOperation(noVruOperation);
 	mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveStandalone);
 }
 

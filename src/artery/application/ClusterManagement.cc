@@ -115,6 +115,15 @@ bool ClusterManagement::vruShouldCreateCluster(){
 	return (mInitialClusterMap.size() + 1) >= mNumCreateCluster;
 }
 
+bool ClusterManagement::clusterShouldBreakup_ElapsedTime(const omnetpp::SimTime& T_now){
+	if(T_now - mClusterCreationTimestamp >= timeClusterLeaderWaiting()){
+		setBreakupReason(ClusterBreakupReason_notProvided);
+		return true;
+	}else{
+		return false;
+	}
+}
+
 artery::ClusterManagement::pointXY ClusterManagement::getCurrentVruXY(){
 	libsumo::TraCIPosition vruLeaderTraCIPos = position_cast(traci::Boundary(api->simulation.getNetBoundary()), mPersonDataProvider->position());
 	return pointXY(vruLeaderTraCIPos.x, vruLeaderTraCIPos.y);

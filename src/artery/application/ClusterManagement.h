@@ -85,6 +85,8 @@ class ClusterManagement
         bool vruShouldLeave_VamParameters(const vanetza::asn1::Vam&);
         bool vruShouldLeave_ElapsedTime(const omnetpp::SimTime&);
         bool vruShouldCreateCluster();
+        bool clusterShouldBreakup_VamParameters(const vanetza::asn1::Vam&);
+        bool clusterShouldBreakup_ElapsedTime(const omnetpp::SimTime&);
 
         void registerClusterId(long clusterId){mClusterId = clusterId;}
         long getClusterId(){return mClusterId;}
@@ -104,13 +106,19 @@ class ClusterManagement
         omnetpp::SimTime timeClusterIdChangeNotification() const {return mTimeClusterIdChangeNotification;} 
         omnetpp::SimTime timeClusterIdPersist() const {return mTimeClusterIdPersist;}
         omnetpp::SimTime timeClusterContinuity() const {return mTimeClusterContinuity;} 
+        omnetpp::SimTime timeClusterLeaderWaiting() const {return mTimeClusterUniquenessThreshold;}
         omnetpp::SimTime timeClusterLeaveNotification() const {return mTimeClusterLeaveNotification;}
         omnetpp::SimTime timeCombinedVruClusterOpportunity() const {return mTimeCombinedVruClusterOpportunity;}  
 
+        // Timestamps to evaluate Cluster Operation triggers
         omnetpp::SimTime mLastLeaderVamTimestamp;
+        omnetpp::SimTime mClusterCreationTimestamp;
 
         void setLeaveReason(long leaveReason){mLeaveReason = leaveReason;}
         long getLeaveReason(){return mLeaveReason;}
+
+        void setBreakupReason(long breakupReason){mBreakupReason = breakupReason;}
+        long getBreakupReason(){return mBreakupReason;}
 
         void createVruClusterMap();
         void updateVruClusterMap(const vanetza::asn1::Vam&, std::string);
@@ -174,6 +182,7 @@ class ClusterManagement
         bool checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality, bool withinBoundingBox = false);
 
         long mLeaveReason;
+        long mBreakupReason;
 
         // Clustering Containers Parsing
         typedef struct ClusterParameters{
