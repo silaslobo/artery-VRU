@@ -321,6 +321,8 @@ void VaService::sendVam(const SimTime& T_now)
 				addClusterInformationContainer(vam, initialInfoContainerData);
 				clusterVamSentCounter++;
 				previousContainerData = initialInfoContainerData;
+				emit(scSignalBoxArea, mClusterManagement.getBoundingBoxArea());
+				emit(scSignalBoxPerimeter, mClusterManagement.getBoundingBoxPerimeter());
 			}
 		}
 
@@ -339,8 +341,8 @@ void VaService::sendVam(const SimTime& T_now)
 					previousContainerData = clusterInfoData;
 				}
 			} else if(currentVruClusterOperation == KeepCluster){
-				emit(scSignalBoxArea,mClusterManagement.getBoundingBoxArea());
-				emit(scSignalBoxPerimeter,mClusterManagement.getBoundingBoxPerimeter());
+				emit(scSignalBoxArea, mClusterManagement.getBoundingBoxArea());
+				emit(scSignalBoxPerimeter, mClusterManagement.getBoundingBoxPerimeter());
 				addClusterInformationContainer(vam, previousContainerData);
 				clusterVamSentCounter++;
 			}

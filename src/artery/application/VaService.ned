@@ -44,8 +44,9 @@ simple VaService like ItsG5Service
         @signal[BoundingBoxArea](type=double);
         @signal[BoundingBoxPerimeter](type=double);
 
-        @statistic[BoundingBoxAreaStatistic](source=BoundingBoxArea;record=vector);
-        @statistic[BoundingBoxPerimeterStatistic](source=BoundingBoxPerimeter;record=vector);
+        @statistic[BoundingBoxArea](source=BoundingBoxArea;record=vector);
+        @statistic[BoundingBoxPerimeter](source=BoundingBoxPerimeter;record=vector);
+
         
         // evaluate DCC transmission interval restrictions
         bool withDccRestriction = default(true);

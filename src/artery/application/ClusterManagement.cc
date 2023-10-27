@@ -496,6 +496,10 @@ InformationContainerData_t ClusterManagement::generateDataForNewCluster(long id)
 	infoContainerData.circleRadius = getSmallestDistanceToVru()*Radius_oneMeter*.5; 
 	infoContainerData.clusterId = id;
 	registerClusterId(infoContainerData.clusterId);
+
+	setBoundingBoxArea(M_PI*std::pow(infoContainerData.circleRadius,2));
+	setBoundingBoxPerimeter(2*M_PI*infoContainerData.circleRadius);
+
 	return infoContainerData;
 }
 
