@@ -54,6 +54,8 @@ void ClusterManagement::initialize(ClusterManagementParameters_t& cManagementPar
 	setCurrentVruRole(VruActiveStandalone);
 	setBoundingBoxArea(0.0);
 	setBoundingBoxPerimeter(0.0);
+	
+	mSmallestDistanceToVru = 0.01;
 }
 
 void ClusterManagement::simObjects(const PersonDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc){
@@ -376,7 +378,8 @@ void ClusterManagement::createVruClusterMap(){
 	}
 
 	if(mNearbyVruDistances.size() > 0){
-		mSmallestDistanceToVru = *std::min_element(mNearbyVruDistances.begin(), mNearbyVruDistances.end());
+		double smallestDist = *std::min_element(mNearbyVruDistances.begin(), mNearbyVruDistances.end());
+		mSmallestDistanceToVru = (smallestDist > 0.01 ? smallestDist : 0.01);
 	}
 
 }
