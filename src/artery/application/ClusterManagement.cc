@@ -514,8 +514,8 @@ InformationContainerData_t ClusterManagement::generateDataForNewCluster(long id)
 	infoContainerData.clusterId = id;
 	registerClusterId(infoContainerData.clusterId);
 
-	setBoundingBoxArea(M_PI*std::pow(infoContainerData.circleRadius,2));
-	setBoundingBoxPerimeter(2*M_PI*infoContainerData.circleRadius);
+	setBoundingBoxArea(M_PI*std::pow(infoContainerData.circleRadius/Radius_oneMeter,2));
+	setBoundingBoxPerimeter(2*M_PI*infoContainerData.circleRadius/Radius_oneMeter);
 
 	return infoContainerData;
 }
@@ -533,8 +533,8 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 	if(shapeFailureType == bg::failure_few_points){
 		infoContainerData.nodeOffset = std::make_tuple(0,0);
 		infoContainerData.circleRadius = 1;
-		setBoundingBoxArea(M_PI*std::pow(infoContainerData.circleRadius,2));
-		setBoundingBoxPerimeter(2*M_PI*infoContainerData.circleRadius);
+		setBoundingBoxArea(M_PI*std::pow(infoContainerData.circleRadius/Radius_oneMeter,2));
+		setBoundingBoxPerimeter(2*M_PI*infoContainerData.circleRadius/Radius_oneMeter);
 
 	}else if(shapeFailureType == bg::no_failure || shapeFailureType == bg::failure_self_intersections){
 
@@ -548,8 +548,8 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 			pointXY centerPoint = calculateCenterFromBasePoly(basePoly);
 			infoContainerData.nodeOffset = calculateOffset(getCurrentVruXY(), centerPoint);
 			infoContainerData.circleRadius = calculateRadius(mClusterMap, centerPoint);
-			setBoundingBoxArea(M_PI*std::pow(infoContainerData.circleRadius,2));
-			setBoundingBoxPerimeter(2*M_PI*infoContainerData.circleRadius);
+			setBoundingBoxArea(M_PI*std::pow(infoContainerData.circleRadius/Radius_oneMeter,2));
+			setBoundingBoxPerimeter(2*M_PI*infoContainerData.circleRadius/Radius_oneMeter);
 		}else if(mBoundingBoxShape == "Rectangular"){
 			Polygon_t rectangle;
 			double angle;
