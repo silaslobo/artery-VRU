@@ -48,6 +48,25 @@ simple VaService like ItsG5Service
         @statistic[HeadingTrigger](source=VamTriggerHeading;record=count,vector?);
         @statistic[SpeedTrigger](source=VamTriggerSpeed;record=count,vector?);
         
+        @signal[VamClusterCreation];
+        @signal[VamCluster];
+        @signal[VamJoin];
+        @signal[VamBreak];
+        @signal[VamLeave];
+        @signal[VamTime];
+        @signal[VamReceivedJoinId];
+        @signal[ClusterMember];
+
+        @statistic[ClusterCreationCounter](source=VamClusterCreation;record=count,vector?);
+        @statistic[ClusterCounter](source=VamCluster;record=count,vector?);
+        @statistic[VamJoinCounter](source=VamJoin;record=count,vector?);
+        @statistic[VamBreakCounter](source=VamBreak;record=count,vector?);
+        @statistic[VamLeaveCounter](source=VamLeave;record=count,vector?);
+        @statistic[VamTimerCounter](source=VamTime;record=count,vector?);
+
+        @statistic[VamReceivedJoinID](source=VamReceivedJoinId;record=count,vector?);
+        @statistic[VamClusterMember](source=ClusterMember;record=count,vector?);
+
         // Geometric evaluations
         @signal[BoundingBoxArea](type=double);
         @signal[BoundingBoxPerimeter](type=double);
