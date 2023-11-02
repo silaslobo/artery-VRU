@@ -40,6 +40,14 @@ simple VaService like ItsG5Service
         @statistic[VamSentCounter](record=count,vector?);
         @statistic[VamReceivedCounter](record=count,vector?);
 
+        @signal[VamTriggerPosition];
+        @signal[VamTriggerHeading];
+        @signal[VamTriggerSpeed];
+
+        @statistic[PositionTrigger](source=VamTriggerPosition;record=count,vector?);
+        @statistic[HeadingTrigger](source=VamTriggerHeading;record=count,vector?);
+        @statistic[SpeedTrigger](source=VamTriggerSpeed;record=count,vector?);
+        
         // Geometric evaluations
         @signal[BoundingBoxArea](type=double);
         @signal[BoundingBoxPerimeter](type=double);
