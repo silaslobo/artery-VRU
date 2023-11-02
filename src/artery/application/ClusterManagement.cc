@@ -510,7 +510,13 @@ InformationContainerData_t ClusterManagement::generateDataForNewCluster(long id)
 	InformationContainerData_t infoContainerData;
 	infoContainerData.shape = "Circular";
 	infoContainerData.cardinalitySize = mMinClusterSize;
-	infoContainerData.circleRadius = getSmallestDistanceToVru()*Radius_oneMeter*.5; 
+	double smallestValidDistance;
+	if(getSmallestDistanceToVru()*.5 < 0.1){
+		smallestValidDistance = 0.1*Radius_oneMeter;
+	}else{
+		smallestValidDistance = getSmallestDistanceToVru()*Radius_oneMeter*.5;
+	}
+	infoContainerData.circleRadius = smallestValidDistance; 
 	infoContainerData.clusterId = id;
 	registerClusterId(infoContainerData.clusterId);
 
