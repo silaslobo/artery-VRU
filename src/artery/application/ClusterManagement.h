@@ -106,7 +106,7 @@ class ClusterManagement
         omnetpp::SimTime timeClusterIdChangeNotification() const {return mTimeClusterIdChangeNotification;} 
         omnetpp::SimTime timeClusterIdPersist() const {return mTimeClusterIdPersist;}
         omnetpp::SimTime timeClusterContinuity() const {return mTimeClusterContinuity;} 
-        omnetpp::SimTime timeClusterLeaderWaiting() const {return mTimeClusterUniquenessThreshold;}
+        omnetpp::SimTime timeClusterLeaderWaiting() const {return mTimeClusterLeaderWaiting;}
         omnetpp::SimTime timeClusterLeaveNotification() const {return mTimeClusterLeaveNotification;}
         omnetpp::SimTime timeCombinedVruClusterOpportunity() const {return mTimeCombinedVruClusterOpportunity;}  
 
