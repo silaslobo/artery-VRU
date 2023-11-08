@@ -302,6 +302,7 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 				if(mClusterManagement.isVruClusterLeader() && vam_data.vamParameters.vruClusterOperationContainer->clusterLeaveInfo->clusterId == mClusterManagement.getClusterId()){
 					mClusterManagement.updateVruClusterMap(vam, "remove_VRU");
 					if(mClusterManagement.getCurrentClusterSize() < mClusterManagementParameters.MinClusterSize){
+						mClusterManagement.setBreakupReason(ClusterBreakupReason_notProvided); //TODO: develop a new "reason" for insufficient cardinality using one of the reserved slots for future work (6...15)
 						setVruClusterOperation(BreakupCluster);
 					}else{
 						setVruClusterOperation(RemoveVruFromCluster);
@@ -310,6 +311,7 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 			}else if(vam_data.vamParameters.vruClusterOperationContainer->clusterBreakupInfo){
 				if(mClusterManagement.isVruPassive() && vam_data.vamParameters.vruClusterInformationContainer->clusterId == mTargetClusterId){
 					//mPersonDataProvider->setStationId(Identity::randomStationId(getRNG(0)));
+					mClusterManagement.setLeaveReason(ClusterLeaveReason_clusterDisbandedByLeader);
 					setVruClusterOperation(VruShouldLeave);
 				}
 			}
