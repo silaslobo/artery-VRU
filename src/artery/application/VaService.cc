@@ -66,6 +66,9 @@ static const simsignal_t SignalVamTime = cComponent::registerSignal("VamTime");
 static const simsignal_t SignalVamReceivedJoinID = cComponent::registerSignal("VamReceivedJoinId");
 static const simsignal_t SignalClusterMember = cComponent::registerSignal("ClusterMember");
 
+static const simsignal_t SignalLeaveReasonCounter = cComponent::registerSignal("LeaveReasonCounter");
+static const simsignal_t SignalBreakupReasonCounter = cComponent::registerSignal("BreakupReasonCounter");
+
 static const auto scLowFrequencyContainerInterval = std::chrono::milliseconds(500);
 
 SpeedValue_t buildVAMSpeedValue(const vanetza::units::Velocity& v)
@@ -595,6 +598,7 @@ void VaService::addClusterLeaveOperationContainer(vanetza::asn1::Vam& message){
 	leaveInfo = vanetza::asn1::allocate<ClusterLeaveInfo>();
 	leaveInfo->clusterId = mTargetClusterId;
 	leaveInfo->clusterLeaveReason = mClusterManagement.getLeaveReason();
+	emit(SignalLeaveReasonCounter, mClusterManagement.getLeaveReason());
 	setVruClusterOperation(noVruOperation);
 	mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveStandalone);
 }
@@ -607,6 +611,8 @@ void VaService::addClusterBreakupOperationContainer(vanetza::asn1::Vam& message)
 	breakupInfo = vanetza::asn1::allocate<ClusterBreakupInfo>();
 	breakupInfo->breakupTime = mClusterManagementParameters.TimeClusterBreakupWarning.dbl();
 	breakupInfo->clusterBreakupReason = ClusterBreakupReason_notProvided;
+
+	emit(SignalBreakupReasonCounter,1);
 
 	mClusterManagement.clearVruClusterMap();
 	setVruClusterOperation(noVruOperation);

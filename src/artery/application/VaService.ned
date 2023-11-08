@@ -67,6 +67,12 @@ simple VaService like ItsG5Service
         @statistic[VamReceivedJoinID](source=VamReceivedJoinId;record=count,vector?);
         @statistic[VamClusterMember](source=ClusterMember;record=count,vector?);
 
+        @signal[LeaveReasonCounter];
+        @signal[BreakupReasonCounter];
+
+        @statistic[LeaveReasonCounter](source=LeaveReasonCounter;record=count,vector?);
+        @statistic[BreakupReasonCounter](source=LeaveReasonCounter;record=count,vector?);
+
         // Geometric evaluations
         @signal[BoundingBoxArea](type=double);
         @signal[BoundingBoxPerimeter](type=double);
