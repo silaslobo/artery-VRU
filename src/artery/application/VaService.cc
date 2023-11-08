@@ -277,7 +277,7 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 				mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
 				setVruClusterOperation(VruShouldJoin);
 			}else if(mClusterManagement.isVruPassive() && vam_data.vamParameters.vruClusterInformationContainer->clusterId == mTargetClusterId){
-				if(mClusterManagement.vruShouldLeave_VamParameters(vam)){
+				if(vam_data.vamParameters.vruClusterInformationContainer->clusterCardinalitySize >= mClusterManagement.numCreateCluster() && mClusterManagement.vruShouldLeave_VamParameters(vam)){
 					setVruClusterOperation(VruShouldLeave);
 				}
 
