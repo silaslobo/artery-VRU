@@ -583,7 +583,7 @@ void VaService::addClusterJoinOperationContainer(vanetza::asn1::Vam& message, co
 	joinInfo = vanetza::asn1::allocate<ClusterJoinInfo>();
 	joinInfo->clusterId = mTargetClusterId;
 	joinInfo->joinTime = joinTime.dbl();
-
+	setVruClusterOperation(noVruOperation);
 	mClusterManagement.setCurrentVruRole(mClusterManagement.VruPassive);	
 }
 
@@ -595,7 +595,7 @@ void VaService::addClusterLeaveOperationContainer(vanetza::asn1::Vam& message){
 	leaveInfo = vanetza::asn1::allocate<ClusterLeaveInfo>();
 	leaveInfo->clusterId = mTargetClusterId;
 	leaveInfo->clusterLeaveReason = mClusterManagement.getLeaveReason();
-
+	setVruClusterOperation(noVruOperation);
 	mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveStandalone);
 }
 
