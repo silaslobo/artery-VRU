@@ -409,6 +409,10 @@ void VaService::sendVam(const SimTime& T_now)
 		}
 
 		if(mClusterManagement.isVruClusterLeader() && currentVruClusterOperation == BreakupCluster){
+			emit(scSignalBoxArea, mClusterManagement.getBoundingBoxArea());
+			emit(scSignalBoxPerimeter, mClusterManagement.getBoundingBoxPerimeter());
+			emit(scClusterCardinality, mClusterManagement.getCurrentClusterSize());
+			addClusterInformationContainer(vam, previousContainerData);
 			addClusterBreakupOperationContainer(vam);
 			emit(SignalVamBreak, 1);
 		}
