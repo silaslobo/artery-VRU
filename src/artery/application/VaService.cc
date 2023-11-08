@@ -225,7 +225,7 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 				}
 			}
 		}
-	}else if(mClusterManagement.vruShouldLeave_ElapsedTime(T_now)){
+	}else if(mClusterManagement.vruShouldLeave_ElapsedTime(T_now) || currentVruClusterOperation == VruShouldLeave){
 		setVruClusterOperation(VruShouldLeave);
 		sendVam(T_now);
 	}
