@@ -305,7 +305,7 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 					}
 				}
 			}else if(vam_data.vamParameters.vruClusterOperationContainer->clusterBreakupInfo){
-				if(mClusterManagement.isVruPassive() && vam_data.vamParameters.vruClusterInformationContainer->clusterId == mClusterManagement.getClusterId()){
+				if(mClusterManagement.isVruPassive() && vam_data.vamParameters.vruClusterInformationContainer->clusterId == mTargetClusterId){
 					//mPersonDataProvider->setStationId(Identity::randomStationId(getRNG(0)));
 					setVruClusterOperation(VruShouldLeave);
 				}
