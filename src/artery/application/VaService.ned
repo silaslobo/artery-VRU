@@ -71,7 +71,7 @@ simple VaService like ItsG5Service
         @signal[BreakupReasonCounter];
 
         @statistic[LeaveReasonCounter](source=LeaveReasonCounter;record=count,vector?);
-        @statistic[BreakupReasonCounter](source=LeaveReasonCounter;record=count,vector?);
+        @statistic[BreakupReasonCounter](source=BreakupReasonCounter;record=count,vector?);
 
         // Geometric evaluations
         @signal[BoundingBoxArea](type=double);
