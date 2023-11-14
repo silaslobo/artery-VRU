@@ -47,8 +47,15 @@ void ClusterManagement::initialize(ClusterManagementParameters_t& cManagementPar
 	mTimeCombinedVruClusterOpportunity = cManagementPar.TimeCombinedVruClusterOpportunity; 
 	
 	mBoundingBoxShape = cManagementPar.DefaultBoundingBoxShape;
+	mEnableBoundingBoxPadding = cManagementPar.EnableBoundingBoxPadding;
+
+	mLastLeaderVamTimestamp = simTime();
 
 	setCurrentVruRole(VruActiveStandalone);
+	setBoundingBoxArea(0.0);
+	setBoundingBoxPerimeter(0.0);
+	
+	mSmallestDistanceToVru = 0.01;
 }
 
 void ClusterManagement::simObjects(const PersonDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc){
@@ -75,14 +82,48 @@ bool ClusterManagement::vruShouldJoin(const vanetza::asn1::Vam& vam){
 	return checkClusteringConditions(clusterPar.distance, clusterPar.velocityDifference, clusterPar.cardinality, clusterPar.withinBoundingBox);
 }
 
-bool ClusterManagement::vruShouldLeave(const vanetza::asn1::Vam& vam){
+bool ClusterManagement::vruShouldLeave_VamParameters(const vanetza::asn1::Vam& vam){
 	ClusterParameters_t clusterPar = parseInformationContainer(vam);
-	return !checkClusteringConditions(clusterPar.distance, clusterPar.velocityDifference, clusterPar.cardinality, clusterPar.withinBoundingBox);
+
+	if(clusterPar.cardinality > mMaxClusterSize){
+		setLeaveReason(ClusterLeaveReason_notProvided);
+		return true;
+
+	}else if(clusterPar.distance > mMaxClusterDistance || !clusterPar.withinBoundingBox){
+		setLeaveReason(ClusterLeaveReason_outOfClusterBoundingBox);
+		return true;
+
+	}else if(clusterPar.velocityDifference < mMaxClusterVelocityDifference){
+		setLeaveReason(ClusterLeaveReason_outOfClusterSpeedRange);
+		return true;
+
+	}else{
+		return false;
+	}
+
+}
+
+bool ClusterManagement::vruShouldLeave_ElapsedTime(const omnetpp::SimTime& T_now){
+	if(T_now - mLastLeaderVamTimestamp >= timeClusterContinuity()){
+		setLeaveReason(ClusterLeaveReason_clusterLeaderLost);
+		return true;
+	}else{
+		return false;
+	}
 }
 
 bool ClusterManagement::vruShouldCreateCluster(){
 	// TODO: Should also evaluate if any available leader is nearby -> parse a set of "recent" VAMs 
 	return (mInitialClusterMap.size() + 1) >= mNumCreateCluster;
+}
+
+bool ClusterManagement::clusterShouldBreakup_ElapsedTime(const omnetpp::SimTime& T_now){
+	if(T_now - mClusterCreationTimestamp >= timeClusterLeaderWaiting()){
+		setBreakupReason(ClusterBreakupReason_notProvided);
+		return true;
+	}else{
+		return false;
+	}
 }
 
 artery::ClusterManagement::pointXY ClusterManagement::getCurrentVruXY(){
@@ -116,20 +157,21 @@ artery::ClusterManagement::ClusterParameters_t ClusterManagement::parseInformati
 		PolyPointList_t& receivedOffsetList = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList;
 
 		Polygon_t receivedBoundingBox = reconstructPolygon(receivedOffsetList,leaderTraCIPos);
-		clusterParameters.withinBoundingBox = bg::within(vruPos, receivedBoundingBox);
-		// if(clusterParameters.withinBoundingBox == 1){
-		// 	std::cout << "Reconstructed (cluster " << vam_data.vamParameters.vruClusterInformationContainer->clusterId << "): " << bg::dsv(receivedBoundingBox) << std::endl;
-		// }
+		clusterParameters.withinBoundingBox = bg::covered_by(vruPos, receivedBoundingBox);
 
 	}else if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterCircle){
 		std::tuple<long,long> centerOffset = getOffsetValues(*vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.nodeCenterPoint);
 		pointXY centerXY = pointXY(bg::get<0>(leaderPos)+std::get<0>(centerOffset), bg::get<1>(leaderPos)+std::get<1>(centerOffset));
 		clusterParameters.withinBoundingBox = (bg::distance(vruPos,centerXY) <= vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius) ? 1 : 0;
-		// if(clusterParameters.withinBoundingBox == 1 && vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius > 0){
-		// 	std::cout << "Reconstructed cluster " << vam_data.vamParameters.vruClusterInformationContainer->clusterId << std::endl;
-		// 	std::cout << "Parsed radius: " << vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius << std::endl;
-		// 	std::cout << "Parsed center: (" << bg::get<0>(centerXY) << "," << bg::get<1>(centerXY) << ") \n" << std::endl;
-		// }
+
+	}else if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterRectangle){
+		std::tuple<long,long> centerOffset = getOffsetValues(*vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterRectangle.nodeCenterPoint);
+		pointXY centerXY = pointXY(bg::get<0>(leaderPos)+std::get<0>(centerOffset), bg::get<1>(leaderPos)+std::get<1>(centerOffset));
+		long halfWidth = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterRectangle.semiMinorRangeLength;
+		long halfLength = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeLength;
+		long angle = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeOrientation;
+		Polygon_t receivedBoundingBox = reconstructRectangle(centerXY, halfWidth, halfLength, angle);
+		clusterParameters.withinBoundingBox = bg::covered_by(vruPos, receivedBoundingBox);
 	}
 
 	return clusterParameters;
@@ -202,29 +244,48 @@ artery::ClusterManagement::Polygon_t ClusterManagement::reconstructPolygon(const
 	return reconstructedPolygon;
 }
 
+artery::ClusterManagement::Polygon_t ClusterManagement::reconstructRectangle(const pointXY center, long halfWidth, long halfLength, long angle)
+{
+	Polygon_t reconstructedRectangle;
+
+	double halfLengthMeters = halfLength/10.0;
+	double halfWidthMeters = halfWidth/10.0;
+
+	pointXY bottomLeftmost = pointXY(bg::get<0>(center)-halfLengthMeters, bg::get<1>(center)-halfWidthMeters);
+	pointXY bottomRightmost = pointXY(bg::get<0>(center)+halfLengthMeters, bg::get<1>(center)-halfWidthMeters);
+	pointXY topRightmost = pointXY(bg::get<0>(center)+halfLengthMeters, bg::get<1>(center)+halfWidthMeters);
+	pointXY topLeftmost = pointXY(bg::get<0>(center)-halfLengthMeters, bg::get<1>(center)+halfWidthMeters);
+
+	bg::append(reconstructedRectangle, bottomLeftmost);
+	bg::append(reconstructedRectangle, bottomRightmost);
+	bg::append(reconstructedRectangle, topRightmost);
+	bg::append(reconstructedRectangle, topLeftmost);
+	bg::append(reconstructedRectangle, bottomLeftmost);
+
+	Polygon_t offsetPoly = translatePoly(reconstructedRectangle, -bg::get<0>(center), -bg::get<1>(center));
+	Polygon_t rotatedRectangle = rotatePoly(offsetPoly, WGS84AngleToRadians(angle));
+	reconstructedRectangle = translatePoly(rotatedRectangle, bg::get<0>(center), bg::get<1>(center));
+
+	return reconstructedRectangle;
+}
+
 ClusterManagement::Polygon_t ClusterManagement::generatePolygonFromMap(VruClusterMap_t vruMap){
 	Polygon_t resultingPolygon;
 	pointXY vruLeaderPos = getCurrentVruXY();
 
-	//std::cout << "ID: " << getClusterId() << std::endl;
-	//std::cout << "Members: (" << mPersonDataProvider->getStationId() << "*";
 	bg::append(resultingPolygon, vruLeaderPos);
 	for (auto const& itr : vruMap) {
 		auto vruLon = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / std::pow( 10.0, 7 ));
 		auto vruLat = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.latitude) / std::pow( 10.0, 7 ));
 		libsumo::TraCIPosition vruTraCIPos = api->simulation.convertGeo(vruLon,vruLat, true);
 		bg::append(resultingPolygon, pointXY(vruTraCIPos.x, vruTraCIPos.y));
-		//std::cout << ", " << itr.first;
 	}
-	//std::cout << ")" << std::endl;
 	bg::append(resultingPolygon, vruLeaderPos);
 
-	bg::correct(resultingPolygon);
+	bg::remove_spikes(resultingPolygon);
 	bg::unique(resultingPolygon);
-	// std::cout << "Poly from map: " << std::setprecision(15) << bg::dsv(resultingPolygon) << std::endl;
-	// std::cout << "Area: " << bg::area(resultingPolygon)*std::pow(10.0,-4) << " cm2" << std::endl;
-	// std::cout << "Cardinality: " << vruMap.size()+1 << " VRUs" << std::endl;
-	// std::cout << "Density: " << bg::area(resultingPolygon)/(vruMap.size()+1) << " VRUs/cm2" << std::endl;
+	bg::correct(resultingPolygon);
+
 	return resultingPolygon;
 }
 
@@ -233,33 +294,38 @@ std::tuple<long,long> ClusterManagement::calculateOffset(pointXY pointA, pointXY
 	long offsetX = (bg::get<0>(pointB) - bg::get<0>(pointA))*100.0;
 	long offsetY = (bg::get<1>(pointB) - bg::get<1>(pointA))*100.0;
 
-	//std::cout << "(" << offsetX << "," << offsetY << "), " ;
-
 	return std::make_tuple(offsetX, offsetY);
 }
 
-std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(VruClusterMap_t vruMap)
+std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(Polygon_t basePoly)
 {
 	std::vector<pointXY> clusterPositions;
 	pointXY previousPos;
 	std::vector<std::tuple<long,long>> distancesList;
 
-	Polygon_t clusterPolygon = generatePolygonFromMap(vruMap);
-
 	// Using boost geometry, simplifies the original polygon with convex hull algorithm
 	Polygon_t hull;
-	bg::convex_hull(clusterPolygon, hull);
-	//std::cout << "Hull poly: " << bg::dsv(hull) << std::endl;
+	bg::convex_hull(basePoly, hull);
+
+	if(mEnableBoundingBoxPadding){
+		hull = applyPaddingToPoly(hull, calculatePaddingAmount(mClusterMap));
+	}
+
+	bg::remove_spikes(hull);
+	bg::unique(hull);
+	bg::correct(hull);
+
 	clusterPositions = hull.outer();
 
+	setBoundingBoxArea(bg::area(hull));
+	setBoundingBoxPerimeter(bg::perimeter(hull));
+
 	// Obtains list of offsets
-	//std::cout << "Offset: "; 
 	previousPos = getCurrentVruXY();
 	for (auto const& currentPos : clusterPositions){
 		distancesList.push_back(calculateOffset(previousPos,currentPos));
 		previousPos = currentPos;
 	}
-	//std::cout << "\n" << std::endl;
 
 	return distancesList;
 }
@@ -312,7 +378,8 @@ void ClusterManagement::createVruClusterMap(){
 	}
 
 	if(mNearbyVruDistances.size() > 0){
-		mSmallestDistanceToVru = *std::min_element(mNearbyVruDistances.begin(), mNearbyVruDistances.end());
+		double smallestDist = *std::min_element(mNearbyVruDistances.begin(), mNearbyVruDistances.end());
+		mSmallestDistanceToVru = (smallestDist > 0.01 ? smallestDist : 0.01);
 	}
 
 }
@@ -328,43 +395,134 @@ void ClusterManagement::updateVruClusterMap(const vanetza::asn1::Vam& vam, std::
 	}
 }
 
-ClusterManagement::pointXY ClusterManagement::calculateCenterFromMap(VruClusterMap_t vruMap){
+ClusterManagement::pointXY ClusterManagement::calculateCenterFromBasePoly(Polygon_t basePoly){
 	
-	Polygon_t pointsFromMap = generatePolygonFromMap(vruMap);
-	bg::model::box<pointXY> envelope;
+	Box_t envelope;
 	pointXY centerPoint;
 
-	bg::envelope(pointsFromMap, envelope);
+	bg::envelope(basePoly, envelope);
 	bg::centroid(envelope, centerPoint);
-
-	//std::cout << "Leader: (" << bg::get<0>(getCurrentVruXY()) << "," << bg::get<1>(getCurrentVruXY()) << ")" << std::endl;
-	//std::cout << "Centroid: (" << bg::get<0>(centerPoint) << "," << bg::get<1>(centerPoint) << ")" << std::endl;
 	
 	return centerPoint;
 }
 
 double ClusterManagement::calculateRadius(VruClusterMap_t vruMap, pointXY center){
-	std::vector<double> distanceList;
+	std::vector<vanetza::units::Length> distanceList;
 
 	for (auto const& itr : vruMap) {
 		auto vruLon = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / std::pow( 10.0, 7 ));
 		auto vruLat = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.latitude) / std::pow( 10.0, 7 ));
 		libsumo::TraCIPosition vruTraCIPos = api->simulation.convertGeo(vruLon,vruLat, true);
-		distanceList.push_back(bg::distance(center, pointXY(vruTraCIPos.x, vruTraCIPos.y)));		
+		distanceList.push_back(bg::distance(center, pointXY(vruTraCIPos.x, vruTraCIPos.y))*vanetza::units::si::meter);		
 	}
+
+	auto radiusMeters = *std::max_element(distanceList.begin(), distanceList.end());
+
+	if(mEnableBoundingBoxPadding){
+		radiusMeters += calculatePaddingAmount(mClusterMap)*vanetza::units::si::meter;
+	}
+
+	double radiusDecimeters = Constants::round(radiusMeters, Constants::decimeter);
+
+	return radiusDecimeters <= 0 ? 1 : radiusDecimeters;
+}
+
+double ClusterManagement::radiansToWGS84Angle(double radians){
+	double WGSAngle = radians * 1800.0 / M_PI;
+	WGSAngle = 1800.0 - WGSAngle; 
+	if(WGSAngle < 0){
+		WGSAngle += 3600;
+	} 
+	return WGSAngle;
+}
+
+double ClusterManagement::WGS84AngleToRadians(double WGSAngle){
+	return WGSAngle * M_PI / 1800.0;
+}
+
+ClusterManagement::Polygon_t ClusterManagement::translatePoly(const Polygon_t originalPoly, double offsetX, double offsetY){
+	Polygon_t translatedPoly;
+	bg::strategy::transform::translate_transformer<double, 2, 2> applyOffset(offsetX, offsetY);
+	bg::transform(originalPoly, translatedPoly, applyOffset);
+	return translatedPoly;
+}
+
+ClusterManagement::Polygon_t ClusterManagement::rotatePoly(const Polygon_t originalPoly, double angle){
+	Polygon_t rotatedPoly;
+	bg::strategy::transform::rotate_transformer<bg::radian, double, 2, 2> applyRotation(angle);
+	bg::transform(originalPoly, rotatedPoly, applyRotation);
+	return rotatedPoly;
+}
+
+std::tuple<ClusterManagement::Polygon_t, double>  ClusterManagement::getRotatedRectangle(Polygon_t basePoly){
+
+	Box_t outputEnvelope;
+	double minArea = std::numeric_limits<double>::max(), optimalAngle;
+
+	pointXY basePolyCenter = calculateCenterFromBasePoly(basePoly);
+	Polygon_t offsetPoly = translatePoly(basePoly, -bg::get<0>(basePolyCenter), -bg::get<1>(basePolyCenter));
+
+	for (double currentAngle = 0.0; currentAngle <= 2*M_PI; currentAngle += 0.1) {
+
+		Box_t candidateEnvelope;
+		Polygon_t rotatedPoly = rotatePoly(offsetPoly, currentAngle);
+		bg::envelope(rotatedPoly, candidateEnvelope);
+        double rotatedArea = bg::area(candidateEnvelope);
+
+        if (rotatedArea < minArea) {
+            minArea = rotatedArea;
+			outputEnvelope = candidateEnvelope;
+			optimalAngle = currentAngle;
+        }
+    }
+
+	Polygon_t baseRectangle;
+	bg::convert(outputEnvelope, baseRectangle);
+
+	if(mEnableBoundingBoxPadding){
+		baseRectangle = applyPaddingToPoly(baseRectangle, calculatePaddingAmount(mClusterMap));
+	}
+
+	Polygon_t outputRectangle = rotatePoly(baseRectangle, -optimalAngle);
+	Polygon_t finalRectangle = translatePoly(outputRectangle, bg::get<0>(basePolyCenter), bg::get<1>(basePolyCenter));
+
+	return std::make_tuple(finalRectangle, radiansToWGS84Angle(optimalAngle));
+}
+
+std::string ClusterManagement::selectBoundingBoxShape(Polygon_t basePoly){
+
+	//TODO: Develop a less reduntant way to obtain areas -> current solution repeats plenty of calculations
+	Polygon_t hullPoly;
+	bg::convex_hull(basePoly, hullPoly);
+	double areaPoly = bg::area(hullPoly);
 	
-	double radius = ceil(*std::max_element(distanceList.begin(), distanceList.end())*Radius_oneMeter);
-	//std::cout << "Radius: " << radius << " dm \n" << std::endl;
-	return radius;
+	pointXY circleCenter = calculateCenterFromBasePoly(basePoly);
+	double circleRadius = calculateRadius(mClusterMap, circleCenter)/Radius_oneMeter;
+	double areaCircle = M_PI*std::pow(circleRadius,2);
+
+	// Cluster shape selection based on highest Num_Clusters/m^2 (i.e. smaller area)
+	std::string selectedShape = areaPoly <= areaCircle ? "Polygon" : "Circular";
+
+	return selectedShape;
 }
 
 InformationContainerData_t ClusterManagement::generateDataForNewCluster(long id){
 	InformationContainerData_t infoContainerData;
 	infoContainerData.shape = "Circular";
 	infoContainerData.cardinalitySize = mMinClusterSize;
-	infoContainerData.circleRadius = getSmallestDistanceToVru()*Radius_oneMeter*.5; 
+	double smallestValidDistance;
+	if(getSmallestDistanceToVru()*.5 < 0.1){
+		smallestValidDistance = 0.1*Radius_oneMeter;
+	}else{
+		smallestValidDistance = getSmallestDistanceToVru()*Radius_oneMeter*.5;
+	}
+	infoContainerData.circleRadius = smallestValidDistance; 
 	infoContainerData.clusterId = id;
 	registerClusterId(infoContainerData.clusterId);
+
+	setBoundingBoxArea(M_PI*std::pow(infoContainerData.circleRadius/Radius_oneMeter,2));
+	setBoundingBoxPerimeter(2*M_PI*infoContainerData.circleRadius/Radius_oneMeter);
+
 	return infoContainerData;
 }
 
@@ -372,17 +530,93 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 	InformationContainerData_t infoContainerData;
 	infoContainerData.cardinalitySize = getCurrentClusterSize();
 	infoContainerData.clusterId = getClusterId();
-	infoContainerData.shape = mBoundingBoxShape;
 
-	if(mBoundingBoxShape == "Polygon"){
-		infoContainerData.polyOffsets = calculatePolyOffsetList(getVruClusterMap());
-	}else if(mBoundingBoxShape == "Circular"){
-		pointXY centerPoint = calculateCenterFromMap(mClusterMap);
-		infoContainerData.nodeOffset = calculateOffset(getCurrentVruXY(), centerPoint);
-		infoContainerData.circleRadius = calculateRadius(mClusterMap, centerPoint);
+	Polygon_t basePoly = generatePolygonFromMap(mClusterMap);
+
+	boost::geometry::validity_failure_type shapeFailureType;
+	bg::is_valid(basePoly, shapeFailureType);
+
+	if(shapeFailureType == bg::failure_few_points){
+		infoContainerData.nodeOffset = std::make_tuple(0,0);
+		infoContainerData.circleRadius = 1;
+		setBoundingBoxArea(M_PI*std::pow(infoContainerData.circleRadius/Radius_oneMeter,2));
+		setBoundingBoxPerimeter(2*M_PI*infoContainerData.circleRadius/Radius_oneMeter);
+
+	}else if(shapeFailureType == bg::no_failure || shapeFailureType == bg::failure_self_intersections){
+
+		if(mBoundingBoxShape == "Autoselect"){
+			mBoundingBoxShape = selectBoundingBoxShape(basePoly);
+		}
+
+		if(mBoundingBoxShape == "Polygon"){
+			infoContainerData.polyOffsets = calculatePolyOffsetList(basePoly);
+		}else if(mBoundingBoxShape == "Circular"){
+			pointXY centerPoint = calculateCenterFromBasePoly(basePoly);
+			infoContainerData.nodeOffset = calculateOffset(getCurrentVruXY(), centerPoint);
+			infoContainerData.circleRadius = calculateRadius(mClusterMap, centerPoint);
+			setBoundingBoxArea(M_PI*std::pow(infoContainerData.circleRadius/Radius_oneMeter,2));
+			setBoundingBoxPerimeter(2*M_PI*infoContainerData.circleRadius/Radius_oneMeter);
+		}else if(mBoundingBoxShape == "Rectangular"){
+			Polygon_t rectangle;
+			double angle;
+			std::tie(rectangle, angle) = getRotatedRectangle(basePoly);
+			infoContainerData.nodeOffset = calculateOffset(getCurrentVruXY(), calculateCenterFromBasePoly(rectangle));
+			infoContainerData.rectangleLength = bg::distance(rectangle.outer()[0], rectangle.outer()[1])*SemiRangeLength_oneMeter*.5;
+			infoContainerData.rectangleWidth = bg::distance(rectangle.outer()[1], rectangle.outer()[2])*SemiRangeLength_oneMeter*.5;
+			infoContainerData.orientationAngle = angle;
+			setBoundingBoxArea(bg::area(rectangle));
+			setBoundingBoxPerimeter(bg::perimeter(rectangle));
+		}
 	}
+
+	infoContainerData.shape = mBoundingBoxShape;
 	
 	return infoContainerData;
+}
+
+double ClusterManagement::calculatePaddingAmount(const VruClusterMap_t clusterMap){
+
+	double maxSpeed = 0.0;
+
+	for(auto& vru : clusterMap){
+		double vruSpeed = vru.second.asn1()->vam.vamParameters.vruHighFrequencyContainer->speed.speedValue;
+		maxSpeed = std::max(vruSpeed, maxSpeed);
+	}
+
+	// 150ms determined experimentally
+	auto messageTime = 150.0*std::pow(10.0,-3);
+
+	return (maxSpeed/100.0)*messageTime;
+}
+
+ClusterManagement::Polygon_t ClusterManagement::applyPaddingToPoly(const Polygon_t originalPoly, double paddingAmount){
+
+	// Prevents null padding and shrinkage of the shape
+	if(paddingAmount <= 0){
+		return originalPoly;
+	}
+	
+	bg::strategy::buffer::distance_symmetric<double> distance_strategy(paddingAmount);
+    bg::strategy::buffer::join_miter join_strategy;
+	bg::strategy::buffer::end_flat end_strategy;
+    bg::strategy::buffer::point_square square_strategy;
+    bg::strategy::buffer::side_straight side_strategy;
+	MultiPoly_t paddedShape;
+
+	bg::buffer(originalPoly, paddedShape, distance_strategy, side_strategy, join_strategy, end_strategy, square_strategy);
+	bg::correct(paddedShape[0]);
+	bg::unique(paddedShape[0]);
+
+	// Prevents padded rectangles from becoming polygons with > 4 vertices
+	if(mBoundingBoxShape == "Rectangular" && bg::num_segments(paddedShape[0]) > 4){
+		Polygon_t simplifiedShape;
+		bg::simplify(paddedShape[0], simplifiedShape, paddingAmount);
+
+		return simplifiedShape.outer().size() > 0 ? simplifiedShape : paddedShape[0];
+	}
+
+	return paddedShape[0];
+
 }
 
 }

@@ -40,6 +40,50 @@ simple VaService like ItsG5Service
         @statistic[VamSentCounter](record=count,vector?);
         @statistic[VamReceivedCounter](record=count,vector?);
 
+        @signal[VamTriggerPosition];
+        @signal[VamTriggerHeading];
+        @signal[VamTriggerSpeed];
+
+        @statistic[PositionTrigger](source=VamTriggerPosition;record=count,vector?);
+        @statistic[HeadingTrigger](source=VamTriggerHeading;record=count,vector?);
+        @statistic[SpeedTrigger](source=VamTriggerSpeed;record=count,vector?);
+        
+        @signal[VamClusterCreation];
+        @signal[VamCluster];
+        @signal[VamJoin];
+        @signal[VamBreak];
+        @signal[VamLeave];
+        @signal[VamTime];
+        @signal[VamReceivedJoinId];
+        @signal[ClusterMember];
+
+        @statistic[ClusterCreationCounter](source=VamClusterCreation;record=count,vector?);
+        @statistic[ClusterCounter](source=VamCluster;record=count,vector?);
+        @statistic[VamJoinCounter](source=VamJoin;record=count,vector?);
+        @statistic[VamBreakCounter](source=VamBreak;record=count,vector?);
+        @statistic[VamLeaveCounter](source=VamLeave;record=count,vector?);
+        @statistic[VamTimerCounter](source=VamTime;record=count,vector?);
+
+        @statistic[VamReceivedJoinID](source=VamReceivedJoinId;record=count,vector?);
+        @statistic[VamClusterMember](source=ClusterMember;record=count,vector?);
+
+        @signal[LeaveReasonCounter];
+        @signal[BreakupReasonCounter];
+
+        @statistic[LeaveReasonCounter](source=LeaveReasonCounter;record=count,vector?);
+        @statistic[BreakupReasonCounter](source=BreakupReasonCounter;record=count,vector?);
+
+        // Geometric evaluations
+        @signal[BoundingBoxArea](type=double);
+        @signal[BoundingBoxPerimeter](type=double);
+
+        @statistic[BoundingBoxArea](source=BoundingBoxArea;record=vector);
+        @statistic[BoundingBoxPerimeter](source=BoundingBoxPerimeter;record=vector);
+
+        // Cluster Parameter evaluations
+        @signal[CardinalitySize](type=unsigned long);
+        @statistic[CardinalitySize](source=CardinalitySize;record=vector);
+        
         // evaluate DCC transmission interval restrictions
         bool withDccRestriction = default(true);
 
@@ -78,8 +122,9 @@ simple VaService like ItsG5Service
         int maxClusterSize = default(20);
         int numClusterVAMRepeat = default(3);
 
-        // Clustering behavior on the simulation
-        string defaultBoundingBoxShape = default("Polygon");
+        // Clustering behavior on the simulation 
+        string defaultBoundingBoxShape = default("Polygon"); // Available options: Circular, Rectangular, Polygon or Autoselect
+        bool enableBoundingBoxPadding = default(false);
         
         // Cluster membership parameters 
         double timeClusterUniquenessThreshold @unit(s) = default(30.0s);
@@ -92,5 +137,8 @@ simple VaService like ItsG5Service
         double timeClusterLeaderWaiting @unit(s) = default(2.0s);
         double timeClusterLeaveNotification @unit(s) = default(1.0s);
         double timeCombinedVruClusterOpportunity @unit(s) = default(15.0s);
+
+        // Custom max interval between cluster VAMs due to timeClusterContinuity parameter
+        double clusterMaxInterval @unit(s) = default(2.0s);
         
 }

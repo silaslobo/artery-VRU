@@ -44,6 +44,7 @@ typedef struct ClusterManagementParameters{
 			unsigned NumClusterVAMRepeat;
 
 			std::string DefaultBoundingBoxShape;
+            bool EnableBoundingBoxPadding;
 
 } ClusterManagementParameters_t;
 
@@ -55,6 +56,9 @@ typedef struct InformationContainerData{
 	const PersonDataProvider* leaderDataProvider;
 	double circleRadius;
 	long clusterId;
+    double orientationAngle;
+    double rectangleWidth;
+    double rectangleLength;
 
 } InformationContainerData_t;
 
@@ -78,8 +82,11 @@ class ClusterManagement
 
         // Operation conditions check
         bool vruShouldJoin(const vanetza::asn1::Vam&);
-        bool vruShouldLeave(const vanetza::asn1::Vam&);
+        bool vruShouldLeave_VamParameters(const vanetza::asn1::Vam&);
+        bool vruShouldLeave_ElapsedTime(const omnetpp::SimTime&);
         bool vruShouldCreateCluster();
+        bool clusterShouldBreakup_VamParameters(const vanetza::asn1::Vam&);
+        bool clusterShouldBreakup_ElapsedTime(const omnetpp::SimTime&);
 
         void registerClusterId(long clusterId){mClusterId = clusterId;}
         long getClusterId(){return mClusterId;}
@@ -99,8 +106,19 @@ class ClusterManagement
         omnetpp::SimTime timeClusterIdChangeNotification() const {return mTimeClusterIdChangeNotification;} 
         omnetpp::SimTime timeClusterIdPersist() const {return mTimeClusterIdPersist;}
         omnetpp::SimTime timeClusterContinuity() const {return mTimeClusterContinuity;} 
+        omnetpp::SimTime timeClusterLeaderWaiting() const {return mTimeClusterLeaderWaiting;}
         omnetpp::SimTime timeClusterLeaveNotification() const {return mTimeClusterLeaveNotification;}
         omnetpp::SimTime timeCombinedVruClusterOpportunity() const {return mTimeCombinedVruClusterOpportunity;}  
+
+        // Timestamps to evaluate Cluster Operation triggers
+        omnetpp::SimTime mLastLeaderVamTimestamp;
+        omnetpp::SimTime mClusterCreationTimestamp;
+
+        void setLeaveReason(long leaveReason){mLeaveReason = leaveReason;}
+        long getLeaveReason(){return mLeaveReason;}
+
+        void setBreakupReason(long breakupReason){mBreakupReason = breakupReason;}
+        long getBreakupReason(){return mBreakupReason;}
 
         void createVruClusterMap();
         void updateVruClusterMap(const vanetza::asn1::Vam&, std::string);
@@ -108,6 +126,9 @@ class ClusterManagement
         VruClusterMap_t getVruClusterMap() const {return mClusterMap;} 
         unsigned getCurrentClusterSize() const {return getVruClusterMap().size()+1;}
         double getSmallestDistanceToVru() const {return mSmallestDistanceToVru;}
+
+        double getBoundingBoxArea() const {return mBoundingBoxArea;}
+        double getBoundingBoxPerimeter() const {return mBoundingBoxPerimeter;}
 
         InformationContainerData_t generateDataForNewCluster(long);
         InformationContainerData_t generateDataForCurrentCluster();
@@ -119,11 +140,12 @@ class ClusterManagement
         // Geometry definitions
         typedef boost::geometry::model::point <double,2,boost::geometry::cs::cartesian>pointXY;
         typedef boost::geometry::model::polygon<pointXY, false> Polygon_t; 
-		typedef boost::geometry::model::multi_polygon<Polygon_t> Circle_t;
+		typedef boost::geometry::model::multi_polygon<Polygon_t> MultiPoly_t;
+        typedef boost::geometry::model::box<pointXY> Box_t;
 
         // Build shapes from received VAM data
         artery::ClusterManagement::Polygon_t reconstructPolygon(const PolyPointList_t& receivedOffsetList, libsumo::TraCIPosition& leaderPos);
-		artery::ClusterManagement::Circle_t reconstructCircle(const double radius, pointXY& centerPos);
+        artery::ClusterManagement::Polygon_t reconstructRectangle(const pointXY center, long halfWidth, long halfLength, long angle);
         
         // Convert various NodeOffset types to a tuple
         std::tuple<long,long> getOffsetValues(const OffsetPoint_t&);
@@ -133,14 +155,34 @@ class ClusterManagement
         // VruClusterMap manipulation
         artery::ClusterManagement::Polygon_t generatePolygonFromMap(const VruClusterMap_t);
         std::tuple<long,long> calculateOffset(const pointXY, const pointXY);
-        std::vector<std::tuple<long,long>> calculatePolyOffsetList(const VruClusterMap_t);
-        artery::ClusterManagement::pointXY calculateCenterFromMap(const VruClusterMap_t);
+        std::vector<std::tuple<long,long>> calculatePolyOffsetList(const Polygon_t);
+        artery::ClusterManagement::pointXY calculateCenterFromBasePoly(const Polygon_t);
         double calculateRadius(const VruClusterMap_t clusterMap, const pointXY center);
-        
+        std::string selectBoundingBoxShape(const Polygon_t);
+        std::tuple<Polygon_t, double> getRotatedRectangle(const Polygon_t);
+
+        // Rectangle helper methods
+        double radiansToWGS84Angle(double radians);
+        double WGS84AngleToRadians(double WGSAngle);
+        artery::ClusterManagement::Polygon_t translatePoly(const Polygon_t, double offsetX, double offsetY);
+        artery::ClusterManagement::Polygon_t rotatePoly(const Polygon_t, double angle);
+
+        // Bounding Box padding
+        double calculatePaddingAmount(const VruClusterMap_t);
+        artery::ClusterManagement::Polygon_t applyPaddingToPoly(const Polygon_t, double paddingAmount);
+
+        // Geometries metrics 
+        double mBoundingBoxArea;
+        void setBoundingBoxArea(double area){mBoundingBoxArea = area;}
+        double mBoundingBoxPerimeter;
+        void setBoundingBoxPerimeter(double perimeter){mBoundingBoxPerimeter = perimeter;}
 
         // Parameter validation
         double velocityDifference(SpeedValue_t, SpeedValue_t);
         bool checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality, bool withinBoundingBox = false);
+
+        long mLeaveReason;
+        long mBreakupReason;
 
         // Clustering Containers Parsing
         typedef struct ClusterParameters{
@@ -180,6 +222,7 @@ class ClusterManagement
         double mSmallestDistanceToVru;
 
         std::string mBoundingBoxShape;
+        bool mEnableBoundingBoxPadding;
 
         LocalDynamicMap* mLocalDynamicMap;
         const PersonDataProvider* mPersonDataProvider;

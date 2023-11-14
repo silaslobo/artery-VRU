@@ -69,7 +69,10 @@ class VaService : public ItsG5BaseService
 		const Timer* mTimer = nullptr;
 		ClusterManagement mClusterManagement;
 		ClusterManagementParameters_t mClusterManagementParameters;
-		
+
+		// Custom max interval between cluster VAMs due to timeClusterContinuity parameter
+		omnetpp::SimTime mClusterGenVamMax;
+
 		LocalDynamicMap* mLocalDynamicMap = nullptr;
 		std::map<LocalDynamicMap::StationID, artery::VaObject> mVruClusterMap;
 		LocalEnvironmentModel* mLocalEnvironmentModel = nullptr;

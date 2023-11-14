@@ -18,6 +18,8 @@ namespace Constants
 	const auto decidegree = vanetza::units::degree * boost::units::si::deci;
 	const auto degree_per_second = vanetza::units::degree / vanetza::units::si::second;
 	const auto centimeter_per_second = vanetza::units::si::meter_per_second * boost::units::si::centi;
+	const auto decimeter = vanetza::units::si::meter * boost::units::si::deci;
+	const auto milliseconds = vanetza::units::si::second * boost::units::si::milli;
 
 	template<typename T, typename U>
 	long round(const boost::units::quantity<T>& q, const U& u)
