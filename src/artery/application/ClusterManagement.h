@@ -129,6 +129,7 @@ class ClusterManagement
 
         double getBoundingBoxArea() const {return mBoundingBoxArea;}
         double getBoundingBoxPerimeter() const {return mBoundingBoxPerimeter;}
+        double getLargetDistanceToLeader() const {return mLargestDistanceToLeader;}
 
         InformationContainerData_t generateDataForNewCluster(long);
         InformationContainerData_t generateDataForCurrentCluster();
@@ -176,6 +177,8 @@ class ClusterManagement
         void setBoundingBoxArea(double area){mBoundingBoxArea = area;}
         double mBoundingBoxPerimeter;
         void setBoundingBoxPerimeter(double perimeter){mBoundingBoxPerimeter = perimeter;}
+        double mLargestDistanceToLeader;
+        void setLargestDistanceToLeader(double largestDistance){mLargestDistanceToLeader = largestDistance;}
 
         // Parameter validation
         double velocityDifference(SpeedValue_t, SpeedValue_t);

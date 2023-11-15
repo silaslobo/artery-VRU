@@ -272,14 +272,22 @@ artery::ClusterManagement::Polygon_t ClusterManagement::reconstructRectangle(con
 ClusterManagement::Polygon_t ClusterManagement::generatePolygonFromMap(VruClusterMap_t vruMap){
 	Polygon_t resultingPolygon;
 	pointXY vruLeaderPos = getCurrentVruXY();
+	double currentLargestDist = 0.0;
 
 	bg::append(resultingPolygon, vruLeaderPos);
 	for (auto const& itr : vruMap) {
 		auto vruLon = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / std::pow( 10.0, 7 ));
 		auto vruLat = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.latitude) / std::pow( 10.0, 7 ));
 		libsumo::TraCIPosition vruTraCIPos = api->simulation.convertGeo(vruLon,vruLat, true);
-		bg::append(resultingPolygon, pointXY(vruTraCIPos.x, vruTraCIPos.y));
+		pointXY vruPos = pointXY(vruTraCIPos.x, vruTraCIPos.y);
+		bg::append(resultingPolygon, vruPos);
+		if(bg::distance(vruLeaderPos,vruPos) > currentLargestDist){
+			currentLargestDist = bg::distance(vruLeaderPos, vruPos);
+		}
 	}
+
+	setLargestDistanceToLeader(currentLargestDist);
+
 	bg::append(resultingPolygon, vruLeaderPos);
 
 	bg::remove_spikes(resultingPolygon);
@@ -522,6 +530,7 @@ InformationContainerData_t ClusterManagement::generateDataForNewCluster(long id)
 
 	setBoundingBoxArea(M_PI*std::pow(infoContainerData.circleRadius/Radius_oneMeter,2));
 	setBoundingBoxPerimeter(2*M_PI*infoContainerData.circleRadius/Radius_oneMeter);
+	setLargestDistanceToLeader(0.0);
 
 	return infoContainerData;
 }

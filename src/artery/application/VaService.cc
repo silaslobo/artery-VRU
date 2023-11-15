@@ -55,6 +55,7 @@ static const simsignal_t SignalVamSpeed = cComponent::registerSignal("VamTrigger
 static const simsignal_t scSignalBoxArea = cComponent::registerSignal("BoundingBoxArea");
 static const simsignal_t scSignalBoxPerimeter = cComponent::registerSignal("BoundingBoxPerimeter");
 static const simsignal_t scClusterCardinality = cComponent::registerSignal("CardinalitySize");
+static const simsignal_t scLargestDistToLeader = cComponent::registerSignal("LargestDistToLeader");
 
 static const simsignal_t SignalVamCluster = cComponent::registerSignal("VamCluster");
 static const simsignal_t SignalVamJoin = cComponent::registerSignal("VamJoin");
@@ -370,6 +371,7 @@ void VaService::sendVam(const SimTime& T_now)
 				emit(scSignalBoxArea, mClusterManagement.getBoundingBoxArea());
 				emit(scSignalBoxPerimeter, mClusterManagement.getBoundingBoxPerimeter());
 				emit(scClusterCardinality, mClusterManagement.minClusterSize());
+				emit(scLargestDistToLeader, mClusterManagement.getLargetDistanceToLeader());
 			}
 		}
 
@@ -384,6 +386,7 @@ void VaService::sendVam(const SimTime& T_now)
 					emit(scSignalBoxArea,mClusterManagement.getBoundingBoxArea());
 					emit(scSignalBoxPerimeter,mClusterManagement.getBoundingBoxPerimeter());
 					emit(scClusterCardinality, mClusterManagement.getCurrentClusterSize());
+					emit(scLargestDistToLeader, mClusterManagement.getLargetDistanceToLeader());
 					addClusterInformationContainer(vam, clusterInfoData);
 					//clusterVamSentCounter++;
 					emit(SignalVamCluster,1);
@@ -393,6 +396,7 @@ void VaService::sendVam(const SimTime& T_now)
 				emit(scSignalBoxArea, mClusterManagement.getBoundingBoxArea());
 				emit(scSignalBoxPerimeter, mClusterManagement.getBoundingBoxPerimeter());
 				emit(scClusterCardinality, mClusterManagement.getCurrentClusterSize());
+				emit(scLargestDistToLeader, mClusterManagement.getLargetDistanceToLeader());
 				addClusterInformationContainer(vam, previousContainerData);
 				//clusterVamSentCounter++;
 				emit(SignalVamCluster,1);
