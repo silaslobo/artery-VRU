@@ -65,6 +65,7 @@ static const simsignal_t SignalVamClusterCreation = cComponent::registerSignal("
 static const simsignal_t SignalVamTime = cComponent::registerSignal("VamTime");
 
 static const simsignal_t SignalVamReceivedJoinID = cComponent::registerSignal("VamReceivedJoinId");
+static const simsignal_t SignalVamReceivedLeaveID = cComponent::registerSignal("VamReceivedLeaveId");
 static const simsignal_t SignalClusterMember = cComponent::registerSignal("ClusterMember");
 
 static const simsignal_t SignalLeaveReasonCounter = cComponent::registerSignal("LeaveReasonCounter");
@@ -302,6 +303,7 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 			}else if (vam_data.vamParameters.vruClusterOperationContainer->clusterLeaveInfo){		
 				if(mClusterManagement.isVruClusterLeader() && vam_data.vamParameters.vruClusterOperationContainer->clusterLeaveInfo->clusterId == mClusterManagement.getClusterId()){
 					mClusterManagement.updateVruClusterMap(vam, "remove_VRU");
+					emit(SignalVamReceivedLeaveID,vam->header.stationID);
 					if(mClusterManagement.getCurrentClusterSize() < mClusterManagementParameters.MinClusterSize){
 						mClusterManagement.setBreakupReason(ClusterBreakupReason_notProvided); //TODO: develop a new "reason" for insufficient cardinality using one of the reserved slots for future work (6...15)
 						setVruClusterOperation(BreakupCluster);

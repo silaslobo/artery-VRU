@@ -55,6 +55,7 @@ simple VaService like ItsG5Service
         @signal[VamLeave];
         @signal[VamTime];
         @signal[VamReceivedJoinId];
+        @signal[VamReceivedLeaveId];
         @signal[ClusterMember];
 
         @statistic[ClusterCreationCounter](source=VamClusterCreation;record=count,vector?);
@@ -65,6 +66,7 @@ simple VaService like ItsG5Service
         @statistic[VamTimerCounter](source=VamTime;record=count,vector?);
 
         @statistic[VamReceivedJoinID](source=VamReceivedJoinId;record=count,vector?);
+        @statistic[VamReceivedLeaveID](source=VamReceivedLeaveId;record=count,vector?);
         @statistic[VamClusterMember](source=ClusterMember;record=count,vector?);
 
         @signal[LeaveReasonCounter];
