@@ -418,6 +418,7 @@ void VaService::sendVam(const SimTime& T_now)
 			emit(scSignalBoxArea, mClusterManagement.getBoundingBoxArea());
 			emit(scSignalBoxPerimeter, mClusterManagement.getBoundingBoxPerimeter());
 			emit(scClusterCardinality, mClusterManagement.getCurrentClusterSize());
+			emit(scLargestDistToLeader, mClusterManagement.getLargetDistanceToLeader());
 			addClusterInformationContainer(vam, previousContainerData);
 			addClusterBreakupOperationContainer(vam);
 			emit(SignalVamBreak, 1);
