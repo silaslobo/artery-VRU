@@ -89,7 +89,8 @@ bool ClusterManagement::vruShouldLeave_VamParameters(const vanetza::asn1::Vam& v
 		setLeaveReason(ClusterLeaveReason_notProvided);
 		return true;
 
-	}else if(clusterPar.distance > mMaxClusterDistance || !clusterPar.withinBoundingBox){
+	//}else if(clusterPar.distance > mMaxClusterDistance || !clusterPar.withinBoundingBox){
+	}else if(clusterPar.distance > mMaxClusterDistance){
 		setLeaveReason(ClusterLeaveReason_outOfClusterBoundingBox);
 		return true;
 
