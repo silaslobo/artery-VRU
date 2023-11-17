@@ -48,6 +48,9 @@ simple VaService like ItsG5Service
         @statistic[HeadingTrigger](source=VamTriggerHeading;record=count,vector?);
         @statistic[SpeedTrigger](source=VamTriggerSpeed;record=count,vector?);
         
+        @signal[VruStationID];
+        @statistic[VruStationID](source=VruStationID;record=vector);
+
         @signal[VamClusterCreation];
         @signal[VamCluster];
         @signal[VamJoin];

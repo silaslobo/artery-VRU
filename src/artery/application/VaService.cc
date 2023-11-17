@@ -52,6 +52,8 @@ static const simsignal_t SignalVamPosition = cComponent::registerSignal("VamTrig
 static const simsignal_t SignalVamHeading = cComponent::registerSignal("VamTriggerHeading");
 static const simsignal_t SignalVamSpeed = cComponent::registerSignal("VamTriggerSpeed");
 
+static const simsignal_t scVruStationID = cComponent::registerSignal("VruStationID");
+
 static const simsignal_t scSignalBoxArea = cComponent::registerSignal("BoundingBoxArea");
 static const simsignal_t scSignalBoxPerimeter = cComponent::registerSignal("BoundingBoxPerimeter");
 static const simsignal_t scClusterCardinality = cComponent::registerSignal("CardinalitySize");
@@ -169,6 +171,8 @@ void VaService::initialize()
 
 		currentVruClusterOperation = noVruOperation;
 	}
+
+	emit(scVruStationID, mPersonDataProvider->getStationId());
 }
 
 
