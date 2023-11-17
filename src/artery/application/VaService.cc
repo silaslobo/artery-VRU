@@ -391,7 +391,7 @@ void VaService::sendVam(const SimTime& T_now)
 					emit(scLargestDistToLeader, mClusterManagement.getLargetDistanceToLeader());
 					addClusterInformationContainer(vam, clusterInfoData);
 					//clusterVamSentCounter++;
-					emit(SignalVamCluster,1);
+					emit(SignalVamCluster, mClusterManagement.getClusterId());
 					previousContainerData = clusterInfoData;
 				}
 			} else if(currentVruClusterOperation == KeepCluster){
@@ -401,7 +401,7 @@ void VaService::sendVam(const SimTime& T_now)
 				emit(scLargestDistToLeader, mClusterManagement.getLargetDistanceToLeader());
 				addClusterInformationContainer(vam, previousContainerData);
 				//clusterVamSentCounter++;
-				emit(SignalVamCluster,1);
+				emit(SignalVamCluster, mClusterManagement.getClusterId());
 			}
 		}
 
@@ -423,7 +423,7 @@ void VaService::sendVam(const SimTime& T_now)
 			emit(scLargestDistToLeader, mClusterManagement.getLargetDistanceToLeader());
 			addClusterInformationContainer(vam, previousContainerData);
 			addClusterBreakupOperationContainer(vam);
-			emit(SignalVamBreak, 1);
+			emit(SignalVamBreak, mClusterManagement.getClusterId());
 		}
 	}
 
