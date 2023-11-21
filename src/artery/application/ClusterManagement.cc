@@ -79,6 +79,8 @@ bool ClusterManagement::isVruPassive(){return currentVruRole == VruPassive;}
 
 bool ClusterManagement::vruShouldJoin(const vanetza::asn1::Vam& vam){
 	ClusterParameters_t clusterPar = parseInformationContainer(vam);
+	mDistFromCIC = clusterPar.distance;
+	mCardFromCIC = clusterPar.cardinality;
 	return checkClusteringConditions(clusterPar.distance, clusterPar.velocityDifference, clusterPar.cardinality, clusterPar.withinBoundingBox);
 }
 

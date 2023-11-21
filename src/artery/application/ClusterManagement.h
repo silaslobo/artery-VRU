@@ -131,6 +131,9 @@ class ClusterManagement
         double getBoundingBoxPerimeter() const {return mBoundingBoxPerimeter;}
         double getLargetDistanceToLeader() const {return mLargestDistanceToLeader;}
 
+        double getDistFromCIC() const {return mDistFromCIC.value();}
+        double getCardFromCIC() const {return mCardFromCIC;}
+
         InformationContainerData_t generateDataForNewCluster(long);
         InformationContainerData_t generateDataForCurrentCluster();
 
@@ -179,6 +182,9 @@ class ClusterManagement
         void setBoundingBoxPerimeter(double perimeter){mBoundingBoxPerimeter = perimeter;}
         double mLargestDistanceToLeader;
         void setLargestDistanceToLeader(double largestDistance){mLargestDistanceToLeader = largestDistance;}
+
+        vanetza::units::Length mDistFromCIC;
+        long mCardFromCIC;
 
         // Parameter validation
         double velocityDifference(SpeedValue_t, SpeedValue_t);

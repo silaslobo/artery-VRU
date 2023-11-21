@@ -90,6 +90,13 @@ simple VaService like ItsG5Service
         // Cluster Parameter evaluations
         @signal[CardinalitySize](type=unsigned long);
         @statistic[CardinalitySize](source=CardinalitySize;record=vector);
+
+        // Parameters received from leader's CIC
+        @signal[DistFromInfoContainer];
+        @signal[CardFromInfoContainer];
+
+        @statistic[DistFromInfoContainer](source=DistFromInfoContainer; record=vector);
+        @statistic[CardFromInfoContainer](source=CardFromInfoContainer; record=vector);
         
         // evaluate DCC transmission interval restrictions
         bool withDccRestriction = default(true);

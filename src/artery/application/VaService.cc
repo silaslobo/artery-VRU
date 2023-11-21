@@ -73,6 +73,9 @@ static const simsignal_t SignalClusterMember = cComponent::registerSignal("Clust
 static const simsignal_t SignalLeaveReasonCounter = cComponent::registerSignal("LeaveReasonCounter");
 static const simsignal_t SignalBreakupReasonCounter = cComponent::registerSignal("BreakupReasonCounter");
 
+static const simsignal_t SignalDistFromCIC = cComponent::registerSignal("DistFromInfoContainer");
+static const simsignal_t SignalCardFromCIC = cComponent::registerSignal("CardFromInfoContainer");
+
 static const auto scLowFrequencyContainerInterval = std::chrono::milliseconds(500);
 
 SpeedValue_t buildVAMSpeedValue(const vanetza::units::Velocity& v)
@@ -280,6 +283,8 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 	if (mClusterSupport){
 		if(vam_data.vamParameters.vruClusterInformationContainer){
 			if(mClusterManagement.isVruStandalone() && mClusterManagement.vruShouldJoin(vam)){
+				emit(SignalDistFromCIC, mClusterManagement.getDistFromCIC());
+				emit(SignalCardFromCIC, mClusterManagement.getCardFromCIC());
 				mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
 				setVruClusterOperation(VruShouldJoin);
 			}else if(mClusterManagement.isVruPassive() && vam_data.vamParameters.vruClusterInformationContainer->clusterId == mTargetClusterId){
