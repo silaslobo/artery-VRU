@@ -396,7 +396,15 @@ void ClusterManagement::createVruClusterMap(){
 
 void ClusterManagement::updateVruClusterMap(const vanetza::asn1::Vam& vam, std::string operation){
 
-	if(operation == "include_VRU"){
+	auto vruLon = (*vam).vam.vamParameters.basicContainer.referencePosition.longitude/std::pow(10.0,7);
+	auto vruLat = (*vam).vam.vamParameters.basicContainer.referencePosition.latitude/std::pow(10.0,7);
+
+	libsumo::TraCIPosition vruTraCI = api->simulation.convertGeo(vruLon, vruLat, true);
+	pointXY vruXY = pointXY(vruTraCI.x, vruTraCI.y);
+
+	pointXY leaderXY = getCurrentVruXY();
+
+	if(operation == "include_VRU" && bg::distance(vruXY, leaderXY) <= 5.0){
 		if(mClusterMap.size()+1 < mMaxClusterSize){
 			mClusterMap.insert(std::pair<LocalDynamicMap::StationID, artery::VaObject>(vam->header.stationID, VaObject(vam)));
 		}
