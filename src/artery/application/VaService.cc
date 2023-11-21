@@ -348,6 +348,8 @@ bool VaService::checkSpeedDelta() const
 
 void VaService::sendVam(const SimTime& T_now)
 {	
+	emit(scVruStationID, mPersonDataProvider->getStationId());
+	
 	uint16_t genDeltaTimeMod = countTaiMilliseconds(mTimer->getTimeFor(mPersonDataProvider->updated()));
 	auto vam = createVRUAwarenessMessage(*mPersonDataProvider, genDeltaTimeMod);
 	mLastVamPosition = mPersonDataProvider->position();
