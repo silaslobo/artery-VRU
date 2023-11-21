@@ -175,7 +175,6 @@ void VaService::initialize()
 		currentVruClusterOperation = noVruOperation;
 	}
 
-	emit(scVruStationID, mPersonDataProvider->getStationId());
 }
 
 
