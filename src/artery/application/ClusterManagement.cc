@@ -347,7 +347,8 @@ double ClusterManagement::velocityDifference(SpeedValue_t referenceSpeed, SpeedV
 
 bool ClusterManagement::checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality, bool withinBoundingBox)
 {
-	return (cardinality < mMaxClusterSize && velocityDifference <= mMaxClusterVelocityDifference && (distance <= mMaxClusterDistance || withinBoundingBox));
+	//return (cardinality < mMaxClusterSize && velocityDifference <= mMaxClusterVelocityDifference && (distance <= mMaxClusterDistance || withinBoundingBox));
+	return (cardinality < mMaxClusterSize && velocityDifference <= mMaxClusterVelocityDifference && distance <= mMaxClusterDistance);
 }
 
 void ClusterManagement::createVruClusterMap(){
