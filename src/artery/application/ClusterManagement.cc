@@ -81,7 +81,8 @@ bool ClusterManagement::vruShouldJoin(const vanetza::asn1::Vam& vam){
 	ClusterParameters_t clusterPar = parseInformationContainer(vam);
 	mDistFromCIC = clusterPar.distance;
 	mCardFromCIC = clusterPar.cardinality;
-	return checkClusteringConditions(clusterPar.distance, clusterPar.velocityDifference, clusterPar.cardinality, clusterPar.withinBoundingBox);
+	//return checkClusteringConditions(clusterPar.distance, clusterPar.velocityDifference, clusterPar.cardinality, clusterPar.withinBoundingBox);
+	return (clusterPar.distance <= mMaxClusterDistance && clusterPar.velocityDifference <= mMaxClusterVelocityDifference && clusterPar.cardinality < mMaxClusterSize);
 }
 
 bool ClusterManagement::vruShouldLeave_VamParameters(const vanetza::asn1::Vam& vam){
