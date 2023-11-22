@@ -237,6 +237,10 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 		setVruClusterOperation(VruShouldLeave);
 		sendVam(T_now);
 	}
+
+	if(mClusterSupport){
+		mClusterManagement.refreshReceivedIdMap(T_now);
+	}
 }
 
 void VaService::indicate(const vanetza::btp::DataIndication& ind, std::unique_ptr<vanetza::UpPacket> packet)
@@ -281,12 +285,14 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 
 	if (mClusterSupport){
 		if(vam_data.vamParameters.vruClusterInformationContainer){
+			long receivedId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
+			mClusterManagement.updateReceivedIdMap(receivedId, T_now);
 			if(mClusterManagement.isVruStandalone() && mClusterManagement.vruShouldJoin(vam)){
 				emit(SignalDistFromCIC, mClusterManagement.getDistFromCIC());
 				emit(SignalCardFromCIC, mClusterManagement.getCardFromCIC());
-				mTargetClusterId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
+				mTargetClusterId = receivedId;
 				setVruClusterOperation(VruShouldJoin);
-			}else if(mClusterManagement.isVruPassive() && vam_data.vamParameters.vruClusterInformationContainer->clusterId == mTargetClusterId){
+			}else if(mClusterManagement.isVruPassive() && receivedId == mTargetClusterId){
 				if(vam_data.vamParameters.vruClusterInformationContainer->clusterCardinalitySize >= mClusterManagement.numCreateCluster() && mClusterManagement.vruShouldLeave_VamParameters(vam)){
 					setVruClusterOperation(VruShouldLeave);
 				}
@@ -374,7 +380,11 @@ void VaService::sendVam(const SimTime& T_now)
 			if(mClusterManagement.vruShouldCreateCluster()){
 				mClusterManagement.mClusterCreationTimestamp = T_now;
 				mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveClusterLeader);
-				auto clusterCreationID = omnetpp::intuniform(getRNG(0), 1, 255);
+				long clusterCreationID;
+				do{
+					clusterCreationID = omnetpp::intuniform(getRNG(0), 1, 255);
+				}while(!mClusterManagement.isClusterIdUnique(clusterCreationID));
+
 				auto initialInfoContainerData = mClusterManagement.generateDataForNewCluster(clusterCreationID);
 				addClusterInformationContainer(vam, initialInfoContainerData);
 				emit(SignalVamClusterCreation, clusterCreationID);

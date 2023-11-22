@@ -641,4 +641,27 @@ ClusterManagement::Polygon_t ClusterManagement::applyPaddingToPoly(const Polygon
 
 }
 
+void ClusterManagement::updateReceivedIdMap(long receivedId, const omnetpp::SimTime& T_now){
+	
+	auto searchItr = mReceivedIdMap.find(receivedId);
+	if(searchItr != mReceivedIdMap.end()){
+		searchItr->second = T_now;
+	}else{
+		mReceivedIdMap.insert(std::make_pair(receivedId, T_now));
+	}
+}
+
+bool ClusterManagement::isClusterIdUnique(long proposedId){
+	return (mReceivedIdMap.find(proposedId) == mReceivedIdMap.end());
+}
+
+void ClusterManagement::refreshReceivedIdMap(const omnetpp::SimTime& T_now){
+
+	for(auto& element : mReceivedIdMap){
+		if(T_now - element.second > mTimeClusterLeaderWaiting){
+			mReceivedIdMap.erase(element.first);
+		}
+	}
+}
+
 }
