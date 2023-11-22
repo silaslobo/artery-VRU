@@ -326,11 +326,11 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 					setVruClusterOperation(VruShouldLeave);
 				}
 			}
-		}//else{
-		// 	if(mClusterManagement.isVruClusterLeader()){
-		// 		setVruClusterOperation(KeepCluster);
-		// 	}
-		// }
+		}else{
+			if(mClusterManagement.isVruClusterLeader()){
+				setVruClusterOperation(KeepCluster);
+			}
+		}
 	}
 }
 	
@@ -403,16 +403,18 @@ void VaService::sendVam(const SimTime& T_now)
 					//clusterVamSentCounter++;
 					emit(SignalVamCluster, mClusterManagement.getClusterId());
 					previousContainerData = clusterInfoData;
-					setVruClusterOperation(KeepCluster);
 				}
 			} else if(currentVruClusterOperation == KeepCluster){
+				auto clusterInfoData = mClusterManagement.generateDataForCurrentCluster();
 				emit(scSignalBoxArea, mClusterManagement.getBoundingBoxArea());
 				emit(scSignalBoxPerimeter, mClusterManagement.getBoundingBoxPerimeter());
 				emit(scClusterCardinality, mClusterManagement.getCurrentClusterSize());
 				emit(scLargestDistToLeader, mClusterManagement.getLargetDistanceToLeader());
-				addClusterInformationContainer(vam, previousContainerData);
+				//addClusterInformationContainer(vam, previousContainerData);
+				addClusterInformationContainer(vam, clusterInfoData);
 				//clusterVamSentCounter++;
 				emit(SignalVamCluster, mClusterManagement.getClusterId());
+				previousContainerData = clusterInfoData;
 			}
 		}
 
