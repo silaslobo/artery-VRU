@@ -644,7 +644,7 @@ ClusterManagement::Polygon_t ClusterManagement::applyPaddingToPoly(const Polygon
 void ClusterManagement::updateReceivedIdMap(long receivedId, const omnetpp::SimTime& T_now){
 	
 	auto searchItr = mReceivedIdMap.find(receivedId);
-	if(searchItr != mReceivedIdMap.end()){
+	if(searchItr != mReceivedIdMap.end() && !mReceivedIdMap.empty()){
 		searchItr->second = T_now;
 	}else{
 		mReceivedIdMap.insert(std::make_pair(receivedId, T_now));
@@ -652,14 +652,18 @@ void ClusterManagement::updateReceivedIdMap(long receivedId, const omnetpp::SimT
 }
 
 bool ClusterManagement::isClusterIdUnique(long proposedId){
-	return (mReceivedIdMap.find(proposedId) == mReceivedIdMap.end());
+	return (mReceivedIdMap.find(proposedId) == mReceivedIdMap.end() || mReceivedIdMap.empty());
 }
 
 void ClusterManagement::refreshReceivedIdMap(const omnetpp::SimTime& T_now){
 
-	for(auto& element : mReceivedIdMap){
-		if(T_now - element.second > mTimeClusterLeaderWaiting){
-			mReceivedIdMap.erase(element.first);
+	if(!mReceivedIdMap.empty()){
+		for(auto refreshItr = mReceivedIdMap.begin(); refreshItr != mReceivedIdMap.end();){
+			if(T_now - refreshItr->second > mTimeClusterLeaderWaiting){
+				refreshItr = mReceivedIdMap.erase(refreshItr);
+			}else{
+				++refreshItr;
+			}
 		}
 	}
 }
