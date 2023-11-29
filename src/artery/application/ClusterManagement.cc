@@ -275,7 +275,7 @@ artery::ClusterManagement::Polygon_t ClusterManagement::reconstructRectangle(con
 
 ClusterManagement::Polygon_t ClusterManagement::generatePolygonFromMap(VruClusterMap_t vruMap){
 	Polygon_t resultingPolygon;
-	pointXY vruLeaderPos = getCurrentVruXY();
+	pointXY vruLeaderPos = getCurrentVruXY(), furthestVru;
 	double currentLargestDist = 0.0;
 
 	bg::append(resultingPolygon, vruLeaderPos);
@@ -285,12 +285,14 @@ ClusterManagement::Polygon_t ClusterManagement::generatePolygonFromMap(VruCluste
 		libsumo::TraCIPosition vruTraCIPos = api->simulation.convertGeo(vruLon,vruLat, true);
 		pointXY vruPos = pointXY(vruTraCIPos.x, vruTraCIPos.y);
 		bg::append(resultingPolygon, vruPos);
-		if(bg::distance(vruLeaderPos,vruPos) > currentLargestDist){
-			currentLargestDist = bg::distance(vruLeaderPos, vruPos);
+		double comparableDist = bg::comparable_distance(vruLeaderPos,vruPos);
+		if(comparableDist > currentLargestDist){
+			currentLargestDist = comparableDist;
+			furthestVru = vruPos;
 		}
 	}
 
-	setLargestDistanceToLeader(currentLargestDist);
+	setLargestDistanceToLeader(bg::distance(furthestVru, vruLeaderPos));
 
 	bg::append(resultingPolygon, vruLeaderPos);
 
@@ -428,16 +430,23 @@ ClusterManagement::pointXY ClusterManagement::calculateCenterFromBasePoly(Polygo
 }
 
 double ClusterManagement::calculateRadius(VruClusterMap_t vruMap, pointXY center){
-	std::vector<vanetza::units::Length> distanceList;
+
+	double currentLargestDist = 0.0;
+	pointXY furthestVru;
 
 	for (auto const& itr : vruMap) {
 		auto vruLon = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / std::pow( 10.0, 7 ));
 		auto vruLat = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.latitude) / std::pow( 10.0, 7 ));
 		libsumo::TraCIPosition vruTraCIPos = api->simulation.convertGeo(vruLon,vruLat, true);
-		distanceList.push_back(bg::distance(center, pointXY(vruTraCIPos.x, vruTraCIPos.y))*vanetza::units::si::meter);		
+		pointXY vruPos = pointXY(vruTraCIPos.x, vruTraCIPos.y);
+		double comparableDist = bg::comparable_distance(vruPos, center);
+		if(comparableDist >= currentLargestDist){
+			currentLargestDist = comparableDist;
+			furthestVru = vruPos;
+		}
 	}
 
-	auto radiusMeters = *std::max_element(distanceList.begin(), distanceList.end());
+	auto radiusMeters = bg::distance(furthestVru, center)*vanetza::units::si::meter;
 
 	if(mEnableBoundingBoxPadding){
 		radiusMeters += calculatePaddingAmount(mClusterMap)*vanetza::units::si::meter;
