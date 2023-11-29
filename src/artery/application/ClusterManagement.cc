@@ -150,8 +150,6 @@ artery::ClusterManagement::ClusterParameters_t ClusterManagement::parseInformati
 	libsumo::TraCIPosition vruTraCIPos = position_cast(traci::Boundary(api->simulation.getNetBoundary()), mPersonDataProvider->position());
 	pointXY vruPos = pointXY(vruTraCIPos.x, vruTraCIPos.y);
 
-	clusterParameters.distance = bg::distance(vruPos, leaderPos)*vanetza::units::si::meter;
-
 	SpeedValue_t vruLeaderSpeed = vam_data.vamParameters.vruHighFrequencyContainer->speed.speedValue;
 	SpeedValue_t vruSpeed = buildVAMSpeedValue(mPersonDataProvider->speed());
 
@@ -159,14 +157,16 @@ artery::ClusterManagement::ClusterParameters_t ClusterManagement::parseInformati
 
 	if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterPolygon){
 		PolyPointList_t& receivedOffsetList = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList;
-
+		clusterParameters.distance = bg::distance(vruPos, leaderPos)*vanetza::units::si::meter;
 		Polygon_t receivedBoundingBox = reconstructPolygon(receivedOffsetList,leaderTraCIPos);
 		clusterParameters.withinBoundingBox = bg::covered_by(vruPos, receivedBoundingBox);
 
 	}else if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterCircle){
 		std::tuple<long,long> centerOffset = getOffsetValues(*vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.nodeCenterPoint);
 		pointXY centerXY = pointXY(bg::get<0>(leaderPos)+std::get<0>(centerOffset), bg::get<1>(leaderPos)+std::get<1>(centerOffset));
-		clusterParameters.withinBoundingBox = (bg::distance(vruPos,centerXY) <= vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius/Radius_oneMeter) ? 1 : 0;
+		clusterParameters.distance = bg::distance(vruPos, centerXY)*vanetza::units::si::meter;
+		auto vamRadius = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterCircle.radius;
+		clusterParameters.withinBoundingBox = (bg::distance(vruPos,centerXY) <= vamRadius/Radius_oneMeter) ? 1 : 0;		
 
 	}else if(vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.present == ClusterBoundingBoxShape_PR_clusterRectangle){
 		std::tuple<long,long> centerOffset = getOffsetValues(*vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterRectangle.nodeCenterPoint);
@@ -175,6 +175,7 @@ artery::ClusterManagement::ClusterParameters_t ClusterManagement::parseInformati
 		long halfLength = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeLength;
 		long angle = vam_data.vamParameters.vruClusterInformationContainer->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeOrientation;
 		Polygon_t receivedBoundingBox = reconstructRectangle(centerXY, halfWidth, halfLength, angle);
+		clusterParameters.distance = bg::distance(vruPos, centerXY)*vanetza::units::si::meter;
 		clusterParameters.withinBoundingBox = bg::covered_by(vruPos, receivedBoundingBox);
 	}
 
