@@ -54,8 +54,7 @@ void ClusterManagement::initialize(ClusterManagementParameters_t& cManagementPar
 	setCurrentVruRole(VruActiveStandalone);
 	setBoundingBoxArea(0.0);
 	setBoundingBoxPerimeter(0.0);
-	
-	mSmallestDistanceToVru = 0.01;
+	setLargestDistanceToLeader(0.01);
 }
 
 void ClusterManagement::simObjects(const PersonDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc){
