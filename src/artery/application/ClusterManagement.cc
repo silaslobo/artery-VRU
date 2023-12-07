@@ -275,7 +275,7 @@ artery::ClusterManagement::Polygon_t ClusterManagement::reconstructRectangle(con
 
 ClusterManagement::Polygon_t ClusterManagement::generatePolygonFromMap(VruClusterMap_t vruMap){
 	Polygon_t resultingPolygon;
-	pointXY vruLeaderPos = getCurrentVruXY(), furthestVru;
+	pointXY vruLeaderPos = getCurrentVruXY(), furthestVru = vruLeaderPos;
 	double currentLargestDist = 0.0;
 
 	bg::append(resultingPolygon, vruLeaderPos);
@@ -432,7 +432,7 @@ ClusterManagement::pointXY ClusterManagement::calculateCenterFromBasePoly(Polygo
 double ClusterManagement::calculateRadius(VruClusterMap_t vruMap, pointXY center){
 
 	double currentLargestDist = 0.0;
-	pointXY furthestVru;
+	pointXY furthestVru = center;
 
 	for (auto const& itr : vruMap) {
 		auto vruLon = ((itr.second.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude) / std::pow( 10.0, 7 ));
