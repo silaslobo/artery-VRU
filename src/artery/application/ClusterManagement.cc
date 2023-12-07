@@ -454,14 +454,14 @@ double ClusterManagement::calculateRadius(VruClusterMap_t vruMap, pointXY center
 
 	double radiusDecimeters = Constants::round(radiusMeters, Constants::decimeter);
 
-	return radiusDecimeters <= 0 ? 1 : radiusDecimeters;
+	return radiusDecimeters <= 0.0 ? 1.0 : radiusDecimeters;
 }
 
 double ClusterManagement::radiansToWGS84Angle(double radians){
 	double WGSAngle = radians * 1800.0 / M_PI;
 	WGSAngle = 1800.0 - WGSAngle; 
 	if(WGSAngle < 0){
-		WGSAngle += 3600;
+		WGSAngle += 3600.0;
 	} 
 	return WGSAngle;
 }
@@ -569,7 +569,7 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 
 	if(shapeFailureType == bg::failure_few_points){
 		infoContainerData.nodeOffset = std::make_tuple(0,0);
-		infoContainerData.circleRadius = 1;
+		infoContainerData.circleRadius = 1.0;
 		setBoundingBoxArea(M_PI*std::pow(infoContainerData.circleRadius/Radius_oneMeter,2));
 		setBoundingBoxPerimeter(2*M_PI*infoContainerData.circleRadius/Radius_oneMeter);
 
@@ -623,7 +623,7 @@ double ClusterManagement::calculatePaddingAmount(const VruClusterMap_t clusterMa
 ClusterManagement::Polygon_t ClusterManagement::applyPaddingToPoly(const Polygon_t originalPoly, double paddingAmount){
 
 	// Prevents null padding and shrinkage of the shape
-	if(paddingAmount <= 0){
+	if(paddingAmount <= 0.0){
 		return originalPoly;
 	}
 	
