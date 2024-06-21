@@ -76,6 +76,8 @@ static const simsignal_t SignalBreakupReasonCounter = cComponent::registerSignal
 static const simsignal_t SignalDistFromCIC = cComponent::registerSignal("DistFromInfoContainer");
 static const simsignal_t SignalCardFromCIC = cComponent::registerSignal("CardFromInfoContainer");
 
+static const simsignal_t SignalMessageSize = cComponent::registerSignal("MessageSize");
+
 static const auto scLowFrequencyContainerInterval = std::chrono::milliseconds(500);
 
 SpeedValue_t buildVAMSpeedValue(const vanetza::units::Velocity& v)
@@ -448,6 +450,8 @@ void VaService::sendVam(const SimTime& T_now)
 			addClusterBreakupOperationContainer(vam);
 			emit(SignalVamBreak, mClusterManagement.getClusterId());
 		}
+
+		emit(SignalMessageSize, vam.size());
 	}
 
 	using namespace vanetza;

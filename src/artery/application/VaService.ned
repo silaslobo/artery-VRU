@@ -78,6 +78,9 @@ simple VaService like ItsG5Service
         @statistic[LeaveReasonCounter](source=LeaveReasonCounter;record=count,vector?);
         @statistic[BreakupReasonCounter](source=BreakupReasonCounter;record=count,vector?);
 
+        @signal[MessageSize];
+        @statistic[MessageSize](source=MessageSize;record=count,vector?);
+
         // Geometric evaluations
         @signal[BoundingBoxArea](type=double);
         @signal[BoundingBoxPerimeter](type=double);
