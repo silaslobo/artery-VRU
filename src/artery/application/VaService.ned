@@ -85,10 +85,12 @@ simple VaService like ItsG5Service
         @signal[BoundingBoxArea](type=double);
         @signal[BoundingBoxPerimeter](type=double);
         @signal[LargestDistToLeader](type=double);
+        @signal[BoundingBoxRadius](type=double);
 
         @statistic[BoundingBoxArea](source=BoundingBoxArea;record=vector);
         @statistic[BoundingBoxPerimeter](source=BoundingBoxPerimeter;record=vector);
         @statistic[LargestDistToLeader](source=LargestDistToLeader;record=vector);
+        @statistic[BoundingBoxRadius](source=BoundingBoxRadius;record=vector);
 
         // Cluster Parameter evaluations
         @signal[CardinalitySize](type=unsigned long);

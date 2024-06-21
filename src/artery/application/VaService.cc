@@ -58,6 +58,7 @@ static const simsignal_t scSignalBoxArea = cComponent::registerSignal("BoundingB
 static const simsignal_t scSignalBoxPerimeter = cComponent::registerSignal("BoundingBoxPerimeter");
 static const simsignal_t scClusterCardinality = cComponent::registerSignal("CardinalitySize");
 static const simsignal_t scLargestDistToLeader = cComponent::registerSignal("LargestDistToLeader");
+static const simsignal_t scBoundingBoxRadius = cComponent::registerSignal("BoundingBoxRadius");
 
 static const simsignal_t SignalVamCluster = cComponent::registerSignal("VamCluster");
 static const simsignal_t SignalVamJoin = cComponent::registerSignal("VamJoin");
@@ -396,6 +397,7 @@ void VaService::sendVam(const SimTime& T_now)
 				emit(scSignalBoxPerimeter, mClusterManagement.getBoundingBoxPerimeter());
 				emit(scClusterCardinality, mClusterManagement.minClusterSize());
 				emit(scLargestDistToLeader, mClusterManagement.getLargetDistanceToLeader());
+				emit(scBoundingBoxRadius, initialInfoContainerData.circleRadius/Radius_oneMeter);
 			}
 		}
 
@@ -411,6 +413,9 @@ void VaService::sendVam(const SimTime& T_now)
 					emit(scSignalBoxPerimeter,mClusterManagement.getBoundingBoxPerimeter());
 					emit(scClusterCardinality, mClusterManagement.getCurrentClusterSize());
 					emit(scLargestDistToLeader, mClusterManagement.getLargetDistanceToLeader());
+					if(mClusterManagement.boundingBoxShape() == "Circular"){
+						emit(scBoundingBoxRadius, clusterInfoData.circleRadius/Radius_oneMeter);
+					}
 					addClusterInformationContainer(vam, clusterInfoData);
 					//clusterVamSentCounter++;
 					emit(SignalVamCluster, mClusterManagement.getClusterId());
@@ -422,6 +427,9 @@ void VaService::sendVam(const SimTime& T_now)
 				emit(scSignalBoxPerimeter, mClusterManagement.getBoundingBoxPerimeter());
 				emit(scClusterCardinality, mClusterManagement.getCurrentClusterSize());
 				emit(scLargestDistToLeader, mClusterManagement.getLargetDistanceToLeader());
+				if(mClusterManagement.boundingBoxShape() == "Circular"){
+					emit(scBoundingBoxRadius, clusterInfoData.circleRadius/Radius_oneMeter);
+				}
 				//addClusterInformationContainer(vam, previousContainerData);
 				addClusterInformationContainer(vam, clusterInfoData);
 				//clusterVamSentCounter++;
@@ -446,6 +454,9 @@ void VaService::sendVam(const SimTime& T_now)
 			emit(scSignalBoxPerimeter, mClusterManagement.getBoundingBoxPerimeter());
 			emit(scClusterCardinality, mClusterManagement.getCurrentClusterSize());
 			emit(scLargestDistToLeader, mClusterManagement.getLargetDistanceToLeader());
+			if(mClusterManagement.boundingBoxShape() == "Circular"){
+				emit(scBoundingBoxRadius, previousContainerData.circleRadius/Radius_oneMeter);
+			}
 			addClusterInformationContainer(vam, previousContainerData);
 			addClusterBreakupOperationContainer(vam);
 			emit(SignalVamBreak, mClusterManagement.getClusterId());
