@@ -585,8 +585,9 @@ InformationContainerData_t ClusterManagement::generateDataForCurrentCluster(){
 			pointXY centerPoint = calculateCenterFromBasePoly(basePoly);
 			infoContainerData.nodeOffset = calculateOffset(getCurrentVruXY(), centerPoint);
 			infoContainerData.circleRadius = calculateRadius(mClusterMap, centerPoint);
-			setBoundingBoxArea(M_PI*std::pow(infoContainerData.circleRadius/Radius_oneMeter,2));
-			setBoundingBoxPerimeter(2*M_PI*infoContainerData.circleRadius/Radius_oneMeter);
+			double convertedRadius = infoContainerData.circleRadius/Radius_oneMeter;
+			setBoundingBoxArea(M_PI*std::pow(convertedRadius,2));
+			setBoundingBoxPerimeter(2*M_PI*convertedRadius);
 		}else if(mBoundingBoxShape == "Rectangular"){
 			Polygon_t rectangle;
 			double angle;
