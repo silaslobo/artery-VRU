@@ -146,18 +146,18 @@ simple VaService like ItsG5Service
         bool enableBoundingBoxPadding = default(false);
         
         // Cluster membership parameters 
-        double timeClusterUniquenessThreshold @unit(s) = default(30.0s);
-        double timeClusterBreakupWarning @unit(s) = default(3.0s);
-        double timeClusterJoinNotification @unit(s) = default(3.0s);
-        double timeClusterJoinSuccess @unit(s) = default(0.5s);
-        double timeClusterIdChangeNotification @unit(s) = default(3.0s);
-        double timeClusterIdPersist @unit(s) = default(3.0s);
-        double timeClusterContinuity @unit(s) = default(2.0s);
-        double timeClusterLeaderWaiting @unit(s) = default(2.0s);
-        double timeClusterLeaveNotification @unit(s) = default(1.0s);
-        double timeCombinedVruClusterOpportunity @unit(s) = default(15.0s);
+        double timeClusterUniquenessThreshold  = default(30.0);
+        double timeClusterBreakupWarning  = default(3.0);
+        double timeClusterJoinNotification  = default(3.0);
+        double timeClusterJoinSuccess = default(0.5);
+        double timeClusterIdChangeNotification  = default(3.0);
+        double timeClusterIdPersist  = default(3.0);
+        double timeClusterContinuity  = default(2.0);
+        double timeClusterLeaderWaiting  = default(2.0);
+        double timeClusterLeaveNotification  = default(1.0);
+        double timeCombinedVruClusterOpportunity  = default(3.0);
 
         // Custom max interval between cluster VAMs due to timeClusterContinuity parameter
-        double clusterMaxInterval @unit(s) = default(2.0s);
+        double clusterMaxInterval = default(2.0);
         
 }

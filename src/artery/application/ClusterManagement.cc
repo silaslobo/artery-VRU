@@ -106,7 +106,7 @@ bool ClusterManagement::vruShouldLeave_VamParameters(const vanetza::asn1::Vam& v
 
 }
 
-bool ClusterManagement::vruShouldLeave_ElapsedTime(const omnetpp::SimTime& T_now){
+bool ClusterManagement::vruShouldLeave_ElapsedTime(const omnetpp::SimTime& T_now){	
 	if(T_now - mLastLeaderVamTimestamp >= timeClusterContinuity()){
 		setLeaveReason(ClusterLeaveReason_clusterLeaderLost);
 		return true;
@@ -120,11 +120,11 @@ bool ClusterManagement::vruShouldCreateCluster(){
 	return (mInitialClusterMap.size() + 1) >= mNumCreateCluster;
 }
 
-bool ClusterManagement::clusterShouldBreakup_ElapsedTime(const omnetpp::SimTime& T_now){
-	if(T_now - mClusterCreationTimestamp >= timeClusterLeaderWaiting()){
-		setBreakupReason(ClusterBreakupReason_notProvided);
+bool ClusterManagement::clusterShouldBreakup_ElapsedTime(const omnetpp::SimTime& T_now){	
+	if(T_now - mClusterCreationTimestamp >= timeClusterLeaderWaiting()){		
+		setBreakupReason(ClusterBreakupReason_notProvided);		
 		return true;
-	}else{
+	}else{		
 		return false;
 	}
 }

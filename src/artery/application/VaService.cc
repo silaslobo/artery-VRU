@@ -197,14 +197,14 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 	const SimTime T_elapsed = T_now - mLastVamTimestamp;
 
 	if(mClusterSupport && mClusterManagement.isVruClusterLeader()){
-		if(mClusterManagement.clusterShouldBreakup_ElapsedTime(T_now) && mClusterManagement.getCurrentClusterSize() < mClusterManagement.numCreateCluster()){
-			setVruClusterOperation(BreakupCluster);
-			sendVam(T_now);
+		if(mClusterManagement.clusterShouldBreakup_ElapsedTime(T_now) && mClusterManagement.getCurrentClusterSize() < mClusterManagement.numCreateCluster()){			
+			setVruClusterOperation(BreakupCluster);			
+			sendVam(T_now);			
 			return;
-		}else{
+		}else{			
 			T_GenVamMax = mClusterGenVamMax;
 		}
-	}else{
+	}else{		
 		T_GenVamMax = mGenVamMax;
 	}
 
@@ -236,8 +236,8 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 				}
 			}
 		}
-	}else if(mClusterManagement.vruShouldLeave_ElapsedTime(T_now) || currentVruClusterOperation == VruShouldLeave){
-		setVruClusterOperation(VruShouldLeave);
+	}else if(mClusterManagement.vruShouldLeave_ElapsedTime(T_now) || currentVruClusterOperation == VruShouldLeave){		
+		setVruClusterOperation(VruShouldLeave);		
 		sendVam(T_now);
 	}
 
@@ -403,9 +403,9 @@ void VaService::sendVam(const SimTime& T_now)
 
 
 		// Update InfoContainer: Cluster size alteration
-		if(mClusterManagement.isVruClusterLeader()){
-			if(currentVruClusterOperation == AddVruToCluster || currentVruClusterOperation == RemoveVruFromCluster){
-				VruClusterMap_t clusterMap = mClusterManagement.getVruClusterMap();
+		if(mClusterManagement.isVruClusterLeader()){			
+			if(currentVruClusterOperation == AddVruToCluster || currentVruClusterOperation == RemoveVruFromCluster){				
+				VruClusterMap_t clusterMap = mClusterManagement.getVruClusterMap();				
 				// TODO: How should we treat clusters with size 2?
 				if(mClusterManagement.getCurrentClusterSize() >= mClusterManagementParameters.NumCreateCluster){
 					auto clusterInfoData = mClusterManagement.generateDataForCurrentCluster();
@@ -421,10 +421,10 @@ void VaService::sendVam(const SimTime& T_now)
 					emit(SignalVamCluster, mClusterManagement.getClusterId());
 					previousContainerData = clusterInfoData;
 				}
-			} else if(currentVruClusterOperation == KeepCluster){
-				auto clusterInfoData = mClusterManagement.generateDataForCurrentCluster();
-				emit(scSignalBoxArea, mClusterManagement.getBoundingBoxArea());
-				emit(scSignalBoxPerimeter, mClusterManagement.getBoundingBoxPerimeter());
+			} else if(currentVruClusterOperation == KeepCluster){				
+				auto clusterInfoData = mClusterManagement.generateDataForCurrentCluster();				
+				emit(scSignalBoxArea, mClusterManagement.getBoundingBoxArea());				
+				emit(scSignalBoxPerimeter, mClusterManagement.getBoundingBoxPerimeter());				
 				emit(scClusterCardinality, mClusterManagement.getCurrentClusterSize());
 				emit(scLargestDistToLeader, mClusterManagement.getLargetDistanceToLeader());
 				if(mClusterManagement.boundingBoxShape() == "Circular"){
@@ -435,21 +435,21 @@ void VaService::sendVam(const SimTime& T_now)
 				//clusterVamSentCounter++;
 				emit(SignalVamCluster, mClusterManagement.getClusterId());
 				previousContainerData = clusterInfoData;
-			}
+			}			
 		}
 
 		// Operation Container to join a Cluster
-		if (mClusterManagement.isVruStandalone() && currentVruClusterOperation == VruShouldJoin){
-			addClusterJoinOperationContainer(vam, T_now < 1 ? 1: T_now);
+		if (mClusterManagement.isVruStandalone() && currentVruClusterOperation == VruShouldJoin){			
+			addClusterJoinOperationContainer(vam, T_now < 1 ? 1: T_now);						
 			emit(SignalVamJoin, mTargetClusterId);
 		}
 
-		if (mClusterManagement.isVruPassive() && currentVruClusterOperation == VruShouldLeave){
-			addClusterLeaveOperationContainer(vam);
+		if (mClusterManagement.isVruPassive() && currentVruClusterOperation == VruShouldLeave){			
+			addClusterLeaveOperationContainer(vam);			
 			emit(SignalVamLeave, mTargetClusterId);
 		}
 
-		if(mClusterManagement.isVruClusterLeader() && currentVruClusterOperation == BreakupCluster){
+		if(mClusterManagement.isVruClusterLeader() && currentVruClusterOperation == BreakupCluster){			
 			emit(scSignalBoxArea, mClusterManagement.getBoundingBoxArea());
 			emit(scSignalBoxPerimeter, mClusterManagement.getBoundingBoxPerimeter());
 			emit(scClusterCardinality, mClusterManagement.getCurrentClusterSize());
@@ -457,34 +457,34 @@ void VaService::sendVam(const SimTime& T_now)
 			if(mClusterManagement.boundingBoxShape() == "Circular"){
 				emit(scBoundingBoxRadius, previousContainerData.circleRadius/Radius_oneMeter);
 			}
-			addClusterInformationContainer(vam, previousContainerData);
-			addClusterBreakupOperationContainer(vam);
+			addClusterInformationContainer(vam, previousContainerData);			
+			addClusterBreakupOperationContainer(vam);			
 			emit(SignalVamBreak, mClusterManagement.getClusterId());
 		}
-
-		emit(SignalMessageSize, vam.size());
+		
+		emit(SignalMessageSize, vam.size());		
 	}
-
+	
 	using namespace vanetza;
 	btp::DataRequestB request;
 	request.destination_port = btp::ports::VAM;
 	request.gn.its_aid = aid::VRU;
 	request.gn.transport_type = geonet::TransportType::SHB;
 	request.gn.maximum_lifetime = geonet::Lifetime { geonet::Lifetime::Base::One_Second, 1 };
-	request.gn.traffic_class.tc_id(static_cast<unsigned>(dcc::Profile::DP0));
-	request.gn.communication_profile = geonet::CommunicationProfile::ITS_G5;
+	request.gn.traffic_class.tc_id(static_cast<unsigned>(dcc::Profile::DP2));
+	request.gn.communication_profile = geonet::CommunicationProfile::ITS_G5;	
 
-	VaObject obj(std::move(vam));
-	emit(scSignalVamSent, &obj);
+	VaObject obj(std::move(vam));	
+	emit(scSignalVamSent, &obj);	
 
 	//vamSentCounter ++;
-	emit (SignalVamSent, 1);
+	emit (SignalVamSent, 1);	
 
-	using VamByteBuffer = convertible::byte_buffer_impl<asn1::Vam>;
-	std::unique_ptr<geonet::DownPacket> payload { new geonet::DownPacket() };
-	std::unique_ptr<convertible::byte_buffer> buffer { new VamByteBuffer(obj.shared_ptr()) };
-	payload->layer(OsiLayer::Application) = std::move(buffer);
-	this->request(request, std::move(payload));	
+	using VamByteBuffer = convertible::byte_buffer_impl<asn1::Vam>;	
+	std::unique_ptr<geonet::DownPacket> payload { new geonet::DownPacket() };	
+	std::unique_ptr<convertible::byte_buffer> buffer { new VamByteBuffer(obj.shared_ptr()) };	
+	payload->layer(OsiLayer::Application) = std::move(buffer);		
+	this->request(request, std::move(payload));			
 }
 
 SimTime VaService::genVamDcc()
@@ -496,7 +496,7 @@ SimTime VaService::genVamDcc()
 		throw cRuntimeError("No DCC TRC found for VA's primary channel %i", mPrimaryChannel);
 	}
 	
-	static const vanetza::dcc::TransmissionLite va_tx(vanetza::dcc::Profile::DP0, 0);
+	static const vanetza::dcc::TransmissionLite va_tx(vanetza::dcc::Profile::DP2, 0);
 	vanetza::Clock::duration interval = trc->interval(va_tx);
 	SimTime dcc { std::chrono::duration_cast<std::chrono::milliseconds>(interval).count(), SIMTIME_MS };	
 	return std::min(mGenVamMax, std::max(mGenVamMin, dcc));
@@ -552,96 +552,95 @@ vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& pdp, uint
 }
 
 void addClusterInformationContainer(vanetza::asn1::Vam& message, InformationContainerData_t& infoContainerData){
+	
+	
+	VruAwareness_t &vam = (*message).vam;	
+	VruClusterInformationContainer_t* &vcic = vam.vamParameters.vruClusterInformationContainer;		
+	vcic = vanetza::asn1::allocate<VruClusterInformationContainer_t>();		
 
-	VruAwareness_t &vam = (*message).vam;
-	VruClusterInformationContainer_t* &vcic = vam.vamParameters.vruClusterInformationContainer;
-	vcic = vanetza::asn1::allocate<VruClusterInformationContainer_t>();
-
-	vcic->clusterId = infoContainerData.clusterId;
-
-	if(infoContainerData.shape == "Circular"){
+	vcic->clusterId = infoContainerData.clusterId;	
+	if(infoContainerData.shape == "Circular"){				
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterCircle;
 		vcic->clusterBoundingBoxShape.choice.clusterCircle.radius = infoContainerData.circleRadius;
 		vcic->clusterBoundingBoxShape.choice.clusterCircle.nodeCenterPoint = selectNodeType(infoContainerData.nodeOffset);
 
-	}else if(infoContainerData.shape == "Rectangular"){
+	}else if(infoContainerData.shape == "Rectangular"){			
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterRectangle;
 		vcic->clusterBoundingBoxShape.choice.clusterRectangle.nodeCenterPoint = selectNodeType(infoContainerData.nodeOffset);
 		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMinorRangeLength = infoContainerData.rectangleWidth;
 		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeLength = infoContainerData.rectangleLength;
 		vcic->clusterBoundingBoxShape.choice.clusterRectangle.semiMajorRangeOrientation = infoContainerData.orientationAngle;
 
-	}else if(infoContainerData.shape == "Polygon"){
+	}else if(infoContainerData.shape == "Polygon"){				
 		vcic->clusterBoundingBoxShape.present = ClusterBoundingBoxShape_PR_clusterPolygon;
 		for (auto &offsetValue : infoContainerData.polyOffsets){
 			ASN_SEQUENCE_ADD(&vcic->clusterBoundingBoxShape.choice.clusterPolygon.polyPointList, selectNodeType(offsetValue));
 		}
-	}
-
+	}	
+	
 	vcic->clusterCardinalitySize = infoContainerData.cardinalitySize;
-
-	vcic->clusterProfiles.buf = static_cast<uint8_t*>(vanetza::asn1::allocate(1));
-	vcic->clusterProfiles.size = 1;
-	vcic->clusterProfiles.bits_unused = 0;
-	vcic->clusterProfiles.buf[0] = static_cast<uint8_t>(e_ClusterProfiles::ClusterProfiles_pedestrian);
+	
+	vcic->clusterProfiles.buf = static_cast<uint8_t*>(vanetza::asn1::allocate(1));	
+	vcic->clusterProfiles.size = 1;	
+	vcic->clusterProfiles.bits_unused = 0;		
+	vcic->clusterProfiles.buf[0] = static_cast<uint8_t>(e_ClusterProfiles::ClusterProfiles_pedestrian);	
 
 }
 
-OffsetPoint* selectNodeType(std::tuple<long,long> offsetTuple){
+OffsetPoint* selectNodeType(std::tuple<long,long> offsetTuple){	
 
 	OffsetPoint* offsetPoint = vanetza::asn1::allocate<OffsetPoint>();
 
 	long absOffsetX = abs(std::get<0>(offsetTuple));
 	long absOffsetY = abs(std::get<1>(offsetTuple));
- 	long largestOffsetValue = absOffsetX > absOffsetY ? absOffsetX : absOffsetY;
-
+ 	long largestOffsetValue = absOffsetX > absOffsetY ? absOffsetX : absOffsetY;	
 	// Offset constraints given in cm
-	if(largestOffsetValue <= 511L){
+	if(largestOffsetValue <= 511L){		
 		offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY1;
 		offsetPoint->nodeOffsetPointxy.choice.node_XY1.x = std::get<0>(offsetTuple);
 		offsetPoint->nodeOffsetPointxy.choice.node_XY1.y = std::get<1>(offsetTuple);
-	}else if(largestOffsetValue <= 1023L){
+	}else if(largestOffsetValue <= 1023L){		
 		offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY2;
 		offsetPoint->nodeOffsetPointxy.choice.node_XY2.x = std::get<0>(offsetTuple);
 		offsetPoint->nodeOffsetPointxy.choice.node_XY2.y = std::get<1>(offsetTuple);
-	}else if(largestOffsetValue <= 2047L){
+	}else if(largestOffsetValue <= 2047L){		
 		offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY3;
 		offsetPoint->nodeOffsetPointxy.choice.node_XY3.x = std::get<0>(offsetTuple);
 		offsetPoint->nodeOffsetPointxy.choice.node_XY3.y = std::get<1>(offsetTuple);
-	}else if(largestOffsetValue <= 4095L){
+	}else if(largestOffsetValue <= 4095L){		
 		offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY4;
 		offsetPoint->nodeOffsetPointxy.choice.node_XY4.x = std::get<0>(offsetTuple);
 		offsetPoint->nodeOffsetPointxy.choice.node_XY4.y = std::get<1>(offsetTuple);
-	}else if(largestOffsetValue <= 8191L){
+	}else if(largestOffsetValue <= 8191L){		
 		offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY5;
 		offsetPoint->nodeOffsetPointxy.choice.node_XY5.x = std::get<0>(offsetTuple);
 		offsetPoint->nodeOffsetPointxy.choice.node_XY5.y = std::get<1>(offsetTuple);
-	}else if(largestOffsetValue <= 32767L){
+	}else if(largestOffsetValue <= 32767L){		
 		offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_node_XY6;
 		offsetPoint->nodeOffsetPointxy.choice.node_XY6.x = std::get<0>(offsetTuple);
 		offsetPoint->nodeOffsetPointxy.choice.node_XY6.y = std::get<1>(offsetTuple);
 	}
-	else{
+	else{		
 		offsetPoint->nodeOffsetPointxy.present = NodeOffsetPointXY_PR_NOTHING;
 	}
-
+	
 	return offsetPoint;
 }
 
-void VaService::addClusterJoinOperationContainer(vanetza::asn1::Vam& message, const SimTime& T_now){
-	omnetpp::SimTime joinTime = T_now;
+void VaService::addClusterJoinOperationContainer(vanetza::asn1::Vam& message, const SimTime& T_now){		
+	omnetpp::SimTime joinTime = T_now;	
 	VruClusterOperationContainer*& vcoc = message->vam.vamParameters.vruClusterOperationContainer;
 	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer>();
 
 	ClusterJoinInfo*& joinInfo = vcoc->clusterJoinInfo; 
 	joinInfo = vanetza::asn1::allocate<ClusterJoinInfo>();
 	joinInfo->clusterId = mTargetClusterId;
-	joinInfo->joinTime = joinTime.dbl();
+	joinInfo->joinTime = 180;	
 	setVruClusterOperation(noVruOperation);
-	mClusterManagement.setCurrentVruRole(mClusterManagement.VruPassive);	
+	mClusterManagement.setCurrentVruRole(mClusterManagement.VruPassive);		
 }
 
-void VaService::addClusterLeaveOperationContainer(vanetza::asn1::Vam& message){
+void VaService::addClusterLeaveOperationContainer(vanetza::asn1::Vam& message){		
 	VruClusterOperationContainer*& vcoc = message->vam.vamParameters.vruClusterOperationContainer;
 	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer>();
 
@@ -654,13 +653,13 @@ void VaService::addClusterLeaveOperationContainer(vanetza::asn1::Vam& message){
 	mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveStandalone);
 }
 
-void VaService::addClusterBreakupOperationContainer(vanetza::asn1::Vam& message){
+void VaService::addClusterBreakupOperationContainer(vanetza::asn1::Vam& message){			
 	VruClusterOperationContainer*& vcoc = message->vam.vamParameters.vruClusterOperationContainer;
 	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer>();
 
 	ClusterBreakupInfo*& breakupInfo = vcoc->clusterBreakupInfo;
 	breakupInfo = vanetza::asn1::allocate<ClusterBreakupInfo>();
-	breakupInfo->breakupTime = mClusterManagementParameters.TimeClusterBreakupWarning.dbl();
+	breakupInfo->breakupTime = 180; //mClusterManagementParameters.TimeClusterBreakupWarning.dbl();
 	breakupInfo->clusterBreakupReason = ClusterBreakupReason_notProvided;
 
 	emit(SignalBreakupReasonCounter,1);
