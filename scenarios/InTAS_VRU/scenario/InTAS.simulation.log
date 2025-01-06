@@ -1,0 +1,22 @@
+***Starting server on port 37797 ***
+Loading net-file from 'scenario/InTAS_24.net.xml' ... done (1239ms).
+Loading additional-files from 'scenario/BusStations.add.xml' ... done (22ms).
+Loading done.
+Simulation version 1.21.0 started with time: 0.00.
+Simulation ended at time: 1309.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 59.77s
+ TraCI-Duration: 49.27s
+ Real time factor: 21.9014
+ UPS: 162.444787
+ UPS-Persons: 279.647972
+Vehicles:
+ Inserted: 18
+ Running: 16
+ Waiting: 0
+Persons:
+ Inserted: 16
+ Running: 13
+DijkstraRouter answered 395 queries and explored 12.77 edges on average.
+DijkstraRouter spent 0.00s answering queries (0.01ms on average).
