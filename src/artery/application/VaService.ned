@@ -33,12 +33,17 @@ simple VaService like ItsG5Service
         @signal[VamSent](type=artery::VaObject);    
         @signal[VamSentCounter];
         @signal[VamReceivedCounter];
+        @signal[DCCToff](type=double);
 
         @statistic[reception](source=VamReceived;record=vector(vamStationId)?,vector(vamGenerationDeltaTime)?);
         @statistic[transmission](source=VamSent;record=vector(vamStationId)?,vector(vamGenerationDeltaTime)?);
+        @statistic[VAMlatitude](source=VamSent;record=vector(vamStationId)?,vector(vamLatitude)?);
+        @statistic[VAMlongitude](source=VamSent;record=vector(vamStationId)?,vector(vamLongitude)?);
     
         @statistic[VamSentCounter](record=count,vector?);
         @statistic[VamReceivedCounter](record=count,vector?);
+
+        @statistic[DCCToff](source=DCCToff;record=count,vector?);
 
         @signal[VamTriggerPosition];
         @signal[VamTriggerHeading];
@@ -50,6 +55,13 @@ simple VaService like ItsG5Service
         
         @signal[VruStationID];
         @statistic[VruStationID](source=VruStationID;record=vector);
+
+        @signal[vamDP2];
+        @signal[vamDP3];
+
+        @statistic[vamDP2](source=vamDP2;record=count,vector?);
+        @statistic[vamDP3](source=vamDP3;record=count,vector?);
+
 
         @signal[VamClusterCreation];
         @signal[VamCluster];
@@ -74,9 +86,11 @@ simple VaService like ItsG5Service
 
         @signal[LeaveReasonCounter];
         @signal[BreakupReasonCounter];
+        @signal[Location];
 
         @statistic[LeaveReasonCounter](source=LeaveReasonCounter;record=count,vector?);
         @statistic[BreakupReasonCounter](source=BreakupReasonCounter;record=count,vector?);
+        
 
         @signal[MessageSize];
         @statistic[MessageSize](source=MessageSize;record=count,vector?);
