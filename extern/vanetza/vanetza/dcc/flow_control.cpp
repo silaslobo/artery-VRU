@@ -64,6 +64,13 @@ void FlowControl::enqueue(const DataRequest& request, std::unique_ptr<ChunkPacke
     while (m_queue_length > 0 && m_queues[ac].size() >= m_queue_length) {
         m_queues[ac].pop_front();
         m_packet_drop_hook(ac, packet.get());
+        mDccDroppedPackets++;
+        if (ac == vanetza::access::AccessCategory::BE){
+            mDccDP2DroppedPackets++; 
+        }
+        if (ac == vanetza::access::AccessCategory::BK){
+            mDccDP3DroppedPackets++; 
+        }
     }
     m_queues[ac].emplace_back(expiry, request, std::move(packet));
 
@@ -141,6 +148,13 @@ void FlowControl::drop_expired()
             bool drop = transmission.expiry < m_runtime.now();
             if (drop) {
                 m_packet_drop_hook(ac, transmission.packet.get());
+                mDccDroppedPackets++;
+                if (ac == vanetza::access::AccessCategory::BE){
+                    mDccDP2DroppedPackets++; 
+                }
+                if (ac == vanetza::access::AccessCategory::BK){
+                    mDccDP3DroppedPackets++; 
+                }
             }
             return drop;
         });
@@ -157,6 +171,14 @@ void FlowControl::transmit(const DataRequest& request, std::unique_ptr<ChunkPack
 
     m_packet_transmit_hook(access_request.access_category, packet.get());
     m_access.request(access_request, std::move(packet));
+
+    mDccTransmittedPackets++;
+    if (access_request.access_category == vanetza::access::AccessCategory::BE){
+        mDccDP2TransmittedPackets++; 
+    }
+    else if (access_request.access_category == vanetza::access::AccessCategory::BK){
+        mDccDP3TransmittedPackets++; 
+    }
 }
 
 void FlowControl::set_packet_drop_hook(PacketDropHook::callback_type&& cb)

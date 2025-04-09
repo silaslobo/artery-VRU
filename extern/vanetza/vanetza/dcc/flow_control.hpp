@@ -82,6 +82,13 @@ public:
      */
     void reschedule();
 
+    unsigned mDccDP2DroppedPackets = 0;
+    unsigned mDccDP3DroppedPackets = 0;
+    unsigned mDccDP2TransmittedPackets = 0; 
+    unsigned mDccDP3TransmittedPackets = 0;
+    unsigned mDccDroppedPackets = 0;
+    unsigned mDccTransmittedPackets = 0;
+
 private:
     struct PendingTransmission : public Transmission
     {
