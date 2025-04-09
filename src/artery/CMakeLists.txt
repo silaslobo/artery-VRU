@@ -1,6 +1,7 @@
 add_library(artery INTERFACE)
 add_library(core SHARED
     StaticNodeManager.cc
+    application/vam/VamPriority.cc
     application/EmergencyBrake.cc
     application/CaObject.cc
     application/CaService.cc
