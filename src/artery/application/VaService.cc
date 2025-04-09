@@ -676,15 +676,18 @@ OffsetPoint* selectNodeType(std::tuple<long,long> offsetTuple){
 	return offsetPoint;
 }
 
-void VaService::addClusterJoinOperationContainer(vanetza::asn1::Vam& message, const SimTime& T_now){		
-	omnetpp::SimTime joinTime = T_now;	
+void VaService::addClusterJoinOperationContainer(vanetza::asn1::Vam& message, const SimTime& T_now){
+	/*
+	ToDo: solve the issue with the join Time for the first clusterjoin message
+	*/
+	omnetpp::SimTime joinTime = T_now;
 	VruClusterOperationContainer*& vcoc = message->vam.vamParameters.vruClusterOperationContainer;
 	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer>();
 
 	ClusterJoinInfo*& joinInfo = vcoc->clusterJoinInfo; 
 	joinInfo = vanetza::asn1::allocate<ClusterJoinInfo>();
 	joinInfo->clusterId = mTargetClusterId;
-	joinInfo->joinTime = 180;	
+	joinInfo->joinTime = 0;
 	setVruClusterOperation(noVruOperation);
 	mClusterManagement.setCurrentVruRole(mClusterManagement.VruPassive);		
 }
@@ -702,13 +705,16 @@ void VaService::addClusterLeaveOperationContainer(vanetza::asn1::Vam& message){
 	mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveStandalone);
 }
 
-void VaService::addClusterBreakupOperationContainer(vanetza::asn1::Vam& message){			
+void VaService::addClusterBreakupOperationContainer(vanetza::asn1::Vam& message){
+	/*
+	ToDo: solve the issue with the break Time for the cluster break duration
+	*/
 	VruClusterOperationContainer*& vcoc = message->vam.vamParameters.vruClusterOperationContainer;
 	vcoc = vanetza::asn1::allocate<VruClusterOperationContainer>();
 
 	ClusterBreakupInfo*& breakupInfo = vcoc->clusterBreakupInfo;
 	breakupInfo = vanetza::asn1::allocate<ClusterBreakupInfo>();
-	breakupInfo->breakupTime = 180; //mClusterManagementParameters.TimeClusterBreakupWarning.dbl();
+	breakupInfo->breakupTime = 0; //mClusterManagementParameters.TimeClusterBreakupWarning.dbl();
 	breakupInfo->clusterBreakupReason = ClusterBreakupReason_notProvided;
 
 	emit(SignalBreakupReasonCounter,1);
