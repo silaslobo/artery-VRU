@@ -30,6 +30,9 @@
 #include "artery/traci/Cast.h"
 #include "traci/Core.h"
 #include "artery/application/ClusterManagement.h"
+#include "artery/nic/RadioDriverBase.h"
+#include "inet/common/ModuleAccess.h"
+
 
 
 /*
@@ -47,6 +50,9 @@ static const simsignal_t scSignalVamReceived = cComponent::registerSignal("VamRe
 static const simsignal_t scSignalVamSent = cComponent::registerSignal("VamSent");
 static const simsignal_t SignalVamReceived = cComponent::registerSignal("VamReceivedCounter");
 static const simsignal_t SignalVamSent = cComponent::registerSignal("VamSentCounter");
+static const simsignal_t scSignalDCCToff = cComponent::registerSignal("DCCToff");
+static const simsignal_t scSignalDP2 = cComponent::registerSignal("vamDP2");
+static const simsignal_t scSignalDP3 = cComponent::registerSignal("vamDP3");
 
 static const simsignal_t SignalVamPosition = cComponent::registerSignal("VamTriggerPosition");
 static const simsignal_t SignalVamHeading = cComponent::registerSignal("VamTriggerHeading");
@@ -142,6 +148,9 @@ void VaService::initialize()
 	// look up primary channel for CA
 	mPrimaryChannel = getFacilities().get_const<MultiChannelPolicy>().primaryChannel(vanetza::aid::VRU);
 
+	//for a single-channel operation
+	findHost()->subscribe(PowerLevelRx::ChannelLoadSignal, this);
+
 	// Clustering
 	mClusterSupport = par("withClusterSupport");
 
@@ -178,6 +187,14 @@ void VaService::initialize()
 		currentVruClusterOperation = noVruOperation;
 	}
 
+}
+
+void VaService::receiveSignal(cComponent*, simsignal_t signal, double value, cObject*)
+{
+	if (signal == PowerLevelRx::ChannelLoadSignal) {
+        ASSERT(value >= 0.0 && value <= 1.0);
+        mLocalCbr = value;
+    }
 }
 
 
@@ -464,19 +481,42 @@ void VaService::sendVam(const SimTime& T_now)
 		
 		emit(SignalMessageSize, vam.size());		
 	}
-	
+
+	emit(scSignalDCCToff, getDCCToff());
+
 	using namespace vanetza;
 	btp::DataRequestB request;
 	request.destination_port = btp::ports::VAM;
 	request.gn.its_aid = aid::VRU;
 	request.gn.transport_type = geonet::TransportType::SHB;
-	request.gn.maximum_lifetime = geonet::Lifetime { geonet::Lifetime::Base::One_Second, 1 };
+	request.gn.maximum_lifetime = geonet::Lifetime { geonet::Lifetime::Base::One_Second, 5 };
+	/*
+	if (currentVruClusterOperation == VruShouldJoin || currentVruClusterOperation == VruShouldLeave){		
+		vanetza::dcc::Profile vamDP = DP_DCC->setDP(mLocalDynamicMap,mLocalCbr);		
+		request.gn.traffic_class.tc_id(static_cast<unsigned>(vamDP));
+		
+		if (vamDP == vanetza::dcc::Profile::DP2) {
+			emit (scSignalDP2, 1);
+		} else if (vamDP == vanetza::dcc::Profile::DP3){
+			emit(scSignalDP3, 1);
+		}
+
+	} else {
+		request.gn.traffic_class.tc_id(static_cast<unsigned>(dcc::Profile::DP2));
+		emit(scSignalDP2, 1);
+		}
+	*/
+
 	request.gn.traffic_class.tc_id(static_cast<unsigned>(dcc::Profile::DP2));
-	request.gn.communication_profile = geonet::CommunicationProfile::ITS_G5;	
+	request.gn.communication_profile = geonet::CommunicationProfile::ITS_G5;
 
-	VaObject obj(std::move(vam));	
-	emit(scSignalVamSent, &obj);	
+	VaObject obj(std::move(vam));
 
+	if (mClusterManagement.getLeaveReason() == 1)
+	{
+		emit(scSignalVamSent, &obj);
+	}
+	
 	//vamSentCounter ++;
 	emit (SignalVamSent, 1);	
 
@@ -496,7 +536,8 @@ SimTime VaService::genVamDcc()
 		throw cRuntimeError("No DCC TRC found for VA's primary channel %i", mPrimaryChannel);
 	}
 	
-	static const vanetza::dcc::TransmissionLite va_tx(vanetza::dcc::Profile::DP2, 0);
+	//static const vanetza::dcc::TransmissionLite va_tx(vanetza::dcc::Profile::DP2, 0);
+	static const vanetza::dcc::TransmissionLite va_tx(DP_DCC->setDP(mLocalDynamicMap,mLocalCbr), 0);
 	vanetza::Clock::duration interval = trc->interval(va_tx);
 	SimTime dcc { std::chrono::duration_cast<std::chrono::milliseconds>(interval).count(), SIMTIME_MS };	
 	return std::min(mGenVamMax, std::max(mGenVamMin, dcc));
@@ -667,6 +708,20 @@ void VaService::addClusterBreakupOperationContainer(vanetza::asn1::Vam& message)
 	mClusterManagement.clearVruClusterMap();
 	setVruClusterOperation(noVruOperation);
 	mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveStandalone);
+}
+
+double VaService::getDCCToff(){
+    // network interface may not be ready yet during initialization, so look it up at this later point
+    auto netifc = mNetworkInterfaceTable->select(mPrimaryChannel);
+    vanetza::dcc::TransmitRateThrottle *trc = netifc ? netifc->getDccEntity().getTransmitRateThrottle() : nullptr;
+    if (!trc) {
+        throw cRuntimeError("No DCC TRC found for VBS' primary channel %i", mPrimaryChannel);
+    }
+    static const vanetza::dcc::TransmissionLite va_tx(vanetza::dcc::Profile::DP2, 0);
+    vanetza::Clock::duration delay = trc->interval(va_tx);
+    SimTime dcc{std::chrono::duration_cast<std::chrono::milliseconds>(delay).count(), SIMTIME_MS};
+
+    return dcc.dbl();
 }
 
 } // namespace artery

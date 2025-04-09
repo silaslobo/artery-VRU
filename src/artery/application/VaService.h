@@ -19,6 +19,10 @@
 #include <artery/envmod/LocalEnvironmentModel.h>
 #include <artery/envmod/EnvironmentModelObject.h>
 #include "artery/application/ClusterManagement.h"
+#include "artery/application/vam/VamPriority.h"
+#include "artery/inet/PowerLevelRx.h"
+#include "artery/networking/IDccEntity.h"
+#include "vanetza/dcc/channel_load.hpp"
 
 /*
 	ATTENTION:
@@ -36,6 +40,9 @@ class NetworkInterfaceTable;
 class Timer;
 class PersonDataProvider;
 class LocalEnvironmentModel;
+class VamPriority;
+class RadioDriverBase;
+
 class VaService : public ItsG5BaseService
 {
 	public:
@@ -43,6 +50,8 @@ class VaService : public ItsG5BaseService
 		void initialize() override;
 		void indicate(const vanetza::btp::DataIndication&, std::unique_ptr<vanetza::UpPacket>) override;
 		void trigger() override;
+		void receiveSignal(omnetpp::cComponent*, omnetpp::simsignal_t, double, omnetpp::cObject*) override;
+
 
 	private:
 			
@@ -64,11 +73,13 @@ class VaService : public ItsG5BaseService
 		omnetpp::SimTime genVamDcc();
 
 		ChannelNumber mPrimaryChannel = channel::CCH;
+		vanetza::dcc::ChannelLoad mChannelLoad;
 		const NetworkInterfaceTable* mNetworkInterfaceTable = nullptr;
 		const PersonDataProvider* mPersonDataProvider = nullptr;
 		const Timer* mTimer = nullptr;
 		ClusterManagement mClusterManagement;
 		ClusterManagementParameters_t mClusterManagementParameters;
+		VamPriority* DP_DCC;
 
 		// Custom max interval between cluster VAMs due to timeClusterContinuity parameter
 		omnetpp::SimTime mClusterGenVamMax;
@@ -98,6 +109,7 @@ class VaService : public ItsG5BaseService
 		double vamSentCounter = 0;
 
 		float geoBase = 10000000;
+		double mLocalCbr;
 
 		//Cluster Management
 		bool mClusterSupport;
@@ -115,6 +127,8 @@ class VaService : public ItsG5BaseService
 			AddVruToCluster, 
 			KeepCluster
 		};
+
+		double getDCCToff();
 
 		VruClusterOperation currentVruClusterOperation;
 		void setVruClusterOperation(VruClusterOperation newVruClusterOperation);
