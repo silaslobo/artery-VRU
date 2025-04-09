@@ -1,0 +1,5 @@
+add_opp_run(CAM_BL WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+if(WITH_ENVMOD)
+    add_opp_test(CAM_BL SUFFIX envmod CONFIG envmod SIMTIME_LIMIT 20s)
+endif()

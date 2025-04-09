@@ -12,20 +12,26 @@
 <configuration>
 	<input>
 		<net-file value="InTAS_24.net.xml"/>
-		<route-files value="InTAS_intermodal_updated.rou.xml, pt_lines.flow.xml"/>
+		<route-files value="InTAS_intermodal_updated_v2.rou.xml, pt_lines.flow.xml"/>
 		<additional-files value="BusStations.add.xml"/>
 	</input>
 	<time>
 		<begin value="0"/>
-		<step-length value="1"/>
+		<step-length value="0.1"/>
 		<end value="86400"/>
 	</time>
+	<output>
+		<person-summary-output value="/home/silaslobo/Desktop/ped_summary.xml" />
+		<personinfo-output value="/home/silaslobo/Desktop/ped_info.xml" />
+		<personroute-output value="/home/silaslobo/Desktop/ped_rou.xml" />
+	</output>
 	<processing>
-		<route-steps value="200"/>
+		<route-steps value="10"/>
 		<threads value="1"/>
 		<ignore-junction-blocker value="15"/>
 	    <time-to-teleport value="300"/>
 		<time-to-teleport.highways value="300"/>
+		<!--time-to-teleport.ride value="7200"/-->
         <max-depart-delay value="300"/>
 		<default.carfollowmodel value="Krauss"/>
 		<parking.maneuver value="true"/>
@@ -36,11 +42,11 @@
 	<routing>
 		<routing-algorithm value="dijkstra"/>		
 		<device.rerouting.probability value="0"/>
-		<device.rerouting.period value="300" />
+		<device.rerouting.period value="0" />
 		<device.rerouting.threads value="1"/>
 		<device.rerouting.synchronize value="true"/>		
-		<person-device.rerouting.probability value="0.85" />
-		<person-device.rerouting.period value="900" />		
+		<person-device.rerouting.probability value="1.00" />
+		<person-device.rerouting.period value="7200" />		
 	</routing>
 	<report>
         <verbose value="true"/>

@@ -1,0 +1,4 @@
+[submodule "scenarios/CAM_BL/scenario/InTAS"]
+	path = scenarios/CAM_BL/scenario/InTAS
+	url = git@github.com:silaslobo/InTAS.git
+	branch = InTAS_VRU
