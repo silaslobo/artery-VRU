@@ -33,12 +33,17 @@ simple VaService like ItsG5Service
         @signal[VamSent](type=artery::VaObject);    
         @signal[VamSentCounter];
         @signal[VamReceivedCounter];
+        @signal[DCCToff](type=double);
 
         @statistic[reception](source=VamReceived;record=vector(vamStationId)?,vector(vamGenerationDeltaTime)?);
         @statistic[transmission](source=VamSent;record=vector(vamStationId)?,vector(vamGenerationDeltaTime)?);
+        @statistic[VAMlatitude](source=VamSent;record=vector(vamStationId)?,vector(vamLatitude)?);
+        @statistic[VAMlongitude](source=VamSent;record=vector(vamStationId)?,vector(vamLongitude)?);
     
         @statistic[VamSentCounter](record=count,vector?);
         @statistic[VamReceivedCounter](record=count,vector?);
+
+        @statistic[DCCToff](source=DCCToff;record=count,vector?);
 
         @signal[VamTriggerPosition];
         @signal[VamTriggerHeading];
@@ -48,6 +53,16 @@ simple VaService like ItsG5Service
         @statistic[HeadingTrigger](source=VamTriggerHeading;record=count,vector?);
         @statistic[SpeedTrigger](source=VamTriggerSpeed;record=count,vector?);
         
+        @signal[VruStationID];
+        @statistic[VruStationID](source=VruStationID;record=vector);
+
+        @signal[vamDP2];
+        @signal[vamDP3];
+
+        @statistic[vamDP2](source=vamDP2;record=count,vector?);
+        @statistic[vamDP3](source=vamDP3;record=count,vector?);
+
+
         @signal[VamClusterCreation];
         @signal[VamCluster];
         @signal[VamJoin];
@@ -55,6 +70,7 @@ simple VaService like ItsG5Service
         @signal[VamLeave];
         @signal[VamTime];
         @signal[VamReceivedJoinId];
+        @signal[VamReceivedLeaveId];
         @signal[ClusterMember];
 
         @statistic[ClusterCreationCounter](source=VamClusterCreation;record=count,vector?);
@@ -65,24 +81,41 @@ simple VaService like ItsG5Service
         @statistic[VamTimerCounter](source=VamTime;record=count,vector?);
 
         @statistic[VamReceivedJoinID](source=VamReceivedJoinId;record=count,vector?);
+        @statistic[VamReceivedLeaveID](source=VamReceivedLeaveId;record=count,vector?);
         @statistic[VamClusterMember](source=ClusterMember;record=count,vector?);
 
         @signal[LeaveReasonCounter];
         @signal[BreakupReasonCounter];
+        @signal[Location];
 
         @statistic[LeaveReasonCounter](source=LeaveReasonCounter;record=count,vector?);
         @statistic[BreakupReasonCounter](source=BreakupReasonCounter;record=count,vector?);
+        
+
+        @signal[MessageSize];
+        @statistic[MessageSize](source=MessageSize;record=count,vector?);
 
         // Geometric evaluations
         @signal[BoundingBoxArea](type=double);
         @signal[BoundingBoxPerimeter](type=double);
+        @signal[LargestDistToLeader](type=double);
+        @signal[BoundingBoxRadius](type=double);
 
         @statistic[BoundingBoxArea](source=BoundingBoxArea;record=vector);
         @statistic[BoundingBoxPerimeter](source=BoundingBoxPerimeter;record=vector);
+        @statistic[LargestDistToLeader](source=LargestDistToLeader;record=vector);
+        @statistic[BoundingBoxRadius](source=BoundingBoxRadius;record=vector);
 
         // Cluster Parameter evaluations
         @signal[CardinalitySize](type=unsigned long);
         @statistic[CardinalitySize](source=CardinalitySize;record=vector);
+
+        // Parameters received from leader's CIC
+        @signal[DistFromInfoContainer];
+        @signal[CardFromInfoContainer];
+
+        @statistic[DistFromInfoContainer](source=DistFromInfoContainer; record=vector);
+        @statistic[CardFromInfoContainer](source=CardFromInfoContainer; record=vector);
         
         // evaluate DCC transmission interval restrictions
         bool withDccRestriction = default(true);
@@ -127,18 +160,18 @@ simple VaService like ItsG5Service
         bool enableBoundingBoxPadding = default(false);
         
         // Cluster membership parameters 
-        double timeClusterUniquenessThreshold @unit(s) = default(30.0s);
-        double timeClusterBreakupWarning @unit(s) = default(3.0s);
-        double timeClusterJoinNotification @unit(s) = default(3.0s);
-        double timeClusterJoinSuccess @unit(s) = default(0.5s);
-        double timeClusterIdChangeNotification @unit(s) = default(3.0s);
-        double timeClusterIdPersist @unit(s) = default(3.0s);
-        double timeClusterContinuity @unit(s) = default(2.0s);
-        double timeClusterLeaderWaiting @unit(s) = default(2.0s);
-        double timeClusterLeaveNotification @unit(s) = default(1.0s);
-        double timeCombinedVruClusterOpportunity @unit(s) = default(15.0s);
+        double timeClusterUniquenessThreshold  = default(30.0);
+        double timeClusterBreakupWarning  = default(3.0);
+        double timeClusterJoinNotification  = default(3.0);
+        double timeClusterJoinSuccess = default(0.5);
+        double timeClusterIdChangeNotification  = default(3.0);
+        double timeClusterIdPersist  = default(3.0);
+        double timeClusterContinuity  = default(2.0);
+        double timeClusterLeaderWaiting  = default(2.0);
+        double timeClusterLeaveNotification  = default(1.0);
+        double timeCombinedVruClusterOpportunity  = default(3.0);
 
         // Custom max interval between cluster VAMs due to timeClusterContinuity parameter
-        double clusterMaxInterval @unit(s) = default(2.0s);
+        double clusterMaxInterval = default(2.0);
         
 }

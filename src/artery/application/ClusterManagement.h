@@ -91,6 +91,10 @@ class ClusterManagement
         void registerClusterId(long clusterId){mClusterId = clusterId;}
         long getClusterId(){return mClusterId;}
 
+        void updateReceivedIdMap(long receivedId, const omnetpp::SimTime& T_now);
+        void refreshReceivedIdMap(const omnetpp::SimTime& T_now);
+        bool isClusterIdUnique(long proposedId);
+
         // Cluster parameter getters
         std::string boundingBoxShape() const {return mBoundingBoxShape;}
 	    unsigned numCreateCluster() const {return mNumCreateCluster;}
@@ -129,6 +133,10 @@ class ClusterManagement
 
         double getBoundingBoxArea() const {return mBoundingBoxArea;}
         double getBoundingBoxPerimeter() const {return mBoundingBoxPerimeter;}
+        double getLargetDistanceToLeader() const {return mLargestDistanceToLeader;}
+
+        double getDistFromCIC() const {return mDistFromCIC.value();}
+        double getCardFromCIC() const {return mCardFromCIC;}
 
         InformationContainerData_t generateDataForNewCluster(long);
         InformationContainerData_t generateDataForCurrentCluster();
@@ -136,6 +144,7 @@ class ClusterManagement
     private:
         VruRoleType currentVruRole;
         long mClusterId;
+        std::map<long, omnetpp::SimTime> mReceivedIdMap;
 
         // Geometry definitions
         typedef boost::geometry::model::point <double,2,boost::geometry::cs::cartesian>pointXY;
@@ -176,6 +185,11 @@ class ClusterManagement
         void setBoundingBoxArea(double area){mBoundingBoxArea = area;}
         double mBoundingBoxPerimeter;
         void setBoundingBoxPerimeter(double perimeter){mBoundingBoxPerimeter = perimeter;}
+        double mLargestDistanceToLeader;
+        void setLargestDistanceToLeader(double largestDistance){mLargestDistanceToLeader = largestDistance;}
+
+        vanetza::units::Length mDistFromCIC;
+        long mCardFromCIC;
 
         // Parameter validation
         double velocityDifference(SpeedValue_t, SpeedValue_t);

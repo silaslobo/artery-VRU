@@ -91,4 +91,34 @@ protected:
 
 Register_ResultFilter("vamGenerationDeltaTime", VamGenerationDeltaTimeResultFilter)
 
+class VamLatitudeResultFilter : public cObjectResultFilter
+{
+protected:
+    void receiveSignal(cResultFilter* prev, simtime_t_cref t, cObject* object, cObject* details) override
+    {
+        if (auto vam = dynamic_cast<VaObject*>(object)) {
+            const auto latitude = vam->asn1()->vam.vamParameters.basicContainer.referencePosition.latitude;
+            fire(this, t, latitude, details);
+        }
+    }
+    
+};
+
+Register_ResultFilter("vamLatitude", VamLatitudeResultFilter)
+
+class VamLongitudeResultFilter : public cObjectResultFilter
+{
+protected:
+    void receiveSignal(cResultFilter* prev, simtime_t_cref t, cObject* object, cObject* details) override
+    {
+        if (auto vam = dynamic_cast<VaObject*>(object)) {
+            const auto longitude = vam->asn1()->vam.vamParameters.basicContainer.referencePosition.longitude;
+            fire(this, t, longitude, details);
+        }
+    }
+    
+};
+
+Register_ResultFilter("vamLongitude", VamLongitudeResultFilter)
+
 } // namespace artery

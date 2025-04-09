@@ -1,0 +1,26 @@
+***Starting server on port 47439 ***
+Loading net-file from 'scenario/InTAS_24.net.xml' ... done (1096ms).
+Loading additional-files from 'scenario/BusStations.add.xml' ... done (15ms).
+Loading route-files incrementally from 'scenario/InTAS_intermodal_updated_v2.rou.xml'
+Loading route-files incrementally from 'scenario/pt_lines.flow.xml'
+Loading done.
+Simulation version 1.22.0 started with time: 0.00.
+Simulation ended at time: 22000.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 2207.89s
+ TraCI-Duration: 2158.22s
+ Real time factor: 9.96428
+ UPS: 483.570257
+ UPS-Persons: 2101.274251
+Vehicles:
+ Inserted: 97
+ Running: 38
+ Waiting: 0
+ Teleports: 14 (Wrong Lane: 14)
+Persons:
+ Inserted: 335
+ Running: 190
+ Jammed: 50
+DijkstraRouter answered 81654 queries and explored 15.43 edges on average.
+DijkstraRouter spent 0.41s answering queries (0.00ms on average).

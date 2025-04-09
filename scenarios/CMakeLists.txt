@@ -7,6 +7,8 @@ add_subdirectory(CPM_and_VAM)
 add_subdirectory(VAM_Clustering)
 add_subdirectory(clusterContainer)
 add_subdirectory(ITSC_2023)
+add_subdirectory(CAM_BL)
+add_subdirectory(InTAS_VRU)
 
 
 if(WITH_ENVMOD)

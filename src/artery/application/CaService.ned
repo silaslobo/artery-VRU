@@ -27,6 +27,16 @@ simple CaService like ItsG5Service
 
         @statistic[Cam2Mac](record=count,vector?);
 
+        @signal[CamTriggerPosition];
+        @signal[CamTriggerHeading];
+        @signal[CamTriggerSpeed];
+        @signal[CamTime];
+
+        @statistic[PositionTrigger](source=CamTriggerPosition;record=count,vector?);
+        @statistic[HeadingTrigger](source=CamTriggerHeading;record=count,vector?);
+        @statistic[SpeedTrigger](source=CamTriggerSpeed;record=count,vector?);
+        @statistic[CamTimerCounter](source=CamTime;record=count,vector?);
+
         // evaluate DCC transmission interval restrictions
         bool withDccRestriction = default(true);
 

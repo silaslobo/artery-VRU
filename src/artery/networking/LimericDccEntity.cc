@@ -4,6 +4,14 @@
 namespace artery
 {
 
+using namespace omnetpp;
+static const simsignal_t SignalPacketsTransmitted = cComponent::registerSignal("packetsTransmitted");
+static const simsignal_t SignalPacketsTransmittedDP2 = cComponent::registerSignal("packetsTransmittedDP2");
+static const simsignal_t SignalPacketsTransmittedDP3 = cComponent::registerSignal("packetsTransmittedDP3");
+static const simsignal_t SignalPacketsDropped = cComponent::registerSignal("packetsDropped");
+static const simsignal_t SignalPacketsDroppedDP2 = cComponent::registerSignal("packetsDroppedDP2");
+static const simsignal_t SignalPacketsDroppedDP3 = cComponent::registerSignal("packetsDroppedDP3");
+
 Define_Module(LimericDccEntity)
 
 void LimericDccEntity::finish()
@@ -16,6 +24,20 @@ void LimericDccEntity::finish()
 
 vanetza::dcc::TransmitRateThrottle* LimericDccEntity::getTransmitRateThrottle()
 {
+    unsigned long transmittedPackets = DccEntityBase::mFlowControl->mDccTransmittedPackets;
+    unsigned long transmittedPacketsDP2 = DccEntityBase::mFlowControl->mDccDP2TransmittedPackets;
+    unsigned long transmittedPacketsDP3 = DccEntityBase::mFlowControl->mDccDP3TransmittedPackets;
+    emit(SignalPacketsTransmitted, transmittedPackets);
+    emit(SignalPacketsTransmittedDP2, transmittedPacketsDP2);
+    emit(SignalPacketsTransmittedDP3, transmittedPacketsDP3);
+
+    unsigned long droppedPackets = DccEntityBase::mFlowControl->mDccDroppedPackets;
+    unsigned long droppedPacketsDP2 = DccEntityBase::mFlowControl->mDccDP2DroppedPackets;
+    unsigned long droppedPacketsDP3 = DccEntityBase::mFlowControl->mDccDP3DroppedPackets;
+    emit(SignalPacketsDropped, droppedPackets);
+    emit(SignalPacketsDroppedDP2, droppedPacketsDP2);
+    emit(SignalPacketsDroppedDP3, droppedPacketsDP3);
+
     return notNullPtr(mTransmitRateControl);
 }
 
