@@ -31,6 +31,8 @@ public:
     const PersonType& getPersonType() const;
     const libsumo::TraCIPositionVector& getBoundary() const;
 
+    const std::string getvehicle() const;
+
 
     artery::Position getPosition() const;
     artery::GeoPosition getGeoPosition() const;

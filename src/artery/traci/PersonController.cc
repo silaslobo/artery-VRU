@@ -83,6 +83,11 @@ const std::string PersonController::getVehicleClass() const //StationType
     return pm_cache->get<libsumo::VAR_VEHICLECLASS>();
 }
 
+const std::string PersonController::getvehicle() const // returns vehicle ID if the person is on a ride
+{
+    return pm_traci->person.getVehicle(pm_cache->getId());
+}
+
 /*
 
 auto PersonController::getMaxSpeed() const -> Velocity
