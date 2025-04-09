@@ -213,53 +213,61 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 	const SimTime T_GenVamDcc = mDccRestriction ? genVamDcc() : T_GenVamMin;
 	const SimTime T_elapsed = T_now - mLastVamTimestamp;
 
-	if(mClusterSupport && mClusterManagement.isVruClusterLeader()){
-		if(mClusterManagement.clusterShouldBreakup_ElapsedTime(T_now) && mClusterManagement.getCurrentClusterSize() < mClusterManagement.numCreateCluster()){			
-			setVruClusterOperation(BreakupCluster);			
-			sendVam(T_now);			
-			return;
-		}else{			
-			T_GenVamMax = mClusterGenVamMax;
-		}
-	}else{		
-		T_GenVamMax = mGenVamMax;
-	}
+		
+	std::string riding = api->person.getVehicle(mPersonController->getPersonId());
+	
 
-	if (!mClusterManagement.isVruPassive() || !mClusterSupport){
-		if (T_elapsed >= T_GenVamDcc) {
-			if (mFixedRate) {
+	//condition for not riding a BUS
+	if (riding.empty())
+	{
+		if(mClusterSupport && mClusterManagement.isVruClusterLeader()){
+			if(mClusterManagement.clusterShouldBreakup_ElapsedTime(T_now) && mClusterManagement.getCurrentClusterSize() < mClusterManagement.numCreateCluster()){
+				setVruClusterOperation(BreakupCluster);
 				sendVam(T_now);
-			}else if (checkHeadingDelta() || checkPositionDelta() || checkSpeedDelta()) {
-				if (checkHeadingDelta()){
-					emit(SignalVamHeading, 1);
-				}
-				if (checkPositionDelta()){
-					emit(SignalVamPosition, 1);
-				}
-				if (checkSpeedDelta()){
-					emit(SignalVamSpeed, 1);
-				}
-				sendVam(T_now);
-				T_GenVam = std::min(T_elapsed, T_GenVamMax); /*< if middleware update interval is too long */
-				mGenVamLowDynamicsCounter = 0;
+				return;
+			}else{
+				T_GenVamMax = mClusterGenVamMax;
 			}
-			else if (T_elapsed >= T_GenVam)
-			{
-				sendVam(T_now);
-				emit(SignalVamTime, 1);
-				if (++mGenVamLowDynamicsCounter >= mGenVamLowDynamicsLimit)
+		}else{
+			T_GenVamMax = mGenVamMax;
+		}
+
+		if (!mClusterManagement.isVruPassive() || !mClusterSupport){
+			if (T_elapsed >= T_GenVamDcc) {
+				if (mFixedRate) {
+					sendVam(T_now);
+				}else if (checkHeadingDelta() || checkPositionDelta() || checkSpeedDelta()) {
+					if (checkHeadingDelta()){
+						emit(SignalVamHeading, 1);
+					}
+					if (checkPositionDelta()){
+						emit(SignalVamPosition, 1);
+					}
+					if (checkSpeedDelta()){
+						emit(SignalVamSpeed, 1);
+					}
+					sendVam(T_now);
+					T_GenVam = std::min(T_elapsed, T_GenVamMax); /*< if middleware update interval is too long */
+					mGenVamLowDynamicsCounter = 0;
+				}
+				else if (T_elapsed >= T_GenVamMax)
 				{
-					T_GenVam = T_GenVamMax;
+					sendVam(T_now);
+					emit(SignalVamTime, 1);
+					if (++mGenVamLowDynamicsCounter >= mGenVamLowDynamicsLimit)
+					{
+						T_GenVam = T_GenVamMax;
+					}
 				}
 			}
+		}else if(mClusterManagement.vruShouldLeave_ElapsedTime(T_now) || currentVruClusterOperation == VruShouldLeave){
+			setVruClusterOperation(VruShouldLeave);
+			sendVam(T_now);
 		}
-	}else if(mClusterManagement.vruShouldLeave_ElapsedTime(T_now) || currentVruClusterOperation == VruShouldLeave){		
-		setVruClusterOperation(VruShouldLeave);		
-		sendVam(T_now);
-	}
 
-	if(mClusterSupport){
-		mClusterManagement.refreshReceivedIdMap(T_now);
+		if(mClusterSupport){
+			mClusterManagement.refreshReceivedIdMap(T_now);
+		}
 	}
 }
 
