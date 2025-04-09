@@ -30,6 +30,12 @@ using namespace omnetpp;
 static const simsignal_t scSignalCamReceived = cComponent::registerSignal("CamReceived");
 static const simsignal_t scSignalCamSent = cComponent::registerSignal("CamSent");
 static const simsignal_t scSignalCam2Mac = cComponent::registerSignal("Cam2Mac");
+
+static const simsignal_t SignalCamPosition = cComponent::registerSignal("CamTriggerPosition");
+static const simsignal_t SignalCamHeading = cComponent::registerSignal("CamTriggerHeading");
+static const simsignal_t SignalCamSpeed = cComponent::registerSignal("CamTriggerSpeed");
+static const simsignal_t SignalCamTime = cComponent::registerSignal("CamTime");
+
 static const auto scLowFrequencyContainerInterval = std::chrono::milliseconds(500);
 
 
@@ -122,11 +128,21 @@ void CaService::checkTriggeringConditions(const SimTime& T_now)
 		if (mFixedRate) {
 			sendCam(T_now);
 		} else if (checkHeadingDelta() || checkPositionDelta() || checkSpeedDelta()) {
+			if (checkHeadingDelta()){
+				emit(SignalCamHeading, 1);
+			}
+			if (checkPositionDelta()){
+				emit(SignalCamPosition, 1);
+			}
+			if (checkSpeedDelta()){
+				emit(SignalCamSpeed, 1);
+			}
 			sendCam(T_now);
 			T_GenCam = std::min(T_elapsed, T_GenCamMax); /*< if middleware update interval is too long */
 			mGenCamLowDynamicsCounter = 0;
 		} else if (T_elapsed >= T_GenCam) {
 			sendCam(T_now);
+			emit(SignalCamTime, 1);
 			if (++mGenCamLowDynamicsCounter >= mGenCamLowDynamicsLimit) {
 				T_GenCam = T_GenCamMax;
 			}
