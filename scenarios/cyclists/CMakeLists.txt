@@ -1,0 +1,1 @@
+add_opp_run(cyclists WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

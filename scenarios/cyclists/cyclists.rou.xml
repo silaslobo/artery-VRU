@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<routes>
+
+   <vType id="car" vClass="passenger" />
+   <vType id="bike" vClass="bicycle" />
+
+   <route id="route0" edges="hw0" />
+
+   <vehicle id="car0" type="car" route="route0" depart="0" departLane="free" />
+   <vehicle id="bike0" type="bike" route="route0" depart="0" departLane="free" />
+   <person id="p0" depart="0">
+      <walk edges="hw0" />
+   </person>
+
+</routes>
