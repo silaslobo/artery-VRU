@@ -4,10 +4,10 @@
 #include <omnetpp/cmodule.h>
 #include <string>
 
+#include "traci/NodeManager.h"
+
 namespace traci
 {
-
-class NodeManager;
 
 class ModuleMapper
 {

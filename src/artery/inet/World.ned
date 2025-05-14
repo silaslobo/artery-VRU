@@ -13,6 +13,7 @@ network World
         bool withPhysicalEnvironment = default(false);
         int numRoadSideUnits = default(0);
         traci.mapper.personType = default("artery.inet.Person");
+        traci.mapper.bicycleType = default("artery.inet.Bicycle");
         traci.mapper.vehicleType = default("artery.inet.Car");
         traci.nodes.personSinkModule = default(".mobility");
         traci.nodes.vehicleSinkModule = default(".mobility");

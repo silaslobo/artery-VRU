@@ -5,6 +5,7 @@ simple BasicModuleMapper like ModuleMapper
     parameters:
         @class(traci::BasicModuleMapper);
         string personType;
+        string bicycleType;
         string vehicleType;
         double penetrationRate = default(1.0);
         double personPenetrationRate = default(-1.0); // use penetrationRate when negative

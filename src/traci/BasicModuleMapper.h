@@ -21,6 +21,7 @@ protected:
 
 private:
     omnetpp::cModuleType* m_person_type;
+    omnetpp::cModuleType* m_bicycle_type;
     omnetpp::cModuleType* m_vehicle_type;
     omnetpp::cRNG* m_rng;
     double m_person_penetration;

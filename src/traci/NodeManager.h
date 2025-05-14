@@ -4,10 +4,10 @@
 #include <cstdint>
 #include <memory>
 
+#include "traci/API.h"
+
 namespace traci
 {
-
-class API;
 
 class NodeManager
 {

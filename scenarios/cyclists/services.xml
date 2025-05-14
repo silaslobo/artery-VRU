@@ -4,6 +4,9 @@
         <listener port="2018" />
             <filters>
                 <type pattern="artery.inet.Person" />
+                <!--
+                <type pattern="artery.inet.Bicycle" />
+                -->
             </filters>
     </service>
     <service type="artery.application.CaService">

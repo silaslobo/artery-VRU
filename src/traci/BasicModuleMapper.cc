@@ -13,6 +13,7 @@ void BasicModuleMapper::initialize()
 {
     m_rng = getRNG(0);
     m_person_type = cModuleType::find(par("personType"));
+    m_bicycle_type = cModuleType::find(par("bicycleType"));
     m_vehicle_type = cModuleType::get(par("vehicleType"));
 
     double penetration = par("penetrationRate");
@@ -33,7 +34,10 @@ cModuleType* BasicModuleMapper::person(NodeManager& manager, const std::string& 
 
 cModuleType* BasicModuleMapper::vehicle(NodeManager& manager, const std::string& id)
 {
-    return equipVehicle() ? m_vehicle_type : nullptr;
+    if (!equipVehicle()) return nullptr;
+    auto vehicleClass = manager.getAPI()->vehicle.getVehicleClass(id);
+    if (vehicleClass == "bicycle" && m_bicycle_type) return m_bicycle_type;
+    return m_vehicle_type;
 }
 
 bool BasicModuleMapper::equipPerson()
