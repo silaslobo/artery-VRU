@@ -10,6 +10,7 @@
 #include "artery/application/ItsG5BaseService.h"
 #include "artery/utility/Channel.h"
 #include "artery/utility/Geometry.h"
+#include "artery/traci/EntityController.h"
 #include <vanetza/asn1/vam.hpp>
 #include <vanetza/btp/data_interface.hpp>
 #include <vanetza/units/angle.hpp>
@@ -31,8 +32,6 @@
 	
 */
 
-
-namespace traci { class PersonController; class Boundary;}
 
 namespace artery
 {
@@ -75,7 +74,7 @@ class VaService : public ItsG5BaseService
 		ChannelNumber mPrimaryChannel = channel::CCH;
 		vanetza::dcc::ChannelLoad mChannelLoad;
 		const NetworkInterfaceTable* mNetworkInterfaceTable = nullptr;
-		const EntityDataProvider* mPersonDataProvider = nullptr;
+		const EntityDataProvider* mEntityDataProvider = nullptr;
 		const Timer* mTimer = nullptr;
 		ClusterManagement mClusterManagement;
 		ClusterManagementParameters_t mClusterManagementParameters;
@@ -136,7 +135,7 @@ class VaService : public ItsG5BaseService
 
 		//access to control Person connection among Artery, Omnetpp, and SUMO
 		void personSumoData(const omnetpp::SimTime&);
-		const traci::PersonController* mPersonController = nullptr;
+		const traci::EntityController* mEntityController = nullptr;
 		std::shared_ptr<const traci::API> api;			
 
 		void addClusterJoinOperationContainer(vanetza::asn1::Vam&, const SimTime&);	

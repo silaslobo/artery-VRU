@@ -17,7 +17,7 @@ VehicleController::VehicleController(std::shared_ptr<traci::API> api, const std:
 }
 
 VehicleController::VehicleController(std::shared_ptr<traci::API> api, std::shared_ptr<VehicleCache> cache) :
-    m_traci(api), m_boundary(api->simulation.getNetBoundary()),
+    EntityController(api), m_boundary(api->simulation.getNetBoundary()),
     m_type(api->vehicletype, api->vehicle.getTypeID(cache->getId())), m_cache(cache)
 {
 }
@@ -51,7 +51,7 @@ auto VehicleController::getGeoPosition() const -> artery::GeoPosition
 {
     TraCIPosition traci_pos = m_cache->get<libsumo::VAR_POSITION>();
 
-    TraCIGeoPosition traci_geo = m_traci->convertGeo(traci_pos);
+    TraCIGeoPosition traci_geo = traci_->convertGeo(traci_pos);
     artery::GeoPosition geo;
     geo.latitude = traci_geo.latitude * boost::units::degree::degree;
     geo.longitude = traci_geo.longitude * boost::units::degree::degree;
@@ -76,22 +76,22 @@ auto VehicleController::getMaxSpeed() const -> Velocity
 
 void VehicleController::setMaxSpeed(Velocity v)
 {
-    m_traci->vehicle.setMaxSpeed(m_cache->getId(), v / si::meter_per_second);
+    traci_->vehicle.setMaxSpeed(m_cache->getId(), v / si::meter_per_second);
 }
 
 void VehicleController::setSpeed(Velocity v)
 {
-    m_traci->vehicle.setSpeed(m_cache->getId(), v / si::meter_per_second);
+    traci_->vehicle.setSpeed(m_cache->getId(), v / si::meter_per_second);
 }
 
 void VehicleController::setSpeedFactor(double f)
 {
-    m_traci->vehicle.setSpeedFactor(m_cache->getId(), f);
+    traci_->vehicle.setSpeedFactor(m_cache->getId(), f);
 }
 
 void VehicleController::setSpeedMode(int m)
 {
-    m_traci->vehicle.setSpeedMode(m_cache->getId(), m);
+    traci_->vehicle.setSpeedMode(m_cache->getId(), m);
 }
 
 auto VehicleController::getLength() const -> Length
@@ -106,7 +106,7 @@ auto VehicleController::getWidth() const -> Length
 
 void VehicleController::changeTarget(const std::string& edge)
 {
-    m_traci->vehicle.changeTarget(m_cache->getId(), edge);
+    traci_->vehicle.changeTarget(m_cache->getId(), edge);
 }
 
 } // namespace traci

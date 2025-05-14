@@ -115,9 +115,15 @@ VaService::VaService() :
 void VaService::initialize()
 {
 	ItsG5BaseService::initialize();
+
+	auto& identity = getFacilities().get_const<artery::Identity>();
+	std::string moduleName = identity.host->getModuleType()->getFullName();
+	if (moduleName != "artery.inet.Person" && moduleName != "artery.inet.Bicycle") {
+		throw omnetpp::cRuntimeError("tried to use VaService with invalid module '%s'", moduleName.c_str());
+	}
 	
 	mNetworkInterfaceTable = &getFacilities().get_const<NetworkInterfaceTable>();
-	mPersonDataProvider = &getFacilities().get_const<EntityDataProvider>();
+	mEntityDataProvider = &getFacilities().get_const<EntityDataProvider>();
 	mTimer = &getFacilities().get_const<Timer>();
 	
 	// avoid unreasonable high elapsed time values for newly inserted vehicles
@@ -129,8 +135,8 @@ void VaService::initialize()
 	mLocalDynamicMap = &getFacilities().get_mutable<artery::LocalDynamicMap>();
 	
 	//mLocalEnvironmentModel = &getFacilities().get_mutable<LocalEnvironmentModel>();	
-	mPersonController = &getFacilities().get_const<traci::PersonController>();
-	api = mPersonController->getTraCI();
+	mEntityController = &getFacilities().get_const<traci::EntityController>();
+	api = mEntityController->getTraCI();
 
 	// generation rate boundaries
 	mGenVamMin = par("minInterval");
@@ -180,7 +186,7 @@ void VaService::initialize()
 		mClusterManagementParameters.EnableBoundingBoxPadding = par("enableBoundingBoxPadding");
 
 		mClusterManagement.initialize(mClusterManagementParameters);
-		mClusterManagement.simObjects(mPersonDataProvider, mLocalDynamicMap, mPersonController);
+		mClusterManagement.simObjects(mEntityDataProvider, mLocalDynamicMap, mEntityController);
 		
 		mClusterGenVamMax = par("clusterMaxInterval");
 
@@ -213,9 +219,12 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 	const SimTime T_GenVamDcc = mDccRestriction ? genVamDcc() : T_GenVamMin;
 	const SimTime T_elapsed = T_now - mLastVamTimestamp;
 
-		
-	std::string riding = api->person.getVehicle(mPersonController->getPersonId());
-	
+	std::string riding;
+
+	auto personController = dynamic_cast<traci::PersonController const*>(mEntityController);
+	if (personController != nullptr) {
+		api->person.getVehicle(personController->getPersonId());
+	}
 
 	//condition for not riding a BUS
 	if (riding.empty())
@@ -355,7 +364,7 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 				}
 			}else if(vam_data.vamParameters.vruClusterOperationContainer->clusterBreakupInfo){
 				if(mClusterManagement.isVruPassive() && vam_data.vamParameters.vruClusterInformationContainer->clusterId == mTargetClusterId){
-					//mPersonDataProvider->setStationId(Identity::randomStationId(getRNG(0)));
+					//mEntityDataProvider->setStationId(Identity::randomStationId(getRNG(0)));
 					mClusterManagement.setLeaveReason(ClusterLeaveReason_clusterDisbandedByLeader);
 					setVruClusterOperation(VruShouldLeave);
 				}
@@ -370,30 +379,30 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 	
 bool VaService::checkHeadingDelta() const
 {
-	return !vanetza::facilities::similar_heading(mLastVamHeading, mPersonDataProvider->heading(), mHeadingDelta);
+	return !vanetza::facilities::similar_heading(mLastVamHeading, mEntityDataProvider->heading(), mHeadingDelta);
 }
 
 bool VaService::checkPositionDelta() const
 {
-	return (distance(mLastVamPosition, mPersonDataProvider->position()) > mPositionDelta);
+	return (distance(mLastVamPosition, mEntityDataProvider->position()) > mPositionDelta);
 }
 
 bool VaService::checkSpeedDelta() const
 {
-	return abs(mLastVamSpeed - mPersonDataProvider->speed()) > mSpeedDelta;
+	return abs(mLastVamSpeed - mEntityDataProvider->speed()) > mSpeedDelta;
 }
 
 
 void VaService::sendVam(const SimTime& T_now)
 {	
-	emit(scVruStationID, mPersonDataProvider->getStationId());
+	emit(scVruStationID, mEntityDataProvider->getStationId());
 	
-	uint16_t genDeltaTimeMod = countTaiMilliseconds(mTimer->getTimeFor(mPersonDataProvider->updated()));
-	auto vam = createVRUAwarenessMessage(*mPersonDataProvider, genDeltaTimeMod);
-	mLastVamPosition = mPersonDataProvider->position();
-	mLastVamSpeed = mPersonDataProvider->speed();
+	uint16_t genDeltaTimeMod = countTaiMilliseconds(mTimer->getTimeFor(mEntityDataProvider->updated()));
+	auto vam = createVRUAwarenessMessage(*mEntityDataProvider, genDeltaTimeMod);
+	mLastVamPosition = mEntityDataProvider->position();
+	mLastVamSpeed = mEntityDataProvider->speed();
 
-	mLastVamHeading = mPersonDataProvider->heading();
+	mLastVamHeading = mEntityDataProvider->heading();
 	mLastVamTimestamp = T_now;
 	if (T_now - mLastLowVamTimestamp >= artery::simtime_cast(scLowFrequencyContainerInterval)) {
 		//addLowFrequencyContainer(vam, par("pathHistoryLength"));

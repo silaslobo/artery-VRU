@@ -99,6 +99,7 @@ void PersonMiddleware::initializePersonController(cPar& mobilityPar)
 	mPersonController = mobility->getPersonController();
 	ASSERT(mPersonController);
 	getFacilities().register_mutable(mPersonController);
+	getFacilities().register_mutable<traci::EntityController>(mPersonController);
 }
 
 void PersonMiddleware::receiveSignal(cComponent* component, simsignal_t signal, cObject* obj, cObject* details)

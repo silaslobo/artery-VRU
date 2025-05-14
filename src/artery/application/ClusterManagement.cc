@@ -7,7 +7,7 @@
 #include <string>
 #include "artery/application/EntityDataProvider.h"
 #include <artery/envmod/LocalEnvironmentModel.h>
-#include "artery/traci/PersonController.h"
+#include "artery/traci/EntityController.h"
 #include <artery/envmod/LocalEnvironmentModel.h>
 #include <artery/envmod/EnvironmentModelObject.h>
 #include "traci/API.h"
@@ -57,13 +57,12 @@ void ClusterManagement::initialize(ClusterManagementParameters_t& cManagementPar
 	setLargestDistanceToLeader(0.01);
 }
 
-void ClusterManagement::simObjects(const EntityDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc){
+void ClusterManagement::simObjects(const EntityDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::EntityController* pc){
 
 	mPersonDataProvider =  pdp;
 	mLocalDynamicMap = ldm;
-	mPersonController = pc;
 
-	api = mPersonController->getTraCI();
+	api = pc->getTraCI();
 }
 
 void ClusterManagement::setCurrentVruRole(VruRoleType newVruRole){currentVruRole = newVruRole;}

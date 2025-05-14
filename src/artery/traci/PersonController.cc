@@ -17,7 +17,7 @@ PersonController::PersonController(std::shared_ptr<traci::API> p_api, const std:
 }
 
 PersonController::PersonController(std::shared_ptr<traci::API> p_api, std::shared_ptr<PersonCache> p_cache) :
-    pm_traci(p_api), pm_boundary(p_api->simulation.getNetBoundary()),
+    EntityController(p_api), pm_boundary(p_api->simulation.getNetBoundary()),
     pm_type(p_api->person, p_api->person.getTypeID(p_cache->getId())),
     pm_cache(p_cache)
 {
@@ -25,7 +25,7 @@ PersonController::PersonController(std::shared_ptr<traci::API> p_api, std::share
 
 const libsumo::TraCIPositionVector& PersonController::getBoundary() const
 {
-    return pm_traci->simulation.getNetBoundary();
+    return traci_->simulation.getNetBoundary();
 }
 
 const std::string& PersonController::getPersonId() const
@@ -41,7 +41,7 @@ const PersonType& PersonController::getPersonType() const
 
 const std::string PersonController::getPersonRoadID() const
 {
-    return pm_traci->person.getRoadID(pm_cache->getId());
+    return traci_->person.getRoadID(pm_cache->getId());
     //return pm_cache->get<libsumo::CMD_GET_EDGE_VARIABLE>();
     
 } 
@@ -55,7 +55,7 @@ auto PersonController::getGeoPosition() const -> artery::GeoPosition
 {
     TraCIPosition traci_pos = pm_cache->get<libsumo::VAR_POSITION>();
 
-    TraCIGeoPosition traci_geo = pm_traci->convertGeo(traci_pos);
+    TraCIGeoPosition traci_geo = traci_->convertGeo(traci_pos);
     artery::GeoPosition geo;
     geo.latitude = traci_geo.latitude * boost::units::degree::degree;    
     geo.longitude = traci_geo.longitude * boost::units::degree::degree;
@@ -75,7 +75,7 @@ auto PersonController::getSpeed() const -> Velocity
 
 void PersonController::setSpeed(Velocity v)
 {
-    pm_traci->person.setSpeed(pm_cache->getId(), v / si::meter_per_second);
+    traci_->person.setSpeed(pm_cache->getId(), v / si::meter_per_second);
 }
 
 const std::string PersonController::getVehicleClass() const //StationType
@@ -85,7 +85,7 @@ const std::string PersonController::getVehicleClass() const //StationType
 
 const std::string PersonController::getvehicle() const // returns vehicle ID if the person is on a ride
 {
-    return pm_traci->person.getVehicle(pm_cache->getId());
+    return traci_->person.getVehicle(pm_cache->getId());
 }
 
 /*

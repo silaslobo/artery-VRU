@@ -1,6 +1,7 @@
 #ifndef ARTERY_CLUSTERMANAGEMENT_H_
 #define ARTERY_CLUSTERMANAGEMENT_H_
 
+#include "artery/traci/EntityController.h"
 #include "artery/application/ItsG5BaseService.h"
 #include "artery/application/VaObject.h"
 #include "artery/utility/Geometry.h"
@@ -70,7 +71,7 @@ class ClusterManagement
         ClusterManagement();
         
         void initialize(ClusterManagementParameters_t&);
-        void simObjects(const EntityDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc);
+        void simObjects(const EntityDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::EntityController* pc);
 
         void setCurrentVruRole(VruRoleType newVruRole);
         VruRoleType getCurrentVruRole();
@@ -239,7 +240,6 @@ class ClusterManagement
 
         LocalDynamicMap* mLocalDynamicMap;
         const EntityDataProvider* mPersonDataProvider;
-        const traci::PersonController* mPersonController;
 		std::shared_ptr<const traci::API> api;
 
 };

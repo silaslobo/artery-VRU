@@ -1,21 +1,15 @@
 #ifndef PERSONCONTROLLER_H
 #define PERSONCONTROLLER_H
 
+#include "artery/traci/EntityController.h"
 #include "artery/traci/PersonType.h"
-#include "artery/utility/Geometry.h"
-#include "traci/API.h"
 #include "traci/VariableCache.h"
-#include <vanetza/units/acceleration.hpp>
-#include <vanetza/units/angle.hpp>
-#include <vanetza/units/length.hpp>
-#include <vanetza/units/velocity.hpp>
-#include <string>
 
 namespace traci
 {
 class PersonCache;
 
-class PersonController
+class PersonController : public EntityController
 {
 public:
     using Acceleration = vanetza::units::Acceleration;
@@ -34,10 +28,10 @@ public:
     const std::string getvehicle() const;
 
 
-    artery::Position getPosition() const;
-    artery::GeoPosition getGeoPosition() const;
-    artery::Angle getHeading() const;
-    Velocity getSpeed() const;
+    artery::Position getPosition() const override;
+    artery::GeoPosition getGeoPosition() const override;
+    artery::Angle getHeading() const override;
+    Velocity getSpeed() const override;
     //Velocity getMaxSpeed() const;
     //void setMaxSpeed(Velocity);
     void setSpeed(Velocity);
@@ -49,11 +43,7 @@ public:
         
     void changeTarget(const std::string& edge);
 
-    std::shared_ptr<traci::API> getTraCI() { return pm_traci; }
-    std::shared_ptr<const traci::API> getTraCI() const { return pm_traci; }
-    
 private:
-    std::shared_ptr<traci::API> pm_traci;
     traci::Boundary pm_boundary;
     PersonType pm_type;
     std::shared_ptr<PersonCache> pm_cache;   

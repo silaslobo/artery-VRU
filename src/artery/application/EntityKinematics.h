@@ -14,7 +14,7 @@
 #include <vanetza/units/angular_velocity.hpp>
 
 // forward declaration
-namespace traci { class VehicleController; class PersonController; }
+namespace traci { class EntityController; }
 
 namespace artery
 {
@@ -34,8 +34,7 @@ struct EntityKinematics
     vanetza::units::AngularVelocity yaw_rate;
 };
 
-EntityKinematics getKinematics(const traci::VehicleController&);
-EntityKinematics getKinematics(const traci::PersonController&);
+EntityKinematics getKinematics(const traci::EntityController&);
 
 } // namespace artery
 

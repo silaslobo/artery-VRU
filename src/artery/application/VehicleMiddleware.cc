@@ -61,6 +61,7 @@ void VehicleMiddleware::initializeVehicleController(cPar& mobilityPar)
 	mVehicleController = mobility->getVehicleController();
 	ASSERT(mVehicleController);
 	getFacilities().register_mutable(mVehicleController);
+	getFacilities().register_mutable<traci::EntityController>(mVehicleController);
 }
 
 void VehicleMiddleware::receiveSignal(cComponent* component, simsignal_t signal, cObject* obj, cObject* details)

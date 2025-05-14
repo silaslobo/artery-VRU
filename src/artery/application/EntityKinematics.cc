@@ -12,17 +12,7 @@ EntityKinematics::EntityKinematics() :
 {
 }
 
-EntityKinematics getKinematics(const traci::VehicleController& controller)
-{
-    artery::EntityKinematics kinematics;
-    kinematics.position = controller.getPosition();
-    kinematics.geo_position = controller.getGeoPosition();
-    kinematics.speed = controller.getSpeed();
-    kinematics.heading = controller.getHeading().getTrueNorth();
-    return kinematics;
-}
-
-EntityKinematics getKinematics(const traci::PersonController& controller)
+EntityKinematics getKinematics(const traci::EntityController& controller)
 {
     artery::EntityKinematics kinematics;
     kinematics.position = controller.getPosition();
