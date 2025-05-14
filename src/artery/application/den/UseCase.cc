@@ -1,7 +1,7 @@
 #include "artery/application/den/UseCase.h"
 #include "artery/application/DenService.h"
 #include "artery/application/StoryboardSignal.h"
-#include "artery/application/VehicleDataProvider.h"
+#include "artery/application/EntityDataProvider.h"
 #include <boost/units/systems/si/prefixes.hpp>
 #include <omnetpp/checkandcast.h>
 
@@ -25,7 +25,7 @@ void UseCase::initialize(int stage)
 {
     if (stage == 0) {
         mService = omnetpp::check_and_cast<DenService*>(getParentModule());
-        mVdp = &mService->getFacilities().get_const<VehicleDataProvider>();
+        mVdp = &mService->getFacilities().get_const<EntityDataProvider>();
     }
 }
 

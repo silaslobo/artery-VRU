@@ -11,13 +11,14 @@
 #include <vanetza/asn1/denm.hpp>
 #include <functional>
 
+#include "artery/application/EntityDataProvider.h"
+
 namespace artery
 {
 
 class DenmObject;
 class DenService;
 class StoryboardSignal;
-class VehicleDataProvider;
 
 namespace den
 {
@@ -54,7 +55,7 @@ protected:
     virtual vanetza::asn1::Denm createMessageSkeleton();
 
     DenService* mService = nullptr;
-    const VehicleDataProvider* mVdp = nullptr;
+    const EntityDataProvider* mVdp = nullptr;
 };
 
 } // namespace den

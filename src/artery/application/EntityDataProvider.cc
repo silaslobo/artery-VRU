@@ -16,7 +16,7 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
-#include "artery/application/VehicleDataProvider.h"
+#include "artery/application/EntityDataProvider.h"
 #include <boost/math/constants/constants.hpp>
 #include <boost/units/cmath.hpp>
 #include <boost/units/systems/si/prefixes.hpp>
@@ -36,7 +36,7 @@ namespace artery
 
 const double pi = boost::math::constants::pi<double>();
 const auto degree_per_second_squared = vanetza::units::degree / (vanetza::units::si::second * vanetza::units::si::second);
-const std::map<VehicleDataProvider::AngularAcceleration, double> VehicleDataProvider::mConfidenceTable {
+const std::map<EntityDataProvider::AngularAcceleration, double> EntityDataProvider::mConfidenceTable {
     { AngularAcceleration(0.0 * degree_per_second_squared), 1.0 },
     { AngularAcceleration(0.5 * degree_per_second_squared), 0.9 },
     { AngularAcceleration(1.0 * degree_per_second_squared), 0.8 },
@@ -52,7 +52,7 @@ const std::map<VehicleDataProvider::AngularAcceleration, double> VehicleDataProv
 };
 
 
-VehicleDataProvider::VehicleDataProvider(uint32_t id) :
+EntityDataProvider::EntityDataProvider(uint32_t id) :
 	mStationId(id), mStationType(StationType::Unknown),
 	mConfidence(0.0), mLastUpdate(omnetpp::SimTime::getMaxTime()),
 	mCurvatureOutput(2), mCurvatureConfidenceOutput(2)
@@ -63,7 +63,7 @@ VehicleDataProvider::VehicleDataProvider(uint32_t id) :
 	}
 }
 
-void VehicleDataProvider::calculateCurvature()
+void EntityDataProvider::calculateCurvature()
 {
 	using namespace vanetza::units::si;
 	static const vanetza::units::Frequency f_cut = 0.33 * hertz;
@@ -72,12 +72,12 @@ void VehicleDataProvider::calculateCurvature()
 	static const vanetza::units::Curvature upper_threshold = 1.0 * vanetza::units::reciprocal_metre;
 	static const double damping = 1.0;
 
-	if (fabs(mVehicleKinematics.speed) < 1.0 * meter_per_second) {
+	if (fabs(mEntityKinematics.speed) < 1.0 * meter_per_second) {
 		// assume straight road below minimum speed
 		mCurvature = 0.0 * vanetza::units::reciprocal_metre;
 	} else {
 		// curvature calculation algorithm
-		mCurvature = (mVehicleKinematics.yaw_rate / radians) / mVehicleKinematics.speed;
+		mCurvature = (mEntityKinematics.yaw_rate / radians) / mEntityKinematics.speed;
 
 		if (!mCurvatureOutput.full()) {
 			// save first two values for initialization
@@ -102,7 +102,7 @@ void VehicleDataProvider::calculateCurvature()
 	}
 }
 
-void VehicleDataProvider::calculateCurvatureConfidence()
+void EntityDataProvider::calculateCurvatureConfidence()
 {
 	assert(mCurvatureConfidenceOutput.full());
 	using namespace vanetza::units::si;
@@ -113,15 +113,15 @@ void VehicleDataProvider::calculateCurvatureConfidence()
 
 	AngularAcceleration filter = -mCurvatureConfidenceOutput[1] +
 		(2.0 + 2.0 * omega * damping * t_sample) * mCurvatureConfidenceOutput[0] +
-		omega * omega * t_sample * mVehicleKinematics.yaw_rate -
+		omega * omega * t_sample * mEntityKinematics.yaw_rate -
 		omega * omega * t_sample * mCurvatureConfidenceInput;
 	filter /= 1.0 + 2.0 * omega * damping * t_sample + omega * omega * t_sample * t_sample;
 	mCurvatureConfidenceOutput.push_front(filter);
-	mCurvatureConfidenceInput = mVehicleKinematics.yaw_rate;
+	mCurvatureConfidenceInput = mEntityKinematics.yaw_rate;
 	mConfidence = mapOntoConfidence(abs(filter));
 }
 
-void VehicleDataProvider::update(const VehicleKinematics& dynamics)
+void EntityDataProvider::update(const EntityKinematics& dynamics)
 {
 	using namespace omnetpp;
 	using namespace vanetza::units::si;
@@ -132,32 +132,32 @@ void VehicleDataProvider::update(const VehicleKinematics& dynamics)
 	};
 
 	if (delta > 0.0 * seconds) {
-		const auto old_heading = mVehicleKinematics.heading;
-		const auto old_speed = mVehicleKinematics.speed;
-		mVehicleKinematics = dynamics;
+		const auto old_heading = mEntityKinematics.heading;
+		const auto old_speed = mEntityKinematics.speed;
+		mEntityKinematics = dynamics;
 
-		if (isnan(mVehicleKinematics.acceleration)) {
-			mVehicleKinematics.acceleration = (mVehicleKinematics.speed - old_speed) / delta;
+		if (isnan(mEntityKinematics.acceleration)) {
+			mEntityKinematics.acceleration = (mEntityKinematics.speed - old_speed) / delta;
 		}
 
-		if (isnan(mVehicleKinematics.yaw_rate)) {
-			auto diff_heading = old_heading - mVehicleKinematics.heading; // left turn positive
+		if (isnan(mEntityKinematics.yaw_rate)) {
+			auto diff_heading = old_heading - mEntityKinematics.heading; // left turn positive
 			if (diff_heading > pi * radian) {
 				diff_heading -= 2.0 * pi * radians;
 			} else if (diff_heading < -pi * radians) {
 				diff_heading += 2.0 * pi * radians;
 			}
-			 mVehicleKinematics.yaw_rate = diff_heading / delta;
+			 mEntityKinematics.yaw_rate = diff_heading / delta;
 		}
 	} else if (delta < 0.0 * seconds) {
 		// initialization
-		mVehicleKinematics = dynamics;
+		mEntityKinematics = dynamics;
 
-		if (isnan(mVehicleKinematics.acceleration)) {
-			mVehicleKinematics.acceleration = vanetza::units::Acceleration::from_value(0.0);
+		if (isnan(mEntityKinematics.acceleration)) {
+			mEntityKinematics.acceleration = vanetza::units::Acceleration::from_value(0.0);
 		}
-		if (isnan(mVehicleKinematics.yaw_rate)) {
-			mVehicleKinematics.yaw_rate = vanetza::units::AngularVelocity::from_value(0.0);
+		if (isnan(mEntityKinematics.yaw_rate)) {
+			mEntityKinematics.yaw_rate = vanetza::units::AngularVelocity::from_value(0.0);
 		}
 	} else {
 		// update has been called for this time step already before
@@ -169,7 +169,7 @@ void VehicleDataProvider::update(const VehicleKinematics& dynamics)
 	calculateCurvatureConfidence();
 }
 
-double VehicleDataProvider::mapOntoConfidence(AngularAcceleration x) const
+double EntityDataProvider::mapOntoConfidence(AngularAcceleration x) const
 {
 	auto it = mConfidenceTable.lower_bound(x);
 	if (it == mConfidenceTable.end()) {
@@ -178,22 +178,22 @@ double VehicleDataProvider::mapOntoConfidence(AngularAcceleration x) const
 	return it->second;
 }
 
-void VehicleDataProvider::setStationType(StationType type)
+void EntityDataProvider::setStationType(StationType type)
 {
 	mStationType = type;
 }
 
-auto VehicleDataProvider::getStationType() const -> StationType
+auto EntityDataProvider::getStationType() const -> StationType
 {
 	return mStationType;
 }
 
-void VehicleDataProvider::setStationId(uint32_t id)
+void EntityDataProvider::setStationId(uint32_t id)
 {
 	mStationId = id;
 }
 
-vanetza::units::Angle VehicleDataProvider::computeHeading(vanetza::units::Velocity& speedX, vanetza::units::Velocity& speedY)
+vanetza::units::Angle EntityDataProvider::computeHeading(vanetza::units::Velocity& speedX, vanetza::units::Velocity& speedY)
 {
     /** @note can't retrieve heading if no speed */
     if(speedX == 0 * vanetza::units::si::meter_per_second && speedY == 0 * vanetza::units::si::meter_per_second){

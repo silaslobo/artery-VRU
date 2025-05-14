@@ -8,7 +8,7 @@
 #include <omnetpp/simtime.h>
 #include <omnetpp.h>
 #include <string>
-#include "artery/application/PersonDataProvider.h"
+#include "artery/application/EntityDataProvider.h"
 #include <artery/envmod/LocalEnvironmentModel.h>
 #include <artery/envmod/EnvironmentModelObject.h>
 
@@ -16,7 +16,6 @@ namespace artery{
 
 using namespace omnetpp;
 
-class PersonDataProvider;
 class LocalEnvironmentModel;
 class ItsG5BaseService;
 
@@ -53,7 +52,7 @@ typedef struct InformationContainerData{
 	unsigned cardinalitySize;
 	std::tuple<long,long> nodeOffset;
 	std::vector<std::tuple<long,long>> polyOffsets;
-	const PersonDataProvider* leaderDataProvider;
+	const EntityDataProvider* leaderDataProvider;
 	double circleRadius;
 	long clusterId;
     double orientationAngle;
@@ -71,7 +70,7 @@ class ClusterManagement
         ClusterManagement();
         
         void initialize(ClusterManagementParameters_t&);
-        void simObjects(const PersonDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc);
+        void simObjects(const EntityDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc);
 
         void setCurrentVruRole(VruRoleType newVruRole);
         VruRoleType getCurrentVruRole();
@@ -239,7 +238,7 @@ class ClusterManagement
         bool mEnableBoundingBoxPadding;
 
         LocalDynamicMap* mLocalDynamicMap;
-        const PersonDataProvider* mPersonDataProvider;
+        const EntityDataProvider* mPersonDataProvider;
         const traci::PersonController* mPersonController;
 		std::shared_ptr<const traci::API> api;
 

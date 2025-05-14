@@ -10,7 +10,6 @@
 #include "artery/application/den/Memory.h"
 #include "artery/application/den/SuspendableUseCase.h"
 #include "artery/application/Sampling.h"
-#include "artery/application/VehicleDataProvider.h"
 #include <vanetza/units/velocity.hpp>
 
 namespace artery

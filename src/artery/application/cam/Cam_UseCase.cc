@@ -1,7 +1,7 @@
 #include "artery/application/cam/Cam_UseCase.h"
 #include "artery/application/CaService.h"
 #include "artery/application/StoryboardSignal.h"
-#include "artery/application/VehicleDataProvider.h"
+#include "artery/application/EntityDataProvider.h"
 #include <boost/units/systems/si/prefixes.hpp>
 #include <omnetpp/checkandcast.h>
 #include <vanetza/facilities/cam_functions.hpp>
@@ -32,7 +32,7 @@ void Cam_UseCase::initialize(int stage)
 	{
 		//EV_INFO << "here" << std::endl;
 		mService = omnetpp::check_and_cast<CaService*>(getParentModule());
-		mVdp = &mService->getFacilities().get_const<VehicleDataProvider>();
+		mVdp = &mService->getFacilities().get_const<EntityDataProvider>();
 	}
 
 	

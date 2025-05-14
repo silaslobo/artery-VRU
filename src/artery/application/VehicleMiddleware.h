@@ -8,7 +8,7 @@
 #define ARTERY_VEHICLEMIDDLEWARE_H_SYJDG2DX
 
 #include "artery/application/Middleware.h"
-#include "artery/application/VehicleDataProvider.h"
+#include "artery/application/EntityDataProvider.h"
 #include "artery/traci/VehicleController.h"
 
 namespace artery
@@ -28,7 +28,7 @@ class VehicleMiddleware : public Middleware
 
     private:
         traci::VehicleController* mVehicleController = nullptr;
-        VehicleDataProvider mVehicleDataProvider;
+        EntityDataProvider mVehicleDataProvider;
 };
 
 } // namespace artery

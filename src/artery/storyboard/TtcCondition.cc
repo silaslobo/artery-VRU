@@ -50,10 +50,10 @@ TtcCondition::Route TtcCondition::calculateRoute(const Vehicle& car, int steps, 
 {
     std::vector<CarShape> shapes;
     auto& controller = car.getController();
-    auto& vdp = car.get<VehicleDataProvider>();
+    auto& vdp = car.get<EntityDataProvider>();
     const double width = controller.getWidth() / boost::units::si::meters;
     const double length = controller.getLength() / boost::units::si::meters;
-    auto carHeading = car.get<VehicleDataProvider>().heading();
+    auto carHeading = vdp.heading();
     const auto carPosition = controller.getPosition();
 
     // Calculate carCenter because controller.getPosition() returns the front middle position of the car
@@ -96,8 +96,8 @@ TtcCondition::Route TtcCondition::calculateRoute(const Vehicle& car, int steps, 
 
 double TtcCondition::calculateTimeDelta(const Vehicle& car1, const Vehicle& car2) const
 {
-    auto& vdp1 = car1.get<VehicleDataProvider>();
-    auto& vdp2 = car2.get<VehicleDataProvider>();
+    auto& vdp1 = car1.get<EntityDataProvider>();
+    auto& vdp2 = car2.get<EntityDataProvider>();
     const double dT1 = (car1.getController().getLength() / boost::units::si::meters) / (vdp1.speed() / boost::units::si::meter_per_second);
     const double dT2 = (car2.getController().getLength() / boost::units::si::meters) / (vdp2.speed() / boost::units::si::meter_per_second);
 

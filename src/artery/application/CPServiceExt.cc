@@ -1,8 +1,7 @@
 #include "artery/application/CPObject.h"
 #include "artery/application/CPServiceExt.h"
 #include "artery/application/Asn1PacketVisitor.h"
-#include "artery/application/VehicleDataProvider.h"
-#include "artery/application/PersonDataProvider.h"
+#include "artery/application/EntityDataProvider.h"
 #include "artery/traci/ObjIdentification.h"
 #include "artery/utility/simtime_cast.h"
 #include "veins/base/utils/Coord.h"
@@ -92,7 +91,7 @@ CPServiceExt::~CPServiceExt() {
 void CPServiceExt::initialize() {
     ItsG5BaseService::initialize();
     mNetworkInterfaceTable = &getFacilities().get_const<NetworkInterfaceTable>();    
-    mVehicleDataProvider = &getFacilities().get_const<VehicleDataProvider>();
+    mVehicleDataProvider = &getFacilities().get_const<EntityDataProvider>();
 
     mStationId = mVehicleDataProvider->station_id();
     /** @note Only for debugging purpose */
@@ -305,7 +304,7 @@ void CPServiceExt::retrieveInformationFromCPM(const artery::cpm::Cpm *cpm) {
             vanetza::units::Velocity speedX(objCont->xSpeed.value * Constants::centimeter_per_second);
             vanetza::units::Velocity speedY(objCont->ySpeed.value * Constants::centimeter_per_second);
 
-            vanetza::units::Angle headingReceived = VehicleDataProvider::computeHeading(speedX, speedY);
+            vanetza::units::Angle headingReceived = EntityDataProvider::computeHeading(speedX, speedY);
 
             bool headingAvalaible = headingReceived != -1 * vanetza::units::si::radian;
 
@@ -1059,7 +1058,7 @@ void CPServiceExt::collectObjectAge(){
 		}
 
 		if(!detectedByRadars){
-			const PersonDataProvider &vd = obj.first.lock()->getPersonData();
+			const EntityDataProvider &vd = obj.first.lock()->getPersonData();
 			if (mObjectsReceived.find(vd.getStationId()) != mObjectsReceived.end()) {
 				InfoObject &infoObjectAI = mObjectsReceived.at(vd.getStationId());
 				//Remove the entry if expired

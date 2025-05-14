@@ -22,12 +22,12 @@ namespace artery
 
         FilterObjects();
 
-        FilterObjects(const PersonDataProvider*, LocalEnvironmentModel*, std::vector<bool>,
+        FilterObjects(const EntityDataProvider*, LocalEnvironmentModel*, std::vector<bool>,
                       vanetza::units::Angle, vanetza::units::Length, vanetza::units::Velocity,
                       std::map<const Sensor*, Identifier_t>*, const omnetpp::SimTime&,
                       const omnetpp::SimTime&);
 
-        void initialize(const PersonDataProvider*, LocalEnvironmentModel*, std::vector<bool>,
+        void initialize(const EntityDataProvider*, LocalEnvironmentModel*, std::vector<bool>,
                           vanetza::units::Angle, vanetza::units::Length, vanetza::units::Velocity,
                           std::map<const Sensor*, Identifier_t>*, const omnetpp::SimTime&,
                           const omnetpp::SimTime&);
@@ -43,7 +43,7 @@ namespace artery
 
     private:
 
-        const PersonDataProvider* mPersonDataProvider;
+        const EntityDataProvider* mPersonDataProvider;
         const LocalEnvironmentModel* mLocalEnvironmentModel;
         std::vector<bool> mFiltersEnabled;
         vanetza::units::Angle mHeadingDelta;

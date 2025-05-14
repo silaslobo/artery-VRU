@@ -7,7 +7,7 @@
 #include <boost/units/systems/si/prefixes.hpp>
 #include "Constants.hpp"
 #include <vanetza/facilities/cam_functions.hpp>
-#include "VehicleDataProvider.h"
+#include "EntityDataProvider.h"
 
 
 namespace artery
@@ -193,7 +193,7 @@ protected:
                     boost::units::quantity<boost::units::si::velocity> speedX(objCont->xSpeed.value * Constants::centimeter_per_second);
                     boost::units::quantity<boost::units::si::velocity> speedY(objCont->ySpeed.value * Constants::centimeter_per_second);
 
-                    boost::units::quantity<boost::units::si::plane_angle> heading = VehicleDataProvider::computeHeading(speedX, speedY);
+                    boost::units::quantity<boost::units::si::plane_angle> heading = EntityDataProvider::computeHeading(speedX, speedY);
                     boost::units::quantity<boost::units::degree::plane_angle> headingDegree { heading };
 
                     fire(this, t, headingDegree.value(), details);

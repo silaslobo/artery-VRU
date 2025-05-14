@@ -7,7 +7,7 @@
 #ifndef EVIRONMENTMODELOBJECT_H_
 #define EVIRONMENTMODELOBJECT_H_
 
-#include "artery/application/VehicleDataProvider.h"
+#include "artery/application/EntityDataProvider.h"
 #include "artery/envmod//Geometry.h"
 #include "artery/envmod/sensor/SensorPosition.h"
 #include "artery/traci/VehicleType.h"
@@ -25,7 +25,7 @@ namespace artery
 /**
  * EnvironmentModelObject
  */
-class EnvironmentModelObject : private VehicleDataProvider
+class EnvironmentModelObject : private EntityDataProvider
 {
 public:
     using Length = traci::VehicleType::Length;
@@ -54,7 +54,7 @@ public:
      */
     const Position& getAttachmentPoint(const SensorPosition& pos) const;
 
-    const VehicleDataProvider& getVehicleData() const;
+    const EntityDataProvider& getVehicleData() const;
 
     std::string getExternalId() const;
 

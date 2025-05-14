@@ -2,7 +2,6 @@
 #include "artery/application/cam/Cam_UseCase.h"
 #include "artery/application/cam/EmergencyBrake_UseCase.h"
 #include "artery/application/SampleBufferAlgorithm.h"
-#include "artery/application/VehicleDataProvider.h"
 #include <vanetza/btp/data_request.hpp>
 #include <vanetza/units/acceleration.hpp>
 #include <vanetza/units/velocity.hpp>

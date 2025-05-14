@@ -38,7 +38,7 @@ namespace artery
 {
 class NetworkInterfaceTable;
 class Timer;
-class PersonDataProvider;
+class EntityDataProvider;
 class LocalEnvironmentModel;
 class VamPriority;
 class RadioDriverBase;
@@ -75,7 +75,7 @@ class VaService : public ItsG5BaseService
 		ChannelNumber mPrimaryChannel = channel::CCH;
 		vanetza::dcc::ChannelLoad mChannelLoad;
 		const NetworkInterfaceTable* mNetworkInterfaceTable = nullptr;
-		const PersonDataProvider* mPersonDataProvider = nullptr;
+		const EntityDataProvider* mPersonDataProvider = nullptr;
 		const Timer* mTimer = nullptr;
 		ClusterManagement mClusterManagement;
 		ClusterManagementParameters_t mClusterManagementParameters;
@@ -145,7 +145,7 @@ class VaService : public ItsG5BaseService
 
 };
 
-vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider&, uint16_t genDeltaTime);
+vanetza::asn1::Vam createVRUAwarenessMessage(const EntityDataProvider&, uint16_t genDeltaTime);
 void addLowFrequencyContainer(vanetza::asn1::Vam&, unsigned pathHistoryLength = 0);
 void addClusterInformationContainer(vanetza::asn1::Vam&, InformationContainerData_t&);
 OffsetPoint_t* selectNodeType(std::tuple<long,long>);

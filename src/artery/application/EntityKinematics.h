@@ -4,8 +4,8 @@
  * Licensed under GPLv2, see COPYING file for detailed license and warranty terms.
  */
 
-#ifndef ARTERY_VEHICLEKINEMATICS_H_VDOQF76E
-#define ARTERY_VEHICLEKINEMATICS_H_VDOQF76E
+#ifndef ARTERY_KINEMATICS_H_VDOQF76E
+#define ARTERY_KINEMATICS_H_VDOQF76E
 
 #include "artery/utility/Geometry.h"
 #include <vanetza/units/acceleration.hpp>
@@ -14,17 +14,17 @@
 #include <vanetza/units/angular_velocity.hpp>
 
 // forward declaration
-namespace traci { class VehicleController; }
+namespace traci { class VehicleController; class PersonController; }
 
 namespace artery
 {
 
 /**
- * VehicleKinematics stores attributes describing a vehicle's kinematic
+ * EntityKinematics stores attributes describing an entity's kinematic
  */
-struct VehicleKinematics
+struct EntityKinematics
 {
-    VehicleKinematics();
+    EntityKinematics();
 
     Position position;
     GeoPosition geo_position;
@@ -34,9 +34,9 @@ struct VehicleKinematics
     vanetza::units::AngularVelocity yaw_rate;
 };
 
-VehicleKinematics getKinematics(const traci::VehicleController&);
+EntityKinematics getKinematics(const traci::VehicleController&);
+EntityKinematics getKinematics(const traci::PersonController&);
 
 } // namespace artery
 
-#endif /* ARTERY_VEHICLEKINEMATICS_H_VDOQF76E */
-
+#endif /* ARTERY_KINEMATICS_H_VDOQF76E */

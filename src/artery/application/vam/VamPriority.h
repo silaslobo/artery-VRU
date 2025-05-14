@@ -3,7 +3,6 @@
 
 #include "artery/inet/PowerLevelRx.h"
 #include "artery/application/VaService.h"
-#include "artery/application/PersonDataProvider.h"
 #include "artery/application/LocalDynamicMap.h"
 #include "artery/application/ClusterManagement.h"
 #include "vanetza/dcc/profile.hpp"

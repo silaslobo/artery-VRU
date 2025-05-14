@@ -21,7 +21,7 @@ namespace artery
 
 class NetworkInterfaceTable;
 class Timer;
-class VehicleDataProvider;
+class EntityDataProvider;
 
 class CaService : public ItsG5BaseService
 {
@@ -41,7 +41,7 @@ class CaService : public ItsG5BaseService
 
 		ChannelNumber mPrimaryChannel = channel::CCH;
 		const NetworkInterfaceTable* mNetworkInterfaceTable = nullptr;
-		const VehicleDataProvider* mVehicleDataProvider = nullptr;
+		const EntityDataProvider* mVehicleDataProvider = nullptr;
 		const Timer* mTimer = nullptr;
 		LocalDynamicMap* mLocalDynamicMap = nullptr;
 
@@ -62,7 +62,7 @@ class CaService : public ItsG5BaseService
 		bool mFixedRate;
 };
 
-vanetza::asn1::Cam createCooperativeAwarenessMessage(const VehicleDataProvider&, uint16_t genDeltaTime);
+vanetza::asn1::Cam createCooperativeAwarenessMessage(const EntityDataProvider&, uint16_t genDeltaTime);
 void addLowFrequencyContainer(vanetza::asn1::Cam&, unsigned pathHistoryLength = 0);
 
 } // namespace artery

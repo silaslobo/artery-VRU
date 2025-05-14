@@ -113,8 +113,8 @@ The `LocalDynamicMap` stores received CAMs for some time to enable queries regar
 ### Vehicle Data Provider
 
 Many services require access to vehicle data, e.g. position or speed.
-With `VehicleDataProvider` exists a generic object granting access to these data fields, irrespective of the source.
-A source can be a SUMO vehicle, or an OTS GTU, or yet another source providing `VehicleKinematics`.
+With `EntityDataProvider` exists a generic object granting access to these data fields, irrespective of the source.
+A source can be a SUMO vehicle, or an OTS GTU, or yet another source providing `EntityKinematics`.
 If a source lacks some data field, e.g. SUMO does not report acceleration and yaw rate, the vehicle data provider calculates this data by differentiating speed or heading.
 Additionally, the vehicle data provider calculates the current curvature of the travelled path.
 

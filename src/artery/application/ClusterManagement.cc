@@ -5,7 +5,7 @@
 #include "artery/application/Constants.hpp"
 #include <omnetpp/simtime.h>
 #include <string>
-#include "artery/application/PersonDataProvider.h"
+#include "artery/application/EntityDataProvider.h"
 #include <artery/envmod/LocalEnvironmentModel.h>
 #include "artery/traci/PersonController.h"
 #include <artery/envmod/LocalEnvironmentModel.h>
@@ -57,7 +57,7 @@ void ClusterManagement::initialize(ClusterManagementParameters_t& cManagementPar
 	setLargestDistanceToLeader(0.01);
 }
 
-void ClusterManagement::simObjects(const PersonDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc){
+void ClusterManagement::simObjects(const EntityDataProvider* pdp, artery::LocalDynamicMap* ldm, const traci::PersonController* pc){
 
 	mPersonDataProvider =  pdp;
 	mLocalDynamicMap = ldm;

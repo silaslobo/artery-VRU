@@ -7,7 +7,6 @@
 #include "artery/application/den/TractionLoss.h"
 #include "artery/application/DenService.h"
 #include "artery/application/StoryboardSignal.h"
-#include "artery/application/VehicleDataProvider.h"
 
 namespace artery
 {

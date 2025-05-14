@@ -75,11 +75,11 @@ void GtuMiddleware::initializeStationType(const std::string& gtuType)
     mVehicleDataProvider.setStationType(gnStationType);
 }
 
-VehicleKinematics GtuMiddleware::getKinematics(const GtuInetMobility& mobility) const
+EntityKinematics GtuMiddleware::getKinematics(const GtuInetMobility& mobility) const
 {
     using namespace vanetza::units::si;
 
-    VehicleKinematics kinematics;
+    EntityKinematics kinematics;
     kinematics.position = mobility.getPosition();
     kinematics.geo_position = mobility.getGeoPosition();
     kinematics.heading = mobility.getHeading().getTrueNorth();

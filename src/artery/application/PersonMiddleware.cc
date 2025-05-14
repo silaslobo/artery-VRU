@@ -30,7 +30,7 @@ void PersonMiddleware::initialize(int stage)
         initializePersonController(par("mobilityModule"));
         initializeStationType(mPersonController->getVehicleClass());
         getFacilities().register_const(&mPersonDataProvider);
-        mPersonDataProvider.update(p_getKinematics(*mPersonController));
+        mPersonDataProvider.update(getKinematics(*mPersonController));
         
         
         Identity identity;
@@ -104,7 +104,7 @@ void PersonMiddleware::initializePersonController(cPar& mobilityPar)
 void PersonMiddleware::receiveSignal(cComponent* component, simsignal_t signal, cObject* obj, cObject* details)
 {
 	if (signal == MobilityBase::stateChangedSignal && mPersonController) {
-		mPersonDataProvider.update(p_getKinematics(*mPersonController));
+		mPersonDataProvider.update(getKinematics(*mPersonController));
 	}
 }
 

@@ -1,7 +1,7 @@
 #ifndef EVIRONMENTMODELPERSON_H_
 #define EVIRONMENTMODELPERSON_H_
 
-#include "artery/application/PersonDataProvider.h"
+#include "artery/application/EntityDataProvider.h"
 #include "artery/envmod//Geometry.h"
 #include "artery/envmod/sensor/SensorPosition.h"
 #include "artery/traci/PersonType.h"
@@ -21,7 +21,7 @@ namespace artery
  * EnvironmentModelPerson
  */
 
-class EnvironmentModelPerson : private PersonDataProvider
+class EnvironmentModelPerson : private EntityDataProvider
 {
 public:
     using Length = traci::PersonType::Length;
@@ -50,7 +50,7 @@ public:
      */
     const Position& getAttachmentPoint(const SensorPosition& pos) const;
 
-    const PersonDataProvider& getPersonData() const;
+    const EntityDataProvider& getPersonData() const;
 
     std::string getPersonId() const;
 

@@ -10,6 +10,8 @@ add_library(core SHARED
     application/ClusterManagement.cc
     application/DenmObject.cc
     application/DenService.cc
+    application/EntityDataProvider.cc
+    application/EntityKinematics.cc
     application/ExampleService.cc
     application/GbcMockMessage.cc
     application/GbcMockService.cc
@@ -27,8 +29,6 @@ add_library(core SHARED
     application/NetworkInterfaceTable.cc
     application/PeriodicLoadService.cc
     application/PersonMiddleware.cc
-    application/PersonKinematics.cc
-    application/PersonDataProvider.cc
     application/RsuCaService.cc
     application/RtcmMockMessage.cc
     application/RtcmMockReceiver.cc
@@ -38,8 +38,6 @@ add_library(core SHARED
     application/StoryboardSignal.cc
     application/Timer.cc
     application/TransportDispatcher.cc
-    application/VehicleDataProvider.cc
-    application/VehicleKinematics.cc
     application/VehicleMiddleware.cc
     application/XmlMultiChannelPolicy.cc
     application/den/EmergencyBrakeLight.cc

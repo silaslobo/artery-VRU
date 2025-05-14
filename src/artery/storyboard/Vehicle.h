@@ -3,7 +3,7 @@
 
 #include "artery/application/Middleware.h"
 #include "artery/traci/VehicleController.h"
-#include "artery/application/VehicleDataProvider.h"
+#include "artery/application/EntityDataProvider.h"
 #include <map>
 #include <string>
 
@@ -11,7 +11,6 @@ namespace artery
 {
 
 class StoryboardSignal;
-class VehicleDataProvider;
 
 /**
  * Struct containing all necessary vehicle data

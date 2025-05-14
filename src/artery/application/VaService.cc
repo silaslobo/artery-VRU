@@ -3,7 +3,7 @@
 #include "artery/application/Constants.hpp"
 #include "artery/application/Asn1PacketVisitor.h"
 #include "artery/application/MultiChannelPolicy.h"
-#include "artery/application/PersonDataProvider.h"
+#include "artery/application/EntityDataProvider.h"
 #include <artery/envmod/LocalEnvironmentModel.h>
 #include "artery/traci/PersonController.h"
 #include "artery/envmod/sensor/Sensor.h"
@@ -117,7 +117,7 @@ void VaService::initialize()
 	ItsG5BaseService::initialize();
 	
 	mNetworkInterfaceTable = &getFacilities().get_const<NetworkInterfaceTable>();
-	mPersonDataProvider = &getFacilities().get_const<PersonDataProvider>();
+	mPersonDataProvider = &getFacilities().get_const<EntityDataProvider>();
 	mTimer = &getFacilities().get_const<Timer>();
 	
 	// avoid unreasonable high elapsed time values for newly inserted vehicles
@@ -551,7 +551,7 @@ SimTime VaService::genVamDcc()
 	return std::min(mGenVamMax, std::max(mGenVamMin, dcc));
 }
 
-vanetza::asn1::Vam createVRUAwarenessMessage(const PersonDataProvider& pdp, uint16_t genDeltaTime)
+vanetza::asn1::Vam createVRUAwarenessMessage(const EntityDataProvider& pdp, uint16_t genDeltaTime)
 {
 	vanetza::asn1::Vam message;
 

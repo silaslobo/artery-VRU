@@ -2,8 +2,7 @@
 #define EMERGENCYBRAKESERVICE_H_
 
 #include "artery/application/ItsG5BaseService.h"
-#include "artery/application/VehicleDataProvider.h"
-#include "artery/application/PersonDataProvider.h"
+#include "artery/application/EntityDataProvider.h"
 #include "artery/utility/Channel.h"
 #include <omnetpp/simtime.h>
 #include "artery/application/NetworkInterface.h"
@@ -24,7 +23,7 @@ namespace traci { class VehicleController; class ObjIdentification; class Simula
 namespace artery
 {
 
-class VehicleDataProvider;
+class EntityDataProvider;
 class Timer;
 
 class EmergencyBrake : public ItsG5BaseService
@@ -63,7 +62,7 @@ class EmergencyBrake : public ItsG5BaseService
         void checkSensorData(const omnetpp::SimTime&);
 
         traci::VehicleController* mVehicleController = nullptr;
-        const VehicleDataProvider* mVehicleDataProvider = nullptr;   
+        const EntityDataProvider* mVehicleDataProvider = nullptr;   
 };
 
 } //namespace artery

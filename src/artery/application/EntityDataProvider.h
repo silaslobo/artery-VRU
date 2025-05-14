@@ -16,10 +16,10 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
-#ifndef ARTERY_VEHICLEDATAPROVIDER_H_
-#define ARTERY_VEHICLEDATAPROVIDER_H_
+#ifndef ARTERY_ENTITYDATAPROVIDER_H_
+#define ARTERY_ENTITYDATAPROVIDER_H_
 
-#include "artery/application/VehicleKinematics.h"
+#include "artery/application/EntityKinematics.h"
 #include "artery/utility/Geometry.h"
 #include <omnetpp/simtime.h>
 #include <boost/circular_buffer.hpp>
@@ -36,27 +36,27 @@
 namespace artery
 {
 
-class VehicleDataProvider
+class EntityDataProvider
 {
 	public:
 		using StationType = vanetza::geonet::StationType;
 
-		VehicleDataProvider(uint32_t id);
+		EntityDataProvider(uint32_t id);
 
 		// prevent inadvertent VDP copies
-		VehicleDataProvider(const VehicleDataProvider&) = delete;
-		VehicleDataProvider& operator=(const VehicleDataProvider&) = delete;
+		EntityDataProvider(const EntityDataProvider&) = delete;
+		EntityDataProvider& operator=(const EntityDataProvider&) = delete;
 
-		void update(const VehicleKinematics&);
+		void update(const EntityKinematics&);
 		omnetpp::SimTime updated() const { return mLastUpdate; }
 
-		const Position& position() const { return mVehicleKinematics.position; }
-		vanetza::units::GeoAngle longitude() const { return mVehicleKinematics.geo_position.longitude; } // positive for east
-		vanetza::units::GeoAngle latitude() const { return mVehicleKinematics.geo_position.latitude; } // positive for north
-		vanetza::units::Velocity speed() const { return mVehicleKinematics.speed; }
-		vanetza::units::Acceleration acceleration() const { return mVehicleKinematics.acceleration; }
-		vanetza::units::Angle heading() const { return mVehicleKinematics.heading; } // degree from north, clockwise
-		vanetza::units::AngularVelocity yaw_rate() const { return mVehicleKinematics.yaw_rate; } // left turn positive
+		const Position& position() const { return mEntityKinematics.position; }
+		vanetza::units::GeoAngle longitude() const { return mEntityKinematics.geo_position.longitude; } // positive for east
+		vanetza::units::GeoAngle latitude() const { return mEntityKinematics.geo_position.latitude; } // positive for north
+		vanetza::units::Velocity speed() const { return mEntityKinematics.speed; }
+		vanetza::units::Acceleration acceleration() const { return mEntityKinematics.acceleration; }
+		vanetza::units::Angle heading() const { return mEntityKinematics.heading; } // degree from north, clockwise
+		vanetza::units::AngularVelocity yaw_rate() const { return mEntityKinematics.yaw_rate; } // left turn positive
 		vanetza::units::Curvature curvature() const { return mCurvature; } // 1/m radius, left turn positive
 		double curvature_confidence() const { return mConfidence; } // percentage value
 
@@ -77,7 +77,7 @@ class VehicleDataProvider
 
 		uint32_t mStationId;
 		StationType mStationType;
-		VehicleKinematics mVehicleKinematics;
+		EntityKinematics mEntityKinematics;
 		vanetza::units::Curvature mCurvature;
 		double mConfidence;
 		omnetpp::SimTime mLastUpdate;
@@ -89,4 +89,4 @@ class VehicleDataProvider
 
 } // namespace artery
 
-#endif /* ARTERY_VEHICLEDATAPROVIDER_H_ */
+#endif /* ARTERY_ENTITYDATAPROVIDER_H_ */

@@ -8,7 +8,6 @@
 #include "artery/application/DenService.h"
 #include "artery/application/den/ImpactReductionUseCase.h"
 #include "artery/application/StoryboardSignal.h"
-#include "artery/application/VehicleDataProvider.h"
 #include <omnetpp/cexception.h>
 
 Define_Module(artery::den::ImpactReductionContainerExchange)

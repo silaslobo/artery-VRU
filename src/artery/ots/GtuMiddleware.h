@@ -2,8 +2,8 @@
 #define ARTERY_GTUMIDDLEWARE_H_RNDER8I0
 
 #include "artery/application/Middleware.h"
-#include "artery/application/VehicleDataProvider.h"
-#include "artery/application/VehicleKinematics.h"
+#include "artery/application/EntityDataProvider.h"
+#include "artery/application/EntityKinematics.h"
 
 namespace artery
 {
@@ -19,10 +19,10 @@ public:
 
 protected:
     void initializeStationType(const std::string&);
-    VehicleKinematics getKinematics(const GtuInetMobility&) const;
+    EntityKinematics getKinematics(const GtuInetMobility&) const;
 
 private:
-    VehicleDataProvider mVehicleDataProvider;
+    EntityDataProvider mVehicleDataProvider;
     GtuInetMobility* mMobility = nullptr;
 };
 

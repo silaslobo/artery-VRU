@@ -9,7 +9,7 @@
 
 #include "artery/application/Middleware.h"
 //#include "artery/traci/PersonMobility.h"
-#include "artery/application/PersonDataProvider.h"
+#include "artery/application/EntityDataProvider.h"
 #include "artery/traci/PersonController.h"
 
 namespace artery
@@ -29,7 +29,7 @@ class PersonMiddleware : public Middleware
 
     private:
         traci::PersonController* mPersonController = nullptr;
-        PersonDataProvider mPersonDataProvider;
+        EntityDataProvider mPersonDataProvider;
         //PersonMobility* mMobility = nullptr;
         bool mParseID;
 };

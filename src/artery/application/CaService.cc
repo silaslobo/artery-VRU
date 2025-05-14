@@ -9,7 +9,7 @@
 #include "artery/application/Constants.hpp"
 #include "artery/application/Asn1PacketVisitor.h"
 #include "artery/application/MultiChannelPolicy.h"
-#include "artery/application/VehicleDataProvider.h"
+#include "artery/application/EntityDataProvider.h"
 #include "artery/utility/simtime_cast.h"
 #include "veins/base/utils/Coord.h"
 #include <boost/units/cmath.hpp>
@@ -69,7 +69,7 @@ void CaService::initialize()
 {
 	ItsG5BaseService::initialize();
 	mNetworkInterfaceTable = &getFacilities().get_const<NetworkInterfaceTable>();
-	mVehicleDataProvider = &getFacilities().get_const<VehicleDataProvider>();
+	mVehicleDataProvider = &getFacilities().get_const<EntityDataProvider>();
 	mTimer = &getFacilities().get_const<Timer>();
 	//mLocalDynamicMap = &getFacilities().get_mutable<artery::LocalDynamicMap>();
 
@@ -215,7 +215,7 @@ SimTime CaService::genCamDcc()
 	return std::min(mGenCamMax, std::max(mGenCamMin, dcc));
 }
 
-vanetza::asn1::Cam createCooperativeAwarenessMessage(const VehicleDataProvider& vdp, uint16_t genDeltaTime)
+vanetza::asn1::Cam createCooperativeAwarenessMessage(const EntityDataProvider& vdp, uint16_t genDeltaTime)
 {
 	vanetza::asn1::Cam message;
 

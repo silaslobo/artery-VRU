@@ -38,8 +38,7 @@ namespace artery
 
 class NetworkInterfaceTable;
 class Timer;
-class PersonDataProvider;
-class VehicleDataProvider;
+class EntityDataProvider;
 
 template <class T>
 T computeDifference(T a, T b, T limit, T maxValue){
@@ -64,8 +63,8 @@ class CPService : public ItsG5BaseService
 	private:
 		ChannelNumber mPrimaryChannel = channel::SCH1;
 		const NetworkInterfaceTable* mNetworkInterfaceTable = nullptr;
-		const PersonDataProvider* mPersonDataProvider = nullptr;
-		const VehicleDataProvider* mVehicleDataProvider = nullptr;
+		const EntityDataProvider* mPersonDataProvider = nullptr;
+		const EntityDataProvider* mVehicleDataProvider = nullptr;
 		const Timer* mTimer = nullptr;
 		omnetpp::SimTime mGenCpmMin;
 		omnetpp::SimTime mGenCpmMax;

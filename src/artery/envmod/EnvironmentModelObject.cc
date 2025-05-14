@@ -74,7 +74,7 @@ transformVehicle(double length, double width, const Position& pos, Angle alpha)
 }
 
 EnvironmentModelObject::EnvironmentModelObject(const traci::VehicleController* vehicle, uint32_t id) :
-    VehicleDataProvider(id),
+    EntityDataProvider(id),
     mVehicleController(vehicle),
     mLength(vehicle->getVehicleType().getLength()),
     mWidth(vehicle->getVehicleType().getWidth())
@@ -90,7 +90,7 @@ EnvironmentModelObject::EnvironmentModelObject(const traci::VehicleController* v
 void EnvironmentModelObject::update()
 {
     // Update the internal vdp
-    VehicleDataProvider::update(getKinematics(*mVehicleController));
+    EntityDataProvider::update(getKinematics(*mVehicleController));
 
     // Recalculate all time and position dependent attributes
     using namespace boost::math::double_constants;
@@ -134,7 +134,7 @@ const Position& EnvironmentModelObject::getAttachmentPoint(const SensorPosition&
     return *point;
 }
 
-const VehicleDataProvider& EnvironmentModelObject::getVehicleData() const
+const EntityDataProvider& EnvironmentModelObject::getVehicleData() const
 {
    return *this;
 }

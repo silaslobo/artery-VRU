@@ -5,7 +5,7 @@
 
 #include "artery/application/CPObject.h"
 #include "artery/application/Asn1PacketVisitor.h"
-#include "artery/application/PersonDataProvider.h"
+#include "artery/application/EntityDataProvider.h"
 #include "artery/utility/simtime_cast.h"
 #include "veins/base/utils/Coord.h"
 
@@ -36,7 +36,7 @@ namespace artery
 
 FilterObjects::FilterObjects(){}
 
-FilterObjects::FilterObjects(const PersonDataProvider* vd, LocalEnvironmentModel* le, std::vector<bool> filtersEnabled,
+FilterObjects::FilterObjects(const EntityDataProvider* vd, LocalEnvironmentModel* le, std::vector<bool> filtersEnabled,
                              vanetza::units::Angle hd, vanetza::units::Length pd, vanetza::units::Velocity sd,
                              std::map<const Sensor*, Identifier_t>* sensorsId, const omnetpp::SimTime& T_GenCpmMin,
                             const SimTime& T_GenCpmMax):
@@ -55,7 +55,7 @@ long round(const boost::units::quantity<T>& q, const U& u)
 }
 
 
-void FilterObjects::initialize(const PersonDataProvider* vd, LocalEnvironmentModel* le, std::vector<bool> filtersEnabled,
+void FilterObjects::initialize(const EntityDataProvider* vd, LocalEnvironmentModel* le, std::vector<bool> filtersEnabled,
                                  vanetza::units::Angle hd, vanetza::units::Length pd, vanetza::units::Velocity sd,
                                  std::map<const Sensor*, Identifier_t>* sensorsId, const omnetpp::SimTime& T_GenCpmMin,
                                  const omnetpp::SimTime& T_GenCpmMax)
@@ -145,7 +145,7 @@ std::size_t FilterObjects::filterObjects(InfoObject::ObjectsToSendMap &objToSend
             }
         }
         //Remove all expired object
-        const PersonDataProvider &vd = obj.first.lock()->getPersonData();
+        const EntityDataProvider &vd = obj.first.lock()->getPersonData();
         if (objReceived.find(vd.station_id()) != objReceived.end()) {
             InfoObject &infoObjectAI = objReceived.at(vd.station_id());
             //Remove the entry if expired
@@ -247,7 +247,7 @@ bool FilterObjects::v2xCapabilities(const LocalEnvironmentModel::TrackedPerson& 
                                    const LocalEnvironmentModel::Tracking::TrackingMap& sensorsDetection,
                                    InfoObject::ObjectsReceivedMap& objReceived){
 
-    const PersonDataProvider &vd = obj.first.lock()->getPersonData();
+    const EntityDataProvider &vd = obj.first.lock()->getPersonData();
     bool v2xEnabled = false;
 
     //Check that the object is detected by one of the local sensor and has already been perceived by someone
@@ -269,7 +269,7 @@ bool FilterObjects::objectDynamicsLocal(const LocalEnvironmentModel::TrackedPers
     //If the position of the object since last time it has been sent, refuse it
     if(prevObjSent.find(obj.first) != prevObjSent.end()) {
 
-        const PersonDataProvider &vd = obj.first.lock()->getPersonData();
+        const EntityDataProvider &vd = obj.first.lock()->getPersonData();
         InfoObject &infoObject = prevObjSent.at(obj.first);
 
         //Object need to be send at least every one second
@@ -293,7 +293,7 @@ bool FilterObjects::objectDynamicsV2X(const LocalEnvironmentModel::TrackedPerson
                                       Sensor * cpSensor, omnetpp::SimTime T_GenCpmDcc,
                                       InfoObject::ObjectsReceivedMap& objReceived){
 
-    const PersonDataProvider &vd = obj.first.lock()->getPersonData();
+    const EntityDataProvider &vd = obj.first.lock()->getPersonData();
 
     //Check that the object is detected by one of the local sensor and has already been perceived by someone
     if (objReceived.find(vd.station_id()) != objReceived.end()) {
@@ -392,7 +392,7 @@ bool FilterObjects::updatingTime(const LocalEnvironmentModel::TrackedPerson& obj
                                                 Sensor * cpSensor, omnetpp::SimTime T_GenCpmDcc,
                                                 InfoObject::ObjectsReceivedMap& objReceived, omnetpp::SimTime T_now){
 
-    const PersonDataProvider &vd = obj.first.lock()->getPersonData();
+    const EntityDataProvider &vd = obj.first.lock()->getPersonData();
 
     //Check that the object is detected by one of the local sensor and has already been perceived by someone
     if (objReceived.find(vd.station_id()) != objReceived.end()) {
@@ -432,7 +432,7 @@ bool FilterObjects::etsiFilter(const LocalEnvironmentModel::TrackedPerson& obj,
                                InfoObject::ObjectsReceivedMap& objReceived,
                                const SimTime& T_now){
 
-    const PersonDataProvider &vd = obj.first.lock()->getPersonData();
+    const EntityDataProvider &vd = obj.first.lock()->getPersonData();
 
     //If the position of the object since last time it has been sent, refuse it
     if(prevObjSent.find(obj.first) != prevObjSent.end()) {

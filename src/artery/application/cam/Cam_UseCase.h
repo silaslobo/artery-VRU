@@ -15,7 +15,7 @@ namespace artery
 class CamObject;
 class CaService;
 class StoryboardSignal;
-class VehicleDataProvider;
+class EntityDataProvider;
 
 namespace cam
 {
@@ -45,7 +45,7 @@ class Cam_UseCase : public ItsG5BaseService
     protected:
 	
         CaService* mService = nullptr;
-        const VehicleDataProvider* mVdp = nullptr;
+        const EntityDataProvider* mVdp = nullptr;
         using TrafficCondition = std::function<bool(void)>;
 
         virtual vanetza::asn1::Cam createMessageSkeleton();

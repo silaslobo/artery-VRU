@@ -6,8 +6,6 @@
 #include "artery/application/Constants.hpp"
 #include "artery/traci/VehicleController.h"
 #include "artery/traci/SimulationScopeController.h"
-#include "artery/application/PersonDataProvider.h"
-#include "artery/application/VehicleDataProvider.h"
 #include "artery/envmod/sensor/Sensor.h"
 #include "artery/inet/PowerLevelRx.h"
 #include <vanetza/asn1/vam.hpp>
@@ -53,7 +51,7 @@ void EmergencyBrake::initialize()
 {
     ItsG5BaseService::initialize();
     mVehicleController = &getFacilities().get_mutable<traci::VehicleController>();
-    mVehicleDataProvider = &getFacilities().get_const<VehicleDataProvider>();
+    mVehicleDataProvider = &getFacilities().get_const<EntityDataProvider>();
     mLocalEnvironmentModel = &getFacilities().get_mutable<LocalEnvironmentModel>();
     trigger();
 
