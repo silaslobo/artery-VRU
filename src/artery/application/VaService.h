@@ -133,6 +133,7 @@ class VaService : public ItsG5BaseService
 		VruClusterOperation currentVruClusterOperation;
 		void setVruClusterOperation(VruClusterOperation newVruClusterOperation);
 
+		omnetpp::SimTime T_VruCreated;
 
 		//access to control Person connection among Artery, Omnetpp, and SUMO
 		void personSumoData(const omnetpp::SimTime&);

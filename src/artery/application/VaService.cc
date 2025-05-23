@@ -176,8 +176,12 @@ void VaService::initialize()
 		mClusterManagementParameters.TimeClusterLeaveNotification = par("timeClusterLeaveNotification");
 		mClusterManagementParameters.TimeCombinedVruClusterOpportunity = par("timeCombinedVruClusterOpportunity"); 
 
+		mClusterManagementParameters.TimeLeaderInitiative = par("timeLeaderInitiative");
+		mClusterManagementParameters.TimeClusteringWarmup = par("timeClusteringWarmup");
+
 		mClusterManagementParameters.DefaultBoundingBoxShape = par("defaultBoundingBoxShape").stringValue();
 		mClusterManagementParameters.EnableBoundingBoxPadding = par("enableBoundingBoxPadding");
+		mClusterManagementParameters.LeaderSelectionStrategy = par("leaderSelectionStrategy").stringValue();
 
 		mClusterManagement.initialize(mClusterManagementParameters);
 		mClusterManagement.simObjects(mPersonDataProvider, mLocalDynamicMap, mPersonController);
@@ -187,6 +191,7 @@ void VaService::initialize()
 		currentVruClusterOperation = noVruOperation;
 	}
 
+	T_VruCreated = simTime();
 }
 
 void VaService::receiveSignal(cComponent*, simsignal_t signal, double value, cObject*)
@@ -266,7 +271,12 @@ void VaService::checkTriggeringConditions(const SimTime& T_now)
 		}
 
 		if(mClusterSupport){
-			mClusterManagement.refreshReceivedIdMap(T_now);
+			if(!mClusterManagement.isVruIdle()){
+				mClusterManagement.refreshReceivedIdMap(T_now);
+			}else if (mClusterManagement.isVruIdle() && (T_now - T_VruCreated) > mClusterManagement.timeClusteringWarmup()){
+				mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveStandalone);
+			}
+			
 		}
 	}
 }
@@ -314,7 +324,8 @@ void VaService::retrieveInformationFromVAM(const vanetza::asn1::Vam &vam)
 	if (mClusterSupport){
 		if(vam_data.vamParameters.vruClusterInformationContainer){
 			long receivedId = vam_data.vamParameters.vruClusterInformationContainer->clusterId;
-			mClusterManagement.updateReceivedIdMap(receivedId, T_now);
+			long receivedLeaderId = vam->header.stationID;
+			mClusterManagement.updateReceivedIdMap(receivedId, receivedLeaderId, T_now);
 			if(mClusterManagement.isVruStandalone() && mClusterManagement.vruShouldJoin(vam)){
 				emit(SignalDistFromCIC, mClusterManagement.getDistFromCIC());
 				emit(SignalCardFromCIC, mClusterManagement.getCardFromCIC());
@@ -406,6 +417,7 @@ void VaService::sendVam(const SimTime& T_now)
 		if(mClusterManagement.isVruStandalone() && currentVruClusterOperation == noVruOperation){		
 			mClusterManagement.createVruClusterMap();
 			if(mClusterManagement.vruShouldCreateCluster()){
+				//std::cout << "Cluster creation" << std::endl;
 				mClusterManagement.mClusterCreationTimestamp = T_now;
 				mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveClusterLeader);
 				long clusterCreationID;

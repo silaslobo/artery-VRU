@@ -158,6 +158,7 @@ simple VaService like ItsG5Service
         // Clustering behavior on the simulation 
         string defaultBoundingBoxShape = default("Polygon"); // Available options: Circular, Rectangular, Polygon or Autoselect
         bool enableBoundingBoxPadding = default(false);
+        string leaderSelectionStrategy = default("FirstCome"); // Available options: FirstCome, StdDev
         
         // Cluster membership parameters 
         double timeClusterUniquenessThreshold  = default(30.0);
@@ -170,6 +171,9 @@ simple VaService like ItsG5Service
         double timeClusterLeaderWaiting  = default(2.0);
         double timeClusterLeaveNotification  = default(1.0);
         double timeCombinedVruClusterOpportunity  = default(3.0);
+
+        double timeLeaderInitiative = default(1.0);
+        double timeClusteringWarmup = default(1.0);
 
         // Custom max interval between cluster VAMs due to timeClusterContinuity parameter
         double clusterMaxInterval = default(2.0);

@@ -45,13 +45,20 @@ void ClusterManagement::initialize(ClusterManagementParameters_t& cManagementPar
 	mTimeClusterLeaderWaiting = cManagementPar.TimeClusterLeaderWaiting;
 	mTimeClusterLeaveNotification = cManagementPar.TimeClusterLeaveNotification;
 	mTimeCombinedVruClusterOpportunity = cManagementPar.TimeCombinedVruClusterOpportunity; 
+
+	mTimeLeaderInitiative = cManagementPar.TimeLeaderInitiative; 
+	mTimeClusteringWarmup = cManagementPar.TimeClusteringWarmup;
 	
 	mBoundingBoxShape = cManagementPar.DefaultBoundingBoxShape;
 	mEnableBoundingBoxPadding = cManagementPar.EnableBoundingBoxPadding;
+	mLeaderSelectionStrategy = cManagementPar.LeaderSelectionStrategy;
+
+	mLeaderCandidateId = -1;
 
 	mLastLeaderVamTimestamp = simTime();
 
-	setCurrentVruRole(VruActiveStandalone);
+	//setCurrentVruRole(VruActiveStandalone);
+	setCurrentVruRole(VruIdle);
 	setBoundingBoxArea(0.0);
 	setBoundingBoxPerimeter(0.0);
 	setLargestDistanceToLeader(0.01);
@@ -117,7 +124,130 @@ bool ClusterManagement::vruShouldLeave_ElapsedTime(const omnetpp::SimTime& T_now
 
 bool ClusterManagement::vruShouldCreateCluster(){
 	// TODO: Should also evaluate if any available leader is nearby -> parse a set of "recent" VAMs 
-	return (mInitialClusterMap.size() + 1) >= mNumCreateCluster;
+
+	// First checks if there are enough compatible VRUs
+	if((mInitialClusterMap.size() + 1) >= mNumCreateCluster){
+
+		// The first check is enough for the "First Come, First Serve" rule
+		if(mLeaderSelectionStrategy == "FirstCome"){
+			return true;
+		} 
+		else if(mLeaderSelectionStrategy == "StdDev"){
+			std::cout << "[Ego " << mPersonDataProvider->getStationId() << "] started leader selection with  " << mInitialClusterMap.size() << " other candidates" << std::endl;
+
+			// Check candidates
+			
+
+			if(mLeaderCandidateId > 0){
+
+				if(simTime() - mInitiativeStart > mTimeLeaderInitiative){
+					std::cout << "[Ego " << mPersonDataProvider->getStationId() << "] elected himself (initiative)!\n" << std::endl;
+					mInitiativeStart = simTime();
+					return true;
+				}
+
+				for(auto const& cluster : mReceivedIdMap){
+					if(std::get<0>(cluster.second) == mLeaderCandidateId){
+						std::cout << "[Ego " << mPersonDataProvider->getStationId() << "] still waiting for leader...\n" << std::endl;
+						return false;
+					}
+					
+				}
+
+			}
+
+			pointXY egoPos = getCurrentVruXY();
+			std::map<int, double> candidateScores;
+			std::vector<double> egoDistanceList;
+
+			double egoCumulativeDist = 0.0;
+
+			// Must be a separate function later
+			for (auto const& itr1 : mInitialClusterMap) {
+
+				std::vector<double> candidadeDistanceList;
+				double currentCumulativeDist = 0.0;
+
+				auto vruLatLon1 = getLonLat(itr1.second);
+				libsumo::TraCIPosition vruTraCIPos1 = api->simulation.convertGeo(std::get<0>(vruLatLon1),std::get<1>(vruLatLon1), true);
+				pointXY vruPos1 = pointXY(vruTraCIPos1.x, vruTraCIPos1.y);
+
+				double distToEgo = bg::distance(vruPos1, egoPos);
+
+				candidadeDistanceList.push_back(distToEgo);
+				egoDistanceList.push_back(distToEgo);
+
+				egoCumulativeDist += distToEgo;
+				currentCumulativeDist += distToEgo;
+
+				//std::cout << "Distance from " << itr1.first << " to ego  " <<  mPersonDataProvider->getStationId() << " : " << currentCumulativeDist << std::endl;
+
+				for (auto const& itr2 : mInitialClusterMap) {
+					if(itr1.first != itr2.first){
+						auto vruLatLon2 = getLonLat(itr2.second);
+						libsumo::TraCIPosition vruTraCIPos2 = api->simulation.convertGeo(std::get<0>(vruLatLon2),std::get<1>(vruLatLon2), true);
+						pointXY vruPos2 = pointXY(vruTraCIPos2.x, vruTraCIPos2.y);
+
+						candidadeDistanceList.push_back(bg::distance(vruPos1, vruPos2));
+						currentCumulativeDist += bg::distance(vruPos1, vruPos2);
+					}
+				}
+
+				double currentMeanDist = currentCumulativeDist/mInitialClusterMap.size();
+				double currentVariance = 0.0;
+
+				for(double dist : candidadeDistanceList){
+					currentVariance += std::pow(dist - currentMeanDist, 2);
+				}
+				
+				currentVariance /= mInitialClusterMap.size();
+
+				candidateScores[itr1.first] = currentVariance;
+				
+			}
+
+			double egoMeanDist = egoCumulativeDist/mInitialClusterMap.size();
+			double egoVariance = 0.0;
+
+			for(double egoDist : egoDistanceList){
+				egoVariance += std::pow(egoDist - egoMeanDist, 2);
+			}
+			
+			egoVariance /= mInitialClusterMap.size();
+			
+			double smallestVariance = 9999.99;
+			int bestCandidate = 0;
+
+			std::cout << "[Ego " << mPersonDataProvider->getStationId() << "] scored himself: " << egoVariance << std::endl;  
+			for(const auto& candidate : candidateScores){
+				//std::cout << "[Ego " << mPersonDataProvider->getStationId() << "] scored " << candidate.first << " with: " << candidate.second << std::endl;
+
+				if(candidate.second < smallestVariance){
+					bestCandidate = candidate.first;
+					smallestVariance = candidate.second;
+				}
+				
+			}
+
+			if(smallestVariance < egoVariance){
+				std::cout << "[Ego " << mPersonDataProvider->getStationId() << "] thinks " << bestCandidate << " should lead (score " << smallestVariance << ")... \n" << std::endl;
+				mLeaderCandidateId = bestCandidate;
+				mInitiativeStart = SimTime();
+				return false;
+			}
+			
+			std::cout << "[Ego " << mPersonDataProvider->getStationId() << "] elected himself (best candidate)! \n" << std::endl;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+std::tuple<double, double> ClusterManagement::getLonLat(const artery::VaObject& vaObj){
+	double lon = vaObj.asn1()->vam.vamParameters.basicContainer.referencePosition.longitude/std::pow( 10.0, 7 );
+	double lat = vaObj.asn1()->vam.vamParameters.basicContainer.referencePosition.latitude/std::pow( 10.0, 7 );
+	return std::make_tuple(lon,lat);
 }
 
 bool ClusterManagement::clusterShouldBreakup_ElapsedTime(const omnetpp::SimTime& T_now){	
@@ -347,7 +477,16 @@ std::vector<std::tuple<long,long>> ClusterManagement::calculatePolyOffsetList(Po
 // TODO: Change to calculate both speed and heading
 double ClusterManagement::velocityDifference(SpeedValue_t referenceSpeed, SpeedValue_t evaluatedSpeed)
 {
-	return (referenceSpeed > 0) ? std::abs(static_cast<double>(referenceSpeed - evaluatedSpeed))/referenceSpeed : 0.0;
+	//return (referenceSpeed > 0) ? std::abs(static_cast<double>(referenceSpeed - evaluatedSpeed))/referenceSpeed : 0.0;
+	
+	// If both are static
+	if(std::max(std::abs(referenceSpeed),std::abs(evaluatedSpeed)) == 0.0){
+		return 0.0;
+	}
+	
+	return static_cast<double>(1 - (std::min(std::abs(referenceSpeed),std::abs(evaluatedSpeed))/std::max(std::abs(referenceSpeed),std::abs(evaluatedSpeed))));
+
+	//return std::min(std::abs(referenceSpeed),std::abs(evaluatedSpeed)) > 0 ? std::abs(static_cast<double>(referenceSpeed-evaluatedSpeed))/std::abs(static_cast<double>((referenceSpeed+evaluatedSpeed))/2) : 1.0;
 }
 
 bool ClusterManagement::checkClusteringConditions(vanetza::units::Length distance, double velocityDifference, long cardinality, bool withinBoundingBox)
@@ -369,6 +508,7 @@ void ClusterManagement::createVruClusterMap(){
 	double VruEgoLat = ((Constants::round(mPersonDataProvider->latitude(), Constants::microdegree) * Latitude_oneMicrodegreeNorth) / std::pow( 10.0, 7 )); 
 	libsumo::TraCIPosition vruLeaderTraCIPos = api->simulation.convertGeo(VruEgoLon,VruEgoLat, true);
 	SpeedValue_t VruEgoSpeed = buildVAMSpeedValue(mPersonDataProvider->speed());
+	auto VruEgoHeading = Constants::round(mPersonDataProvider->heading(), Constants::decidegree);
 
 	//collect data from the VRUs in the LDM and update mVruClusterMap
 	for (auto const& itr : *lDM) {
@@ -379,10 +519,30 @@ void ClusterManagement::createVruClusterMap(){
 		vanetza::units::Length distanceVRU = bg::distance(pointXY(vruLeaderTraCIPos.x,vruLeaderTraCIPos.y), pointXY(mVTraCIPosition.x,mVTraCIPosition.y)) * vanetza::units::si::meter;	
 
 		SpeedValue_t mVSpeed = itr.second.object.asn1()->vam.vamParameters.vruHighFrequencyContainer->speed.speedValue;
-		double clusterVelocityDifference = velocityDifference(VruEgoSpeed, mVSpeed);
+		//double clusterVelocityDifference = velocityDifference(VruEgoSpeed, mVSpeed);
+		double clusterSpeedDifference = velocityDifference(VruEgoSpeed, mVSpeed);
+
+		//std::cout << "ego speed " << VruEgoSpeed << " | candidate speed " << mVSpeed << std::endl;
+
+		HeadingValue_t mVHeading = itr.second.object.asn1()->vam.vamParameters.vruHighFrequencyContainer->heading.headingValue;
+
+		long diff = std::abs(VruEgoHeading - mVHeading);
+		long circularDiff = std::min(diff, 3600 - diff);
+		double clusterHeadingDifference = (static_cast<double>(circularDiff) / 3600);
+
+		double largestDiff = std::max(clusterSpeedDifference, clusterHeadingDifference);
+		//double largestDiff = clusterSpeedDifference;
+
+		//std::cout << "Speed diff: " << clusterSpeedDifference*100.0 << " | Heading diff: " << clusterHeadingDifference*100 << " | Largest diff " << largestDiff*100 << std::endl;
+
+		//std::cout << "Ego heading " << VruEgoHeading << " | VRU heading " << mVHeading << " | diff " << clusterHeadingDifference*100.0 << "\%"  << std::endl;
+
+		// if(largestDiff <= mMaxClusterVelocityDifference){
+		// 	std::cout << "Speed diff: " << clusterSpeedDifference*100.0 << "% | Heading diff: " << clusterHeadingDifference*100 << "% | Largest diff " << largestDiff*100 << "%" << std::endl;
+		// }
 
 		//update mVruClusterMap when distance, velocity and cardinality constraints are met		
-		if(checkClusteringConditions(distanceVRU,clusterVelocityDifference,mInitialClusterMap.size()+1) && !itr.second.object.asn1()->vam.vamParameters.vruClusterInformationContainer) {	
+		if(checkClusteringConditions(distanceVRU, largestDiff ,mInitialClusterMap.size()+1) && !itr.second.object.asn1()->vam.vamParameters.vruClusterInformationContainer) {	
 
 			mNearbyVruDistances.push_back(distanceVRU/vanetza::units::si::meter);
 
@@ -614,7 +774,6 @@ double ClusterManagement::calculatePaddingAmount(const VruClusterMap_t clusterMa
 		double vruSpeed = vru.second.asn1()->vam.vamParameters.vruHighFrequencyContainer->speed.speedValue;
 		maxSpeed = std::max(vruSpeed, maxSpeed);
 	}
-
 	// 150ms determined experimentally
 	auto messageTime = 150.0*std::pow(10.0,-3);
 
@@ -651,13 +810,13 @@ ClusterManagement::Polygon_t ClusterManagement::applyPaddingToPoly(const Polygon
 
 }
 
-void ClusterManagement::updateReceivedIdMap(long receivedId, const omnetpp::SimTime& T_now){
+void ClusterManagement::updateReceivedIdMap(long clusterId, long leaderId, const omnetpp::SimTime& T_now){
 	
-	auto searchItr = mReceivedIdMap.find(receivedId);
+	auto searchItr = mReceivedIdMap.find(clusterId);
 	if(searchItr != mReceivedIdMap.end() && !mReceivedIdMap.empty()){
-		searchItr->second = T_now;
+		std::get<1>(searchItr->second) = T_now;
 	}else{
-		mReceivedIdMap.insert(std::make_pair(receivedId, T_now));
+		mReceivedIdMap.insert(std::make_pair(clusterId, std::make_tuple(leaderId, T_now)));
 	}
 }
 
@@ -669,7 +828,7 @@ void ClusterManagement::refreshReceivedIdMap(const omnetpp::SimTime& T_now){
 
 	if(!mReceivedIdMap.empty()){
 		for(auto refreshItr = mReceivedIdMap.begin(); refreshItr != mReceivedIdMap.end();){
-			if(T_now - refreshItr->second > mTimeClusterLeaderWaiting){
+			if(T_now - std::get<1>(refreshItr->second) > mTimeClusterLeaderWaiting){
 				refreshItr = mReceivedIdMap.erase(refreshItr);
 			}else{
 				++refreshItr;

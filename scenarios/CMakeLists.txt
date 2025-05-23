@@ -9,6 +9,7 @@ add_subdirectory(clusterContainer)
 add_subdirectory(ITSC_2023)
 add_subdirectory(CAM_BL)
 add_subdirectory(InTAS_VRU)
+add_subdirectory(Leader_Selection)
 
 
 if(WITH_ENVMOD)
