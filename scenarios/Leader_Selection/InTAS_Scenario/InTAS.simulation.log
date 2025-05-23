@@ -1,0 +1,21 @@
+***Starting server on port 54381 ***
+Loading net-file from 'InTAS_Scenario/InTAS_24.net.xml' ... done (1126ms).
+Loading additional-files from 'InTAS_Scenario/BusStations.add.xml' ... done (16ms).
+Loading route-files incrementally from 'InTAS_Scenario/routes/InTAS_intermodal_updated_v2.rou.xml'
+Loading route-files incrementally from 'InTAS_Scenario/routes/pt_lines.flow.xml'
+Loading done.
+Simulation version 1.22.0 started with time: 0.00.
+Simulation ended at time: 0.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 0.09s
+ TraCI-Duration: 0.00s
+ Real time factor: 0
+ UPS: 0.000000
+Vehicles:
+ Inserted: 0
+ Running: 0
+ Waiting: 0
+Persons:
+ Inserted: 10
+ Running: 0

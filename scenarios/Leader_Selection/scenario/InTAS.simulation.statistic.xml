@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2025-04-28 14:40:09 by Eclipse SUMO sumo Version 1.22.0
+<sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="scenario/InTAS_Crossing.net.xml"/>
+        <route-files value="scenario/InTAS_Pedestrian_Route.rou.xml,scenario/ vehJam.rou.xml"/>
+        <additional-files value="scenario/buildings.poly.xml"/>
+    </input>
+
+    <output>
+        <summary-output value="scenario/InTAS.simulation.summary.xml"/>
+        <person-summary-output value="scenario/InTAS.person.simulation.summary.xml"/>
+        <tripinfo-output value="scenario/InTAS.simulation.tripinfo.xml"/>
+        <statistic-output value="scenario/InTAS.simulation.statistic.xml"/>
+    </output>
+
+    <time>
+        <begin value="0"/>
+        <end value="30"/>
+        <step-length value="0.1"/>
+    </time>
+
+    <processing>
+        <threads value="1"/>
+        <ignore-junction-blocker value="3"/>
+        <max-num-vehicles value="30"/>
+        <max-num-persons value="1500"/>
+        <time-to-teleport value="5"/>
+        <eager-insert value="true"/>
+        <default.carfollowmodel value="Krauss"/>
+        <pedestrian.model value="striping"/>
+        <pedestrian.striping.stripe-width value="0.50"/>
+        <pedestrian.striping.jamtime value="10"/>
+        <pedestrian.striping.jamtime.crossing value="10"/>
+        <pedestrian.striping.jamtime.narrow value="10"/>
+        <pedestrian.striping.reserve-oncoming value="0.5"/>
+    </processing>
+
+    <report>
+        <no-warnings value="true"/>
+        <message-log value="results/sumo-0.log"/>
+        <no-step-log value="true"/>
+    </report>
+
+    <traci_server>
+        <remote-port value="59023"/>
+    </traci_server>
+
+    <random_number>
+        <seed value="23423"/>
+    </random_number>
+
+    <gui_only>
+        <quit-on-end value="true"/>
+        <delay value="100"/>
+    </gui_only>
+
+</sumoConfiguration>
+-->
+
+<statistics xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/statistic_file.xsd">
+    <performance clockBegin="1745844009.77" clockEnd="1745844012.43" clockDuration="2.66" traciDuration="0.99" realTimeFactor="0.08" vehicleUpdatesPerSecond="1.88" personUpdatesPerSecond="76.72" begin="0.00" end="0.20" duration="0.20"/>
+    <vehicles loaded="15021" inserted="4" running="4" waiting="5"/>
+    <teleports total="0" jam="0" yield="0" wrongLane="0"/>
+    <safety collisions="0" emergencyStops="0" emergencyBraking="0"/>
+    <persons loaded="3042" running="102" jammed="0"/>
+    <personTeleports total="0" abortWait="0" wrongDest="0"/>
+    <vehicleTripStatistics count="0" routeLength="0.00" speed="0.00" duration="0.00" waitingTime="0.00" timeLoss="0.00" departDelay="0.00" departDelayWaiting="-1.00" totalTravelTime="0.00" totalDepartDelay="0.00"/>
+    <pedestrianStatistics number="0" routeLength="0.00" duration="0.00" timeLoss="0.00"/>
+    <rideStatistics number="0"/>
+    <transportStatistics number="0"/>
+</statistics>
