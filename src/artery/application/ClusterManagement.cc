@@ -133,22 +133,17 @@ bool ClusterManagement::vruShouldCreateCluster(){
 			return true;
 		} 
 		else if(mLeaderSelectionStrategy == "StdDev"){
-			std::cout << "[Ego " << mPersonDataProvider->getStationId() << "] started leader selection with  " << mInitialClusterMap.size() << " other candidates" << std::endl;
 
 			// Check candidates
-			
-
 			if(mLeaderCandidateId > 0){
 
 				if(simTime() - mInitiativeStart > mTimeLeaderInitiative){
-					std::cout << "[Ego " << mPersonDataProvider->getStationId() << "] elected himself (initiative)!\n" << std::endl;
 					mInitiativeStart = simTime();
 					return true;
 				}
 
 				for(auto const& cluster : mReceivedIdMap){
 					if(std::get<0>(cluster.second) == mLeaderCandidateId){
-						std::cout << "[Ego " << mPersonDataProvider->getStationId() << "] still waiting for leader...\n" << std::endl;
 						return false;
 					}
 					
@@ -179,8 +174,6 @@ bool ClusterManagement::vruShouldCreateCluster(){
 
 				egoCumulativeDist += distToEgo;
 				currentCumulativeDist += distToEgo;
-
-				//std::cout << "Distance from " << itr1.first << " to ego  " <<  mPersonDataProvider->getStationId() << " : " << currentCumulativeDist << std::endl;
 
 				for (auto const& itr2 : mInitialClusterMap) {
 					if(itr1.first != itr2.first){
@@ -218,9 +211,7 @@ bool ClusterManagement::vruShouldCreateCluster(){
 			double smallestVariance = 9999.99;
 			int bestCandidate = 0;
 
-			std::cout << "[Ego " << mPersonDataProvider->getStationId() << "] scored himself: " << egoVariance << std::endl;  
 			for(const auto& candidate : candidateScores){
-				//std::cout << "[Ego " << mPersonDataProvider->getStationId() << "] scored " << candidate.first << " with: " << candidate.second << std::endl;
 
 				if(candidate.second < smallestVariance){
 					bestCandidate = candidate.first;
@@ -230,13 +221,11 @@ bool ClusterManagement::vruShouldCreateCluster(){
 			}
 
 			if(smallestVariance < egoVariance){
-				std::cout << "[Ego " << mPersonDataProvider->getStationId() << "] thinks " << bestCandidate << " should lead (score " << smallestVariance << ")... \n" << std::endl;
 				mLeaderCandidateId = bestCandidate;
 				mInitiativeStart = SimTime();
 				return false;
 			}
 			
-			std::cout << "[Ego " << mPersonDataProvider->getStationId() << "] elected himself (best candidate)! \n" << std::endl;
 			return true;
 		}
 	}
@@ -519,10 +508,7 @@ void ClusterManagement::createVruClusterMap(){
 		vanetza::units::Length distanceVRU = bg::distance(pointXY(vruLeaderTraCIPos.x,vruLeaderTraCIPos.y), pointXY(mVTraCIPosition.x,mVTraCIPosition.y)) * vanetza::units::si::meter;	
 
 		SpeedValue_t mVSpeed = itr.second.object.asn1()->vam.vamParameters.vruHighFrequencyContainer->speed.speedValue;
-		//double clusterVelocityDifference = velocityDifference(VruEgoSpeed, mVSpeed);
 		double clusterSpeedDifference = velocityDifference(VruEgoSpeed, mVSpeed);
-
-		//std::cout << "ego speed " << VruEgoSpeed << " | candidate speed " << mVSpeed << std::endl;
 
 		HeadingValue_t mVHeading = itr.second.object.asn1()->vam.vamParameters.vruHighFrequencyContainer->heading.headingValue;
 
@@ -531,15 +517,6 @@ void ClusterManagement::createVruClusterMap(){
 		double clusterHeadingDifference = (static_cast<double>(circularDiff) / 3600);
 
 		double largestDiff = std::max(clusterSpeedDifference, clusterHeadingDifference);
-		//double largestDiff = clusterSpeedDifference;
-
-		//std::cout << "Speed diff: " << clusterSpeedDifference*100.0 << " | Heading diff: " << clusterHeadingDifference*100 << " | Largest diff " << largestDiff*100 << std::endl;
-
-		//std::cout << "Ego heading " << VruEgoHeading << " | VRU heading " << mVHeading << " | diff " << clusterHeadingDifference*100.0 << "\%"  << std::endl;
-
-		// if(largestDiff <= mMaxClusterVelocityDifference){
-		// 	std::cout << "Speed diff: " << clusterSpeedDifference*100.0 << "% | Heading diff: " << clusterHeadingDifference*100 << "% | Largest diff " << largestDiff*100 << "%" << std::endl;
-		// }
 
 		//update mVruClusterMap when distance, velocity and cardinality constraints are met		
 		if(checkClusteringConditions(distanceVRU, largestDiff ,mInitialClusterMap.size()+1) && !itr.second.object.asn1()->vam.vamParameters.vruClusterInformationContainer) {	

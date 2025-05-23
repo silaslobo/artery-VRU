@@ -417,7 +417,6 @@ void VaService::sendVam(const SimTime& T_now)
 		if(mClusterManagement.isVruStandalone() && currentVruClusterOperation == noVruOperation){		
 			mClusterManagement.createVruClusterMap();
 			if(mClusterManagement.vruShouldCreateCluster()){
-				//std::cout << "Cluster creation" << std::endl;
 				mClusterManagement.mClusterCreationTimestamp = T_now;
 				mClusterManagement.setCurrentVruRole(mClusterManagement.VruActiveClusterLeader);
 				long clusterCreationID;
