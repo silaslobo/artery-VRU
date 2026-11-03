@@ -2,3 +2,13 @@
 	path = scenarios/CAM_BL/scenario/InTAS
 	url = git@github.com:silaslobo/InTAS.git
 	branch = InTAS_VRU
+[submodule "extern/carla"]
+	path = extern/carla
+	url = https://github.com/carla-simulator/carla.git
+	shallow = true
+[submodule "extern/rpclib"]
+	path = extern/rpclib
+	url = https://github.com/carla-simulator/rpclib.git
+[submodule "extern/recastnavigation"]
+	path = extern/recastnavigation
+	url = https://github.com/carla-simulator/recastnavigation.git

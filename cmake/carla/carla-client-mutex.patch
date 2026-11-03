@@ -1,0 +1,113 @@
+diff --git a/LibCarla/source/carla/client/LightManager.cpp b/LibCarla/source/carla/client/LightManager.cpp
+index 1f096e9..237e1e3 100644
+--- a/LibCarla/source/carla/client/LightManager.cpp
++++ b/LibCarla/source/carla/client/LightManager.cpp
+@@ -8,6 +8,8 @@
+ 
+ #include "carla/client/detail/Simulator.h"
+ 
++#include <mutex>
++
+ 
+ namespace carla {
+ namespace client {
+diff --git a/LibCarla/source/carla/multigpu/router.cpp b/LibCarla/source/carla/multigpu/router.cpp
+index 6cae3da..3870864 100644
+--- a/LibCarla/source/carla/multigpu/router.cpp
++++ b/LibCarla/source/carla/multigpu/router.cpp
+@@ -9,6 +9,8 @@
+ #include "carla/multigpu/listener.h"
+ #include "carla/streaming/EndPoint.h"
+ 
++#include <mutex>
++
+ namespace carla {
+ namespace multigpu {
+ 
+diff --git a/LibCarla/source/carla/nav/Navigation.h b/LibCarla/source/carla/nav/Navigation.h
+index c04bcf6..3db4233 100644
+--- a/LibCarla/source/carla/nav/Navigation.h
++++ b/LibCarla/source/carla/nav/Navigation.h
+@@ -10,6 +10,8 @@
+ #include "carla/client/detail/EpisodeState.h"
+ #include "carla/geom/BoundingBox.h"
+ #include "carla/geom/Location.h"
++
++#include <mutex>
+ #include "carla/geom/Transform.h"
+ #include "carla/nav/WalkerManager.h"
+ #include "carla/rpc/ActorId.h"
+diff --git a/LibCarla/source/carla/road/Map.cpp b/LibCarla/source/carla/road/Map.cpp
+index 68db4bc..32dbf60 100644
+--- a/LibCarla/source/carla/road/Map.cpp
++++ b/LibCarla/source/carla/road/Map.cpp
+@@ -28,6 +28,7 @@
+ #include <stdexcept>
+ #include <chrono>
+ #include <thread>
++#include <mutex>
+ #include <iomanip>
+ #include <queue>
+ #include <set>
+diff --git a/LibCarla/source/carla/rss/RssSensor.cpp b/LibCarla/source/carla/rss/RssSensor.cpp
+index ae19c14..343c9d3 100644
+--- a/LibCarla/source/carla/rss/RssSensor.cpp
++++ b/LibCarla/source/carla/rss/RssSensor.cpp
+@@ -10,6 +10,7 @@
+ #include <ad/rss/world/Velocity.hpp>
+ #include <exception>
+ #include <fstream>
++#include <mutex>
+ 
+ #include "carla/Logging.h"
+ #include "carla/client/Map.h"
+diff --git a/LibCarla/source/carla/streaming/detail/Dispatcher.cpp b/LibCarla/source/carla/streaming/detail/Dispatcher.cpp
+index 29e3446..3db2159 100644
+--- a/LibCarla/source/carla/streaming/detail/Dispatcher.cpp
++++ b/LibCarla/source/carla/streaming/detail/Dispatcher.cpp
+@@ -10,6 +10,8 @@
+ #include "carla/Logging.h"
+ #include "carla/streaming/detail/MultiStreamState.h"
+ 
++#include <mutex>
++
+ #include <exception>
+ 
+ namespace carla {
+diff --git a/LibCarla/source/carla/trafficmanager/TrafficManager.cpp b/LibCarla/source/carla/trafficmanager/TrafficManager.cpp
+index c9f218e..5600501 100644
+--- a/LibCarla/source/carla/trafficmanager/TrafficManager.cpp
++++ b/LibCarla/source/carla/trafficmanager/TrafficManager.cpp
+@@ -10,6 +10,8 @@
+ #include "carla/Sockets.h"
+ #include "carla/client/detail/Simulator.h"
+ 
++#include <mutex>
++
+ #include "carla/trafficmanager/Constants.h"
+ #include "carla/trafficmanager/TrafficManager.h"
+ #include "carla/trafficmanager/TrafficManagerBase.h"
+diff --git a/LibCarla/source/carla/trafficmanager/TrafficManagerLocal.cpp b/LibCarla/source/carla/trafficmanager/TrafficManagerLocal.cpp
+index 8426f93..731ed68 100644
+--- a/LibCarla/source/carla/trafficmanager/TrafficManagerLocal.cpp
++++ b/LibCarla/source/carla/trafficmanager/TrafficManagerLocal.cpp
+@@ -5,6 +5,7 @@
+ // For a copy, see <https://opensource.org/licenses/MIT>.
+ 
+ #include <algorithm>
++#include <mutex>
+ 
+ #include "carla/Logging.h"
+ 
+diff --git a/LibCarla/source/carla/trafficmanager/TrafficManagerRemote.cpp b/LibCarla/source/carla/trafficmanager/TrafficManagerRemote.cpp
+index 64003ff..f7e0987 100644
+--- a/LibCarla/source/carla/trafficmanager/TrafficManagerRemote.cpp
++++ b/LibCarla/source/carla/trafficmanager/TrafficManagerRemote.cpp
+@@ -5,6 +5,7 @@
+ // For a copy, see <https://opensource.org/licenses/MIT>.
+ 
+ #include <thread>
++#include <mutex>
+ 
+ #include "carla/client/detail/Simulator.h"
+ 

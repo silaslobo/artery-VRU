@@ -23,6 +23,7 @@ include(AddOppTarget)
 include(CheckGitSubmodule)
 include(GenerateOppMessage)
 include(GNUInstallDirs)
+include(carla/CarlaClient)
 
 find_package(Boost 1.59 COMPONENTS date_time system REQUIRED)
 if (Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.75")
@@ -87,6 +88,11 @@ if(WITH_SIMULTE)
 else()
     message(STATUS "SimuLTE integration disabled")
 endif()
+
+
+check_git_submodule(PATH extern/carla REQUIRED_FILES LibCarla/cmake/CMakeLists.txt)
+check_git_submodule(PATH extern/rpclib REQUIRED_FILES CMakeLists.txt)
+check_git_submodule(PATH extern/recastnavigation REQUIRED_FILES CMakeLists.txt)
 
 
 option(WITH_ENVMOD "Build Artery with environment model feature" ON)
