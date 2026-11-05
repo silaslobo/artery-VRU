@@ -97,6 +97,10 @@ ExternalProject_Add(carla_client
                  && git -C ${CARLA_CLIENT_SRC} apply ${CARLA_PATCH_CMAKE}
     CMAKE_ARGS
         -DCMAKE_BUILD_TYPE=Client
+        # Artery loads this static library into OMNeT++ shared libraries, so
+        # libcarla itself has to be position independent
+        -DCMAKE_CXX_FLAGS=-fPIC
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DLIBCARLA_BUILD_RELEASE=ON
         -DLIBCARLA_BUILD_DEBUG=OFF
         -DLIBCARLA_BUILD_TEST=OFF
@@ -131,9 +135,18 @@ set_target_properties(Carla::Rpc PROPERTIES
 add_library(Carla::Recast STATIC IMPORTED GLOBAL)
 set_target_properties(Carla::Recast PROPERTIES
     IMPORTED_LOCATION ${RECAST_INSTALL}/lib/libRecast.a
-    INTERFACE_LINK_LIBRARIES
-        ${RECAST_INSTALL}/lib/libDetour.a
-        ${RECAST_INSTALL}/lib/libDetourCrowd.a
-        ${RECAST_INSTALL}/lib/libDetourTileCache.a
     INTERFACE_INCLUDE_DIRECTORIES ${RECAST_INSTALL}/include
 )
+
+# Detour/DetourCrowd/DetourTileCache must be resolved *after* libcarla_client,
+# which references them.  Listing them in INTERFACE_LINK_LIBRARIES of
+# Carla::Recast is not enough: CMake moves static dependencies of INTERFACE
+# libraries to the end of the link line, where they no longer satisfy the
+# references of libcarla_client.a.  Consumers therefore have to list the
+# archives explicitly (see src/carla/CMakeLists.txt).
+set(CARLA_RECAST_LIBRARIES
+    ${RECAST_INSTALL}/lib/libRecast.a
+    ${RECAST_INSTALL}/lib/libDetourCrowd.a
+    ${RECAST_INSTALL}/lib/libDetourTileCache.a
+    ${RECAST_INSTALL}/lib/libDetour.a
+    CACHE INTERNAL "CARLA Recast & Detour archives, in link order")

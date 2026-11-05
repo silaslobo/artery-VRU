@@ -105,6 +105,7 @@ if(WITH_OTS)
     add_subdirectory(src/ots)
 endif()
 add_subdirectory(src/traci)
+add_subdirectory(src/carla)
 
 add_subdirectory(src/artery)
 
