@@ -15,7 +15,9 @@ This library connects an Artery (OMNeT++) simulation to a running
 | Manager module | `CarlaScenarioManager` owns `carla::client::Client` + `carla::client::World`, spawns an ego vehicle and sensors, and drives CARLA one frame per OMNeT++ step. |
 | Sensor path | `Sensor::Listen()` callbacks marshal measurements into a mutex-guarded inbox; the event-loop thread drains it and emits the `carla.sensor` signal. |
 | Build wiring | `src/artery/CMakeLists.txt`: `target_link_libraries(core PUBLIC carla)`, so every Artery run script picks up the library and its NED folder. |
-| Example | [`scenarios/carla`](../../scenarios/carla) — `carla.CarlaWorld` network + `omnetpp.ini` + `run_carla_scenario` target, plus a `CarlaSensorSink` consumer module. |
+| Avatar path | `CarlaAvatar` implements `traci::VehicleSink`: every SUMO vehicle automatically gets one, mirrored as a kinematic CARLA actor (`SetTransform()` per frame, physics off). SUMO→CARLA pose conversion lives in the header-only `CoordTransform.h` (unit-tested, CTest `coordtransform`). |
+| Map pipeline | `tools/carla_map/gen_xodr.py` (+ `gen_routes.py`) generate one OpenDRIVE intersection consumed by *both* simulators; `CarlaScenarioManager` loads it with `GenerateOpenDriveWorld()` and verifies the built world against the generator (`mapCheckFile`, checksum round trip). |
+| Example | [`scenarios/carla`](../../scenarios/carla) — `carla.CarlaSumoWorld` network (SUMO traffic master + CARLA sensor world) + `omnetpp-sumo.ini` + `run_carla_sumo_scenario` target, plus a `CarlaSensorSink` consumer module. |
 
 ---
 
@@ -165,6 +167,21 @@ targets) automatically get `-n .../src/carla` and `-l libartery_carla.so`.
 | `copySensorPayload` | `false` | copy raw point-cloud/image bytes into the signal |
 | `destroyActorsOnFinish` | `true` | remove own actors at the end |
 
+Generated-map parameters (see `tools/carla_map` in the scenario README):
+
+| Parameter | Default | Meaning |
+|---|---|---|
+| `opendriveFile` | `""` | load this `.xodr` via `GenerateOpenDriveWorld()` instead of the server's current map |
+| `mapCheckFile` | `""` | `.lanepoints` sidecar; after generation, verify CARLA's built lanes against it (max/mean deviation, convention detection) |
+| `vertexDistance`, `additionalWidth`, `simplificationPercentage`, `smoothJunctions`, `wallHeight` | `0.2`, `0`, `0`, `false`, `0` | mesh generation options; the defaults keep the mesh geometry-accurate to the xodr |
+| `avatarResidualCheck` | `true` | record `sync.geometryResidual` per avatar/frame |
+
+Avatar API (used by `CarlaAvatar`, also usable directly):
+`acquireAvatar(key, pose)`, `updateAvatar(key, pose)`, `releaseAvatar(key)`,
+`attachAvatarSensors(key, spec)` — all queue-only; the CARLA RPCs happen inside
+`step()` before `Tick()`, so the lock-step contract is never broken from
+TraCI callback threads.
+
 Sensor list grammar (`;`-separated entries):
 
 ```
@@ -199,18 +216,24 @@ otherwise absolute in CARLA coordinates.
   and `nullptr` when the id is unknown, so the pointer is checked and the
   blueprint is copied before attributes are modified; unknown attributes are
   skipped with a warning (e.g. `frequency` does not exist — use `sensor_tick`).
-* Only the co-simulation side is implemented: CARLA positions are *not* yet fed
-  into Artery mobility/`NodeManager` (no vehicle insertion or
-  `MobilityBase::stateChangedSignal` emulation), and no control commands are
-  sent back to CARLA from Artery applications.
+* Traffic participants enter Artery through `traci::Manager` (SUMO is the
+  traffic master); CARLA mirrors them. CARLA-side positions are *not* fed back
+  into SUMO, and no control commands are sent from Artery applications to
+  CARLA actors.
+* CARLA and SUMO coordinate frames: `x_carla = x_xodr`, `y_carla = -y_xodr`,
+  `yaw_carla = angle_sumo - 90°` (verified empirically at map-load time, see
+  `CoordTransform.h` and the `coordtransform` unit test).
+* Avatar spawn heights must clear the actor bounding box (`zOffset` ≈ 0.6 m),
+  otherwise `TrySpawnActor` rejects the pose with a ground collision; queued
+  vehicles departing tightly behind another may retry for a few frames.
 
 ---
 
 ## 8. Running
 
 ```bash
-cmake -S . -B build && cmake --build build --target carla -j$(nproc)
-cmake --build build --target run_carla_scenario        # or run opp_run manually
+cmake -S . -B build && cmake --build build -j$(nproc)
+cmake --build build --target run_carla_sumo_scenario   # or run opp_run manually
 ```
 
 See [`scenarios/carla/README.md`](../../scenarios/carla/README.md) for the

@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
+#include <functional>
+#include <fstream>
 #include <iterator>
 #include <limits>
 #include <sstream>
@@ -25,6 +27,8 @@
 #include <carla/client/Vehicle.h>
 #include <carla/client/World.h>
 #include <carla/geom/Transform.h>
+#include <carla/road/Map.h>
+#include <carla/road/element/Waypoint.h>
 #include <carla/rpc/EpisodeSettings.h>
 #include <carla/sensor/data/CollisionEvent.h>
 #include <carla/sensor/data/GnssMeasurement.h>
@@ -51,6 +55,7 @@ const simsignal_t initSignal = cComponent::registerSignal("carla.init");
 const simsignal_t stepSignal = cComponent::registerSignal("carla.step");
 const simsignal_t closeSignal = cComponent::registerSignal("carla.close");
 const simsignal_t sensorSignal = cComponent::registerSignal("carla.sensor");
+const simsignal_t residualSignal = cComponent::registerSignal("sync.geometryResidual");
 
 ::carla::time_duration toCarlaDuration(double seconds)
 {
@@ -312,8 +317,10 @@ void CarlaScenarioManager::initialize()
 
     m_connectEvent = new cMessage("connect CARLA");
     m_stepEvent = new cMessage("CARLA step");
-    // run before any other module's periodic events, like traci::Core does
-    m_stepEvent->setSchedulingPriority(std::numeric_limits<short>::min());
+    // run early, but *after* traci::Core (which uses the minimum priority), so
+    // that in every lock-step frame the SUMO positions for the current time
+    // are known before the CARLA frame is produced
+    m_stepEvent->setSchedulingPriority(std::numeric_limits<short>::min() + 1);
 
     scheduleAt(par("startTime"), m_connectEvent);
 }
@@ -330,6 +337,12 @@ void CarlaScenarioManager::finish()
     }
 
     stopSensors();
+
+    if (m_residualCount > 0) {
+        EV_INFO << "avatar pose residual: n=" << m_residualCount
+                << " max=" << m_residualMax << " m mean=" << residualMean() << " m"
+                << std::endl;
+    }
 
     if (m_world && par("destroyActorsOnFinish")) {
         cleanupActors();
@@ -365,6 +378,7 @@ void CarlaScenarioManager::disconnect()
     try {
         m_sensors.clear();
         m_ego.reset();
+        m_avatars.clear();
         m_savedSettings.reset();
         m_world.reset();
         m_client.reset();
@@ -407,13 +421,7 @@ void CarlaScenarioManager::connect()
         m_client.reset(new cc::Client(m_host, m_port));
         m_client->SetTimeout(toCarlaDuration(m_timeout.dbl()));
 
-        const auto map = par("map").stdstringValue();
-        if (map.empty()) {
-            m_world.reset(new cc::World(m_client->GetWorld()));
-        }
-        else {
-            m_world.reset(new cc::World(m_client->LoadWorld(map)));
-        }
+        m_world.reset(new cc::World(m_client->GetWorld()));
         EV_INFO << "Connected to CARLA " << m_client->GetServerVersion() << ", world "
                 << m_world->GetSettings().fixed_delta_seconds.get_value_or(0.0) << "s step"
                 << std::endl;
@@ -430,6 +438,15 @@ void CarlaScenarioManager::connect()
             catch (const std::exception& e) {
                 EV_WARN << "Could not nudge CARLA server: " << e.what() << std::endl;
             }
+        }
+
+        const auto opendriveFile = par("opendriveFile").stdstringValue();
+        const auto map = par("map").stdstringValue();
+        if (!opendriveFile.empty()) {
+            loadGeneratedMap();
+        }
+        else if (!map.empty()) {
+            m_world.reset(new cc::World(m_client->LoadWorld(map)));
         }
 
         if (m_synchronous) {
@@ -485,16 +502,32 @@ void CarlaScenarioManager::spawnEgoVehicle()
     auto blueprint = *found;
 
     const auto spec = par("spawnTransform").stdstringValue();
+    const auto from = par("spawnFrom").stdstringValue();
     std::vector<cg::Transform> spawnPoints;
-    if (spec.empty()) {
+    if (!spec.empty()) {
+        spawnPoints.push_back(parseTransform(spec));
+    }
+    else if (!from.empty()) {
+        // generated worlds have no recommended spawn points: take the pose
+        // computed by the map generator from its own geometry
+        CarlaPose pose;
+        if (!resolveSpawnFrom(from, pose)) {
+            throw cRuntimeError("spawnFrom '%s' not found in the spawn sidecar "
+                                "(wrong road/lane/s?)", from.c_str());
+        }
+        pose.z += 0.2;
+        cg::Transform transform;
+        transform.location = cg::Location(pose.x, pose.y, pose.z);
+        transform.rotation = cg::Rotation(0.0, pose.yaw, 0.0);
+        spawnPoints.push_back(transform);
+    }
+    else {
         auto map = m_world->GetMap();
         spawnPoints = map->GetRecommendedSpawnPoints();
         if (spawnPoints.empty()) {
-            throw cRuntimeError("CARLA map provides no recommended spawn points");
+            throw cRuntimeError("CARLA map provides no recommended spawn points "
+                                "(use spawnFrom for generated maps)");
         }
-    }
-    else {
-        spawnPoints.push_back(parseTransform(spec));
     }
 
     cg::Transform transform;
@@ -518,16 +551,389 @@ void CarlaScenarioManager::spawnEgoVehicle()
             << ',' << transform.location.y << ',' << transform.location.z << ')' << std::endl;
 }
 
+void CarlaScenarioManager::loadGeneratedMap()
+{
+    const std::string path = par("opendriveFile").stdstringValue();
+    std::ifstream in(path, std::ios::binary);
+    if (!in) {
+        throw cRuntimeError("Cannot open OpenDRIVE file '%s'", path.c_str());
+    }
+    std::stringstream buffer;
+    buffer << in.rdbuf();
+    const std::string xodr = buffer.str();
+    if (xodr.empty()) {
+        throw cRuntimeError("OpenDRIVE file '%s' is empty", path.c_str());
+    }
+
+    ::carla::rpc::OpendriveGenerationParameters params;
+    params.vertex_distance = par("vertexDistance").doubleValue();
+    params.max_road_length = par("maxRoadLength").doubleValue();
+    params.wall_height = par("wallHeight").doubleValue();
+    params.additional_width = par("additionalWidth").doubleValue();
+    params.vertex_width_resolution = par("vertexWidthResolution").doubleValue();
+    params.simplification_percentage = static_cast<float>(par("simplificationPercentage").doubleValue());
+    params.smooth_junctions = par("smoothJunctions");
+    params.enable_pedestrian_navigation = par("enablePedestrianNavigation");
+
+    const size_t sentChecksum = std::hash<std::string> {}(xodr);
+    EV_INFO << "Generating CARLA world from OpenDRIVE '" << path << "' (" << xodr.size()
+            << " bytes, checksum " << sentChecksum << "): vertex_distance="
+            << params.vertex_distance << " additional_width=" << params.additional_width
+            << " simplification=" << params.simplification_percentage
+            << " smooth_junctions=" << params.smooth_junctions
+            << " wall_height=" << params.wall_height << std::endl;
+
+    m_world.reset(new cc::World(m_client->GenerateOpenDriveWorld(xodr, params)));
+
+    // prove in the log which map is really loaded
+    auto map = m_world->GetMap();
+    const auto& geo = map->GetGeoReference();
+    EV_INFO << "Loaded CARLA map name='" << map->GetName() << "' geoReference lat="
+            << geo.latitude << " lon=" << geo.longitude << " alt=" << geo.altitude
+            << std::endl;
+    const auto& received = map->GetOpenDrive();
+    EV_INFO << "OpenDRIVE round trip: sent " << xodr.size() << " bytes (checksum "
+            << sentChecksum << "), server reports " << received.size() << " bytes (checksum "
+            << std::hash<std::string> {}(received) << ")" << std::endl;
+    if (received.size() == xodr.size()
+            && std::hash<std::string> {}(received) == sentChecksum) {
+        EV_INFO << "Server stores exactly the OpenDRIVE string that was sent" << std::endl;
+    }
+
+    checkGeneratedGeometry();
+}
+
+void CarlaScenarioManager::checkGeneratedGeometry()
+{
+    const std::string path = par("mapCheckFile").stdstringValue();
+    if (path.empty()) {
+        return;
+    }
+    std::ifstream in(path);
+    if (!in) {
+        throw cRuntimeError("Cannot open map check file '%s'", path.c_str());
+    }
+
+    struct Sample {
+        int road;
+        int lane;
+        double x, y;  // xodr coordinates
+    };
+    std::vector<Sample> samples;
+    std::string line;
+    while (std::getline(in, line)) {
+        if (line.empty() || line[0] == '#') {
+            continue;
+        }
+        std::istringstream ls(line);
+        Sample s;
+        double st, z, hdg;
+        if (!(ls >> s.road >> s.lane >> st >> s.x >> s.y >> z >> hdg)) {
+            continue;
+        }
+        samples.push_back(s);
+    }
+    if (samples.empty()) {
+        EV_WARN << "Map check file '" << path << "' contains no samples" << std::endl;
+        return;
+    }
+
+    const ::carla::road::Map& road_map = m_world->GetMap()->GetMap();
+
+    // Determine the coordinate convention empirically: compare the projection
+    // deviation of (x, y) vs (x, -y) at a sample away from the x axis.
+    bool flip_y = false;
+    {
+        double dev_plain = -1.0;
+        double dev_flip = -1.0;
+        for (const auto& s : samples) {
+            if (std::fabs(s.y) < 5.0) {
+                continue;
+            }
+            auto dev_at = [&road_map](double x, double y) {
+                auto wp = road_map.GetClosestWaypointOnRoad(
+                    ::carla::geom::Location(x, y, 0.0));
+                if (!wp) {
+                    return 1e9;
+                }
+                const auto t = road_map.ComputeTransform(*wp);
+                return std::hypot(t.location.x - x, t.location.y - y);
+            };
+            dev_plain = dev_at(s.x, s.y);
+            dev_flip = dev_at(s.x, -s.y);
+            break;
+        }
+        flip_y = dev_flip < dev_plain;
+        EV_INFO << "Map geometry check: CARLA coordinate convention "
+                << (flip_y ? "x_carla = x_xodr, y_carla = -y_xodr" : "x/y identical")
+                << " (dev plain=" << dev_plain << " flipped=" << dev_flip << ')'
+                << std::endl;
+    }
+
+    double max_dev = 0.0;
+    double sum_dev = 0.0;
+    size_t checked = 0;
+    size_t id_mismatch = 0;
+    for (const auto& s : samples) {
+        const double x = s.x;
+        const double y = flip_y ? -s.y : s.y;
+        auto wp = road_map.GetClosestWaypointOnRoad(::carla::geom::Location(x, y, 0.0));
+        if (!wp) {
+            ++id_mismatch;
+            continue;
+        }
+        if (wp->road_id != s.road || wp->lane_id != s.lane) {
+            // expected close to road boundaries / at overlapping junction lanes
+            ++id_mismatch;
+        }
+        const auto t = road_map.ComputeTransform(*wp);
+        const double dev = std::hypot(t.location.x - x, t.location.y - y);
+        max_dev = std::max(max_dev, dev);
+        sum_dev += dev;
+        ++checked;
+    }
+    if (checked == 0) {
+        EV_WARN << "Map geometry check: no sample could be projected onto the "
+                << "CARLA map" << std::endl;
+        return;
+    }
+    EV_INFO << "Map geometry check: " << checked << " lane samples, max deviation "
+            << max_dev << " m, mean " << (sum_dev / static_cast<double>(checked))
+            << " m, road/lane nearest-id mismatches " << id_mismatch
+            << " (boundary effects)" << std::endl;
+    if (max_dev > 0.2) {
+        EV_WARN << "CARLA lane geometry deviates more than 0.2 m from the generated "
+                << "OpenDRIVE - check the generation parameters" << std::endl;
+    }
+}
+
+bool CarlaScenarioManager::resolveSpawnFrom(const std::string& spec, CarlaPose& pose) const
+{
+    // spec: "roadId,laneId,s"; sidecar lines: "road lane s x y hdg cx cy cyaw"
+    const auto fields = split(spec, ',');
+    if (fields.size() != 3) {
+        throw cRuntimeError("spawnFrom must be 'roadId,laneId,s', got '%s'", spec.c_str());
+    }
+    const int road = std::atoi(fields[0].c_str());
+    const int lane = std::atoi(fields[1].c_str());
+    const double s = std::strtod(fields[2].c_str(), nullptr);
+
+    std::string file = par("spawnPointsFile").stdstringValue();
+    if (file.empty()) {
+        file = par("opendriveFile").stdstringValue() + ".spawn";
+    }
+    std::ifstream in(file);
+    if (!in) {
+        throw cRuntimeError("Cannot open spawn sidecar '%s' (generated by "
+                            "gen_xodr.py alongside the .xodr)", file.c_str());
+    }
+    std::string line;
+    double bestDelta = -1.0;
+    int bestRoad = 0, bestLane = 0; 
+    double carlaX = 0, carlaY = 0, carlaYaw = 0;
+    while (std::getline(in, line)) {
+        if (line.empty() || line[0] == '#') {
+            continue;
+        }
+        std::istringstream ls(line);
+        int r, l;
+        double ps, x, y, hdg, cx, cy, cyaw;
+        if (!(ls >> r >> l >> ps >> x >> y >> hdg >> cx >> cy >> cyaw)) {
+            continue;
+        }
+        if (r != road || l != lane) {
+            continue;
+        }
+        const double delta = std::fabs(ps - s);
+        if (bestDelta < 0.0 || delta < bestDelta) {
+            bestDelta = delta;
+            bestRoad = r;
+            bestLane = l;
+            carlaX = cx;
+            carlaY = cy;
+            carlaYaw = cyaw;
+        }
+    }
+    if (bestDelta < 0.0) {
+        return false;
+    }
+    EV_INFO << "spawnFrom " << road << ',' << lane << ',' << s << " resolved to s="
+            << (bestDelta) << " m offset, CARLA pose (" << carlaX << ',' << carlaY
+            << ',' << carlaYaw << ")" << std::endl;
+    pose.x = carlaX;
+    pose.y = carlaY;
+    pose.z = 0.0;
+    pose.yaw = carlaYaw;
+    return true;
+}
+
+void CarlaScenarioManager::acquireAvatar(const std::string& key, const std::string& blueprint,
+    const CarlaPose& pose)
+{
+    auto found = m_avatars.find(key);
+    if (found != m_avatars.end()) {
+        found->second.pose = pose;
+        return;
+    }
+    AvatarEntry entry;
+    entry.pose = pose;
+    entry.blueprint = blueprint;
+    m_avatars.emplace(key, std::move(entry));
+}
+
+void CarlaScenarioManager::updateAvatar(const std::string& key, const CarlaPose& pose)
+{
+    auto found = m_avatars.find(key);
+    if (found != m_avatars.end()) {
+        found->second.pose = pose;
+    }
+}
+
+void CarlaScenarioManager::releaseAvatar(const std::string& key)
+{
+    auto found = m_avatars.find(key);
+    if (found == m_avatars.end()) {
+        return;
+    }
+    // attached sensors are stopped and destroyed with the avatar
+    for (auto& sensor : found->second.sensors) {
+        try {
+            sensor->Stop();
+            sensor->Destroy();
+        }
+        catch (const std::exception& e) {
+            EV_WARN << "Could not destroy avatar sensor: " << e.what() << std::endl;
+        }
+    }
+    if (found->second.actor) {
+        m_avatarsToDestroy.push_back(found->second.actor);
+    }
+    m_avatars.erase(found);
+}
+
+void CarlaScenarioManager::applyAvatarUpdates()
+{
+    if (!m_world) {
+        return;  // connect() has not run yet, requests stay queued
+    }
+
+    if (!m_avatarsToDestroy.empty()) {
+        for (auto& actor : m_avatarsToDestroy) {
+            try {
+                actor->Destroy();
+            }
+            catch (const std::exception& e) {
+                EV_WARN << "Could not destroy CARLA avatar: " << e.what() << std::endl;
+            }
+        }
+        m_avatarsToDestroy.clear();
+    }
+
+    boost::optional<::carla::client::ActorBlueprint> blueprint;
+    std::string blueprintId;
+    for (auto& entry : m_avatars) {
+        auto& avatar = entry.second;
+        cg::Transform transform;
+        transform.location = cg::Location(avatar.pose.x, avatar.pose.y, avatar.pose.z);
+        transform.rotation = cg::Rotation(0.0, avatar.pose.yaw, 0.0);
+        try {
+            if (!avatar.actor) {
+                if (!blueprint || blueprintId != avatar.blueprint) {
+                    auto library = m_world->GetBlueprintLibrary();
+                    auto found = library->Find(avatar.blueprint);
+                    if (found == nullptr) {
+                        throw cRuntimeError("CARLA blueprint '%s' not found (avatar)",
+                            avatar.blueprint.c_str());
+                    }
+                    blueprint = *found;
+                    blueprintId = avatar.blueprint;
+                }
+                // TrySpawnActor returns null instead of throwing (e.g. when a
+                // queued vehicle departs directly behind another one); keep
+                // the avatar pending and retry on the next frame
+                auto actor = m_world->TrySpawnActor(*blueprint, transform);
+                if (!actor) {
+                    if (avatar.spawnWarnings < 3) {
+                        ++avatar.spawnWarnings;
+                        EV_WARN << "Could not spawn CARLA avatar '" << entry.first
+                                << "' at (" << avatar.pose.x << ',' << avatar.pose.y
+                                << ") yet, retrying next frame" << std::endl;
+                    }
+                    continue;
+                }
+                avatar.actor = boost::static_pointer_cast<cc::Vehicle>(actor);
+                avatar.actor->SetAutopilot(false);
+                if (!par("avatarSimulatePhysics")) {
+                    avatar.actor->SetSimulatePhysics(false);
+                }
+                EV_INFO << "Spawned CARLA avatar '" << entry.first << "' (actor "
+                        << avatar.actor->GetId() << ") from " << avatar.blueprint
+                        << " at (" << avatar.pose.x << ',' << avatar.pose.y << ','
+                        << avatar.pose.yaw << ')' << std::endl;
+            }
+            else {
+                avatar.actor->SetTransform(transform);
+            }
+            if (!avatar.sensorsAttached && !avatar.pendingSensors.empty()) {
+                spawnSensorList(avatar.actor.get(), avatar.pendingSensors,
+                    entry.first + '.', avatar.sensors);
+                avatar.sensorsAttached = true;
+                avatar.pendingSensors.clear();
+            }
+        }
+        catch (const cc::TimeoutException& e) {
+            throw cRuntimeError("CARLA avatar update timed out: %s", e.what());
+        }
+    }
+}
+
+void CarlaScenarioManager::measureAvatarResiduals()
+{
+    if (!par("avatarResidualCheck") || !m_world || m_avatars.empty()) {
+        return;
+    }
+    for (auto& entry : m_avatars) {
+        auto& avatar = entry.second;
+        if (!avatar.actor) {
+            continue;
+        }
+        try {
+            const auto t = avatar.actor->GetTransform();
+            CarlaPose actual;
+            actual.x = t.location.x;
+            actual.y = t.location.y;
+            actual.z = t.location.z;
+            actual.yaw = t.rotation.yaw;
+            const double residual = positionDistance(actual, avatar.pose);
+            m_residualMax = std::max(m_residualMax, residual);
+            m_residualSum += residual;
+            ++m_residualCount;
+            emit(residualSignal, residual);
+        }
+        catch (const std::exception& e) {
+            EV_WARN << "Could not query CARLA avatar '" << entry.first
+                    << "' pose: " << e.what() << std::endl;
+        }
+    }
+}
+
 void CarlaScenarioManager::spawnSensors()
 {
-    const auto specs = parseSensors(par("sensors").stdstringValue());
+    spawnSensorList(m_ego ? m_ego.get() : nullptr, par("sensors").stdstringValue(),
+        std::string(), m_sensors);
+}
+
+void CarlaScenarioManager::spawnSensorList(cc::Actor* parent, const std::string& text,
+    const std::string& name_prefix,
+    std::vector<boost::shared_ptr<cc::Sensor>>& out)
+{
+    const auto specs = parseSensors(text);
     if (specs.empty()) {
         return;
     }
 
     auto library = m_world->GetBlueprintLibrary();
     const bool copyPayload = par("copySensorPayload");
-    cc::Actor* parent = m_ego ? m_ego.get() : nullptr;
 
     for (const auto& spec : specs) {
         auto found = library->Find(spec.blueprint);
@@ -556,10 +962,13 @@ void CarlaScenarioManager::spawnSensors()
             blueprint.SetAttribute(attribute.first, attribute.second);
         }
 
-        std::string name = spec.blueprint;
-        auto dot = name.rfind('.');
-        if (dot != std::string::npos && dot + 1 < name.size()) {
-            name = name.substr(dot + 1);
+        std::string name = name_prefix;
+        auto dot = spec.blueprint.rfind('.');
+        if (dot != std::string::npos && dot + 1 < spec.blueprint.size()) {
+            name += spec.blueprint.substr(dot + 1);
+        }
+        else {
+            name += spec.blueprint;
         }
 
         const auto transform = makeTransform(spec);
@@ -589,13 +998,33 @@ void CarlaScenarioManager::spawnSensors()
         });
 
         EV_INFO << "Attached sensor " << sensor->GetId() << " (" << spec.blueprint
-                << ", frequency=" << spec.frequency << ')' << std::endl;
-        m_sensors.push_back(sensor);
+                << ", frequency=" << spec.frequency << ", name=" << name << ')'
+                << std::endl;
+        out.push_back(sensor);
+    }
+}
+
+void CarlaScenarioManager::attachAvatarSensors(const std::string& key,
+    const std::string& spec)
+{
+    if (spec.empty()) {
+        return;
+    }
+    auto found = m_avatars.find(key);
+    if (found != m_avatars.end()) {
+        if (!found->second.pendingSensors.empty()) {
+            found->second.pendingSensors += ';';
+        }
+        found->second.pendingSensors += spec;
     }
 }
 
 void CarlaScenarioManager::step()
 {
+    // apply queued avatar changes before the frame so that the CARLA world
+    // shows the SUMO state of the current simulation instant
+    applyAvatarUpdates();
+
     if (m_synchronous && m_world) {
         const auto tickTimeout = toCarlaDuration(m_tickTimeout.dbl());
         for (unsigned attempt = 1; true; ++attempt) {
@@ -625,6 +1054,8 @@ void CarlaScenarioManager::step()
     }
 
     drainInbox();
+
+    measureAvatarResiduals();
 
     emit(stepSignal, simTime());
 
@@ -679,12 +1110,24 @@ void CarlaScenarioManager::cleanupActors()
         if (m_ego) {
             m_ego->Destroy();
         }
+        for (auto& entry : m_avatars) {
+            // stop the streaming callbacks before destroying the parent, or
+            // CARLA logs 'sensor object went out of the scope' leaks
+            for (auto& sensor : entry.second.sensors) {
+                sensor->Stop();
+            }
+            if (entry.second.actor) {
+                entry.second.actor->Destroy();
+            }
+            entry.second.sensors.clear();
+        }
     }
     catch (const std::exception& e) {
         EV_WARN << "Could not destroy CARLA actors: " << e.what() << std::endl;
     }
     m_sensors.clear();
     m_ego.reset();
+    m_avatars.clear();
 }
 
 SimTime CarlaScenarioManager::toSimTime(double carlaTimestamp) const

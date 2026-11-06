@@ -6,6 +6,7 @@
 
 set(SOURCES
     CarlaScenarioManager.cc
+    CarlaAvatar.cc
     CarlaSensorReading.cc
     CarlaSensorSink.cc
 )
@@ -21,9 +22,14 @@ set_target_properties(carla PROPERTIES
     OMNETPP_LIBRARY ON
     NED_FOLDERS ${CMAKE_CURRENT_SOURCE_DIR})
 
+# CarlaAvatar implements the traci::VehicleSink interface; the bundled TraCI
+# client headers (src/ + src/traci/sumo) are needed at compile time, the
+# symbols come from libtraci.so at load time.
 target_include_directories(carla PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${PROJECT_SOURCE_DIR}/src/traci/sumo
     $<TARGET_PROPERTY:core,INCLUDE_DIRECTORIES>)
+target_link_libraries(carla PUBLIC traci)
 
 find_package(Boost REQUIRED COMPONENTS date_time system filesystem)
 find_package(Threads REQUIRED)
@@ -42,6 +48,13 @@ find_package(ZLIB QUIET)
 if(TARGET ZLIB::ZLIB)
     target_link_libraries(carla PUBLIC ZLIB::ZLIB)
 endif()
+
+# unit test for the coordinate transform (plain C++ executable, no OMNeT++)
+add_executable(carla_coordtest tests/CoordTransformTest.cc)
+set_target_properties(carla_coordtest PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+target_include_directories(carla_coordtest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+add_test(NAME coordtransform COMMAND carla_coordtest)
 
 install(TARGETS carla LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/ DESTINATION ${CMAKE_INSTALL_DATADIR}/ned/carla FILES_MATCHING PATTERN "*.ned")

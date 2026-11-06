@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Artery CARLA/SUMO co-simulation: SUMO runs the generated intersection.
+     The net file is converted from the [same] OpenDRIVE that CARLA loads;
+     netconvert ran with offset normalization disabled, so both worlds share
+     identical coordinates.  step-length must equal *.carlaManager.stepInterval. -->
+<configuration>
+    <input>
+        <net-file value="intersection.net.xml"/>
+        <route-files value="intersection.rou.xml"/>
+    </input>
+    <time>
+        <begin value="0"/>
+        <end value="3600"/>
+        <step-length value="0.01"/>
+    </time>
+    <report>
+        <no-step-log value="true"/>
+    </report>
+</configuration>

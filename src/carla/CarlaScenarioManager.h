@@ -1,10 +1,14 @@
 #ifndef CARLA_SCENARIO_MANAGER_H_8Q4MZF2C
 #define CARLA_SCENARIO_MANAGER_H_8Q4MZF2C
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "CoordTransform.h"
+
+#include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include <omnetpp/cmessage.h>
@@ -17,6 +21,7 @@ namespace carla
 {
 namespace client
 {
+class Actor;
 class Client;
 class Sensor;
 class Vehicle;
@@ -80,10 +85,55 @@ public:
         return m_egoId;
     }
 
+    // ---------------------------------------------------------------------
+    // Avatar API -- kinematic CARLA mirrors of external (SUMO) vehicles.
+    //
+    // These are called from the OMNeT++ event loop (e.g. by a
+    // traci::VehicleSink) and only queue changes; the CARLA RPCs happen in
+    // the module's step(), right before World::Tick(), so the mirrored
+    // poses are applied within the same lock-step frame.  All poses are in
+    // CARLA coordinates (see CoordTransform.h).
+    // ---------------------------------------------------------------------
+
+    /// spawn an avatar (or update the request if the key is already known)
+    void acquireAvatar(const std::string& key, const std::string& blueprint, const CarlaPose& pose);
+    /// queue sensors (same grammar as the "sensors" parameter) for attachment
+    /// to an avatar once it exists on the server
+    void attachAvatarSensors(const std::string& key, const std::string& spec);
+    /// queue a pose update for an existing avatar
+    void updateAvatar(const std::string& key, const CarlaPose& pose);
+    /// destroy the avatar (no-op if the key is unknown)
+    void releaseAvatar(const std::string& key);
+
+    /// residual statistics of the avatar pose verification (see parameter
+    /// avatarResidualCheck)
+    double residualMax() const
+    {
+        return m_residualMax;
+    }
+    double residualMean() const
+    {
+        return m_residualCount ? m_residualSum / static_cast<double>(m_residualCount) : 0.0;
+    }
+    uint64_t residualCount() const
+    {
+        return m_residualCount;
+    }
+
 protected:
     void connect();
+    /// load a generated map (parameter opendriveFile) via GenerateOpenDriveWorld
+    void loadGeneratedMap();
     void spawnEgoVehicle();
     void spawnSensors();
+    /// resolve a "roadId,laneId,s" spawn specification through the generator
+    /// sidecar file (<opendriveFile>.spawn)
+    bool resolveSpawnFrom(const std::string& spec, CarlaPose& pose) const;
+    void applyAvatarUpdates();
+    void measureAvatarResiduals();
+    /// compare CARLA's built lane geometry against the generator's lane
+    /// centre line samples (parameter mapCheckFile)
+    void checkGeneratedGeometry();
     void step();
     void drainInbox();
     void stopSensors();
@@ -112,6 +162,27 @@ private:
 
     boost::shared_ptr<::carla::client::Vehicle> m_ego;
     std::vector<boost::shared_ptr<::carla::client::Sensor>> m_sensors;
+
+    struct AvatarEntry
+    {
+        boost::shared_ptr<::carla::client::Vehicle> actor;  // null until spawned
+        CarlaPose pose;  ///< last requested pose (CARLA coordinates)
+        std::string blueprint;
+        std::string pendingSensors;   ///< sensor spec not yet attached
+        bool sensorsAttached {false};
+        unsigned spawnWarnings {0};
+        std::vector<boost::shared_ptr<::carla::client::Sensor>> sensors;
+    };
+    std::map<std::string, AvatarEntry> m_avatars;
+    /// shared implementation of spawnSensors() and the avatar sensors
+    void spawnSensorList(::carla::client::Actor* parent, const std::string& text,
+        const std::string& name_prefix,
+        std::vector<boost::shared_ptr<::carla::client::Sensor>>& out);
+    /// actors of released avatars, destroyed at the next step
+    std::vector<boost::shared_ptr<::carla::client::Vehicle>> m_avatarsToDestroy;
+    double m_residualMax {0.0};
+    double m_residualSum {0.0};
+    uint64_t m_residualCount {0};
 
     std::string m_host;
     uint16_t m_port;
