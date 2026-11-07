@@ -24,7 +24,6 @@ network CarlaSumoWorld
                 host = default(carlaHost);
                 port = default(carlaPort);
                 opendriveFile = default(mapFile);
-                spawnEgoVehicle = default(false);
         }
 
         traci: Manager {
@@ -39,10 +38,17 @@ network CarlaSumoWorld
             launcher.sumocfg = default(sumocfg);
         }
 
-        // counts all sensor measurements (ego, manager-level and avatar
-        // sensors) forwarded via the carla.sensor signal
+        // counts all sensor measurements (manager-level and avatar sensors)
+        // forwarded via the carla.sensor signal
         sensorSink: CarlaSensorSink {
             parameters:
                 managerModule = "carlaManager";
+        }
+
+        // stores image readings (RGB cameras) as PNG files under captures/
+        imageSink: CarlaImageSink {
+            parameters:
+                managerModule = "carlaManager";
+                outputDir = default("captures");
         }
 }

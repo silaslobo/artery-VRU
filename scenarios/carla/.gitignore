@@ -7,3 +7,6 @@ maps/intersection.rou.xml
 
 # simulation output
 results/
+
+# PNG captures written by carla.CarlaImageSink
+captures/

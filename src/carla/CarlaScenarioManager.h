@@ -3,12 +3,18 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
 #include "CoordTransform.h"
 
-#include <boost/optional.hpp>
+// boost::shared_ptr is required by the CARLA 0.9.16 client API: carla::
+// SharedPtr<T> is an alias for boost::shared_ptr<T> (LibCarla Memory.h), so
+// every handle the client returns is boost-managed.  std::shared_ptr has an
+// independent control block, so wrapping those raw pointers would create
+// double ownership; CARLA handle storage therefore uses the boost types and
+// everything else is std.
 #include <boost/shared_ptr.hpp>
 
 #include <omnetpp/cmessage.h>
@@ -45,7 +51,8 @@ namespace carla
  * Responsibilities:
  *   - connect to the CARLA server, (optionally) load a map and switch the
  *     server into synchronous mode with a fixed delta time
- *   - spawn an ego vehicle plus a configurable set of sensors
+ *   - spawn a configurable set of sensors; every vehicle in the CARLA world
+ *     is a kinematic avatar of an external (SUMO) vehicle
  *   - advance the CARLA world by exactly one frame per OMNeT++ step event
  *   - marshal sensor data arriving on CARLA's streaming threads into the
  *     OMNeT++ event loop and emit it as "carla.sensor" signal
@@ -68,21 +75,6 @@ public:
     uint64_t frame() const
     {
         return m_frame;
-    }
-
-    /// CARLA time (seconds since episode start) matching the last step
-    double carlaTime() const
-    {
-        return m_carlaTime;
-    }
-
-    /// Convert a CARLA episode timestamp into OMNeT++ simulation time
-    omnetpp::SimTime toSimTime(double carlaTimestamp) const;
-
-    /// id of the spawned ego vehicle (-1 if none)
-    int32_t egoVehicleId() const
-    {
-        return m_egoId;
     }
 
     // ---------------------------------------------------------------------
@@ -124,25 +116,20 @@ protected:
     void connect();
     /// load a generated map (parameter opendriveFile) via GenerateOpenDriveWorld
     void loadGeneratedMap();
-    void spawnEgoVehicle();
     void spawnSensors();
-    /// resolve a "roadId,laneId,s" spawn specification through the generator
-    /// sidecar file (<opendriveFile>.spawn)
-    bool resolveSpawnFrom(const std::string& spec, CarlaPose& pose) const;
     void applyAvatarUpdates();
     void measureAvatarResiduals();
     /// compare CARLA's built lane geometry against the generator's lane
     /// centre line samples (parameter mapCheckFile)
     void checkGeneratedGeometry();
     void step();
-    void drainInbox();
+    void drainInbox(std::vector<RawSensorData> pending);
     void stopSensors();
     void cleanupActors();
     /// release all CARLA objects without letting exceptions escape
     void disconnect();
 
     /// move pending measurements out of the inbox (event loop thread only)
-    std::vector<RawSensorData> takePending();
 
 private:
     omnetpp::cMessage* m_connectEvent;
@@ -151,17 +138,16 @@ private:
     omnetpp::SimTime m_sensorWaitTimeout;
     omnetpp::SimTime m_timeout;
     omnetpp::SimTime m_tickTimeout;
-    unsigned m_tickRetries {2u};
 
     std::shared_ptr<SensorInbox> m_inbox;
 
     std::unique_ptr<::carla::client::Client> m_client;
     std::unique_ptr<::carla::client::World> m_world;
-    /// previous server settings, restored on finish()
-    std::unique_ptr<::carla::rpc::EpisodeSettings> m_savedSettings;
-
-    boost::shared_ptr<::carla::client::Vehicle> m_ego;
     std::vector<boost::shared_ptr<::carla::client::Sensor>> m_sensors;
+    /// names of per-frame sensors (all spawned sensors except event types
+    /// like collision); step() waits for all of them to have reported for
+    /// the frame that was just ticked (or for sensorWaitTimeout to expire)
+    std::set<std::string> m_frameSensorNames;
 
     struct AvatarEntry
     {
@@ -170,7 +156,6 @@ private:
         std::string blueprint;
         std::string pendingSensors;   ///< sensor spec not yet attached
         bool sensorsAttached {false};
-        unsigned spawnWarnings {0};
         std::vector<boost::shared_ptr<::carla::client::Sensor>> sensors;
     };
     std::map<std::string, AvatarEntry> m_avatars;
@@ -178,6 +163,7 @@ private:
     void spawnSensorList(::carla::client::Actor* parent, const std::string& text,
         const std::string& name_prefix,
         std::vector<boost::shared_ptr<::carla::client::Sensor>>& out);
+
     /// actors of released avatars, destroyed at the next step
     std::vector<boost::shared_ptr<::carla::client::Vehicle>> m_avatarsToDestroy;
     double m_residualMax {0.0};
@@ -186,16 +172,12 @@ private:
 
     std::string m_host;
     uint16_t m_port;
-    bool m_synchronous;
-    int32_t m_egoId {-1};
 
     uint64_t m_frame {0};
-    double m_carlaTime {0.0};
-    /// carla timestamp - sim time, established with the first received frame
-    double m_carlaEpoch {0.0};
-    bool m_epochSet {false};
 
-    size_t m_droppedReadings {0};
+    /// measurements that arrived after the CARLA frame they belong to had
+    /// already been ticked (back-dated by frame distance, see drainInbox)
+    uint64_t m_lateReadings {0};
 };
 
 }  // namespace carla

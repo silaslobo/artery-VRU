@@ -12,7 +12,7 @@ This library connects an Artery (OMNeT++) simulation to a running
 |---|---|
 | CARLA C++ client | `cmake/carla/CarlaClient.cmake` builds `libcarla_client.a`, `librpc.a` and Recast/Detour from the pinned submodules via `ExternalProject` and exports `Carla::Client`, `Carla::Rpc`, `Carla::Recast`. Two fixes were needed to make the static CARLA code usable from an OMNeT++ shared library: `-fPIC` for libcarla, and explicit ordering of the Detour archives (see §5). |
 | New library | `src/carla/` → `libartery_carla.so`, compiled with C++17 (CARLA headers), added from the root `CMakeLists.txt` with `add_subdirectory(src/carla)`. |
-| Manager module | `CarlaScenarioManager` owns `carla::client::Client` + `carla::client::World`, spawns an ego vehicle and sensors, and drives CARLA one frame per OMNeT++ step. |
+| Manager module | `CarlaScenarioManager` owns `carla::client::Client` + `carla::client::World`, spawns sensors and mirrors SUMO vehicles as avatars, and drives CARLA one frame per OMNeT++ step. |
 | Sensor path | `Sensor::Listen()` callbacks marshal measurements into a mutex-guarded inbox; the event-loop thread drains it and emits the `carla.sensor` signal. |
 | Build wiring | `src/artery/CMakeLists.txt`: `target_link_libraries(core PUBLIC carla)`, so every Artery run script picks up the library and its NED folder. |
 | Avatar path | `CarlaAvatar` implements `traci::VehicleSink`: every SUMO vehicle automatically gets one, mirrored as a kinematic CARLA actor (`SetTransform()` per frame, physics off). SUMO→CARLA pose conversion lives in the header-only `CoordTransform.h` (unit-tested, CTest `coordtransform`). |
@@ -35,13 +35,12 @@ This library connects an Artery (OMNeT++) simulation to a running
    |  initialize()  -> schedule connect    |                     | push_back + notify
    |  connect()     -> Client, World,      |         +-----------v------------+
    |                    sync settings,     |         | SensorInbox            |
-   |                    ego + sensors      |         |  mutex / condvar /     |
+   |                    sensors            |         |  mutex / condvar /     |
    |  step()        -> World->Tick(1 frame)|<--------|  deque<RawSensorData>  |
    |                    drainInbox()       |  swap   |  (shared_ptr, outlives |
    |                    emit(carla.sensor) |         |   the module)          |
    |                    emit(carla.step)   |         +------------------------+
-   |  finish()      -> Stop/Destroy,       |
-   |                    restore settings   |
+   |  finish()      -> Stop/Destroy        |
    +-------------------+-------------------+
                         |  signal "carla.sensor"  (payload: CarlaSensorReading : cNamedObject)
        -----------------+--------------------------------------------
@@ -72,21 +71,44 @@ asio/receiver threads, never on the OMNeT++ simulation thread. Therefore:
   converted into `RawSensorData`, a plain struct of doubles/strings/bytes. Only
   CARLA and STL code runs there; no RPC, no OMNeT++ API.
 * The struct is moved into a `std::deque` under `std::mutex`, guarded by a
-  high-water mark (`10000`, overflow counted in `SensorInbox::dropped`), and a
-  `condition_variable` is notified.
+  depth bound (`SensorInbox::highWatermark`, default 32 — sized for image
+  payloads, ~120 MB worst case; overflow counted in `SensorInbox::dropped`);
+  on overflow the *oldest* measurement is dropped so consumers always see
+  the freshest data.  A `condition_variable` is notified.
 * `CarlaScenarioManager::step()` (event-loop thread) swaps the queue out under
   the lock, builds a `CarlaSensorReading` per measurement and emits it.
 * The inbox is owned by a `shared_ptr`, so a callback that is still in flight
-  when the module is destroyed writes into memory that is still valid.
-* Shutdown sets `SensorInbox::closed` and notifies, so no thread waits for a
-  consumer that is gone.
+  when the module is destroyed writes into memory that is still valid; the
+  depth bound keeps such stragglers (e.g. when `Sensor::Stop()` failed over
+  a lossy link) from accumulating.  All consumer-side waits are bounded by
+  their timeout, so no shutdown signalling is needed anywhere.
 
-Synchronisation of the *world clock*: after `Tick()` the frame's sensor data may
-still be in flight on the streaming socket, so the module optionally waits up
-to `sensorWaitTimeout` on the condition variable for at least one measurement to
-arrive. CARLA's own episode timestamp is kept (`carlaTime()`, `frame()`) and can
-be mapped to simulation time with `toSimTime(double carlaTimestamp)` (offset
-captured with the first received frame).
+Synchronisation of the *world clock*: CARLA streams sensor data asynchronously
+while OMNeT++ is synchronous, and a wall-clock wait cannot be an OMNeT++ event
+— the only bridge is a blocking wait on the simulation thread, which freezes
+the event loop (and thereby the next `Tick()` cue, CARLA, and SUMO).  `step()`
+performs exactly that wait, after ticking the frame:
+
+* Every sensor emits one measurement per frame (`sensor_tick` is deliberately
+  unsupported, see §6), so the frame's measurement set is complete as soon as
+  every registered per-frame sensor has been observed once with
+  `frame == frame()` — an exact integer frame-number match, wrap-around safe.
+* `step()` waits on the inbox condition variable until then, or until
+  `sensorWaitTimeout` (wall-clock) expires; the predicate drains the queue
+  against a single deadline and retires sensors as their measurements are
+  picked up.  Emission happens after the wait, in one batch.
+* Because the event loop is frozen during wait *and* signal handling, a
+  consumer's (e.g. computer-vision) processing time *is* the loop's pace:
+  one tick == one frame == `stepInterval` of simulation time per completed
+  cycle — the behaviour of a real-time system.
+* Measurements that miss the deadline are not lost: later steps publish them,
+  attributed **by frame number** — `simTimeNs = current simTime − (ticked
+  frame − measurement frame) × stepInterval`, exact int64 ns, never
+  floating-point timestamp arithmetic — so `CarlaSensorReading::simTimeNs()`
+  is always exactly the simulation instant the measurement was produced at
+  (`m_lateReadings` counts this case and is logged in `finish()`).  CARLA's
+  own episode timestamp is deliberately *not* part of the reading contract —
+  time is only ever `frame()` plus `simTimeNs()`, both exact integers.
 
 ---
 
@@ -102,7 +124,8 @@ captured with the first received frame).
 `CarlaSensorReading` exposes `kind()` / `kindName()` (`gnss`, `imu`,
 `collision`, `laneInvasion`, `obstacleDetection`, `lidar`, `semanticLidar`,
 `radar`, `image`, `other`), `sensorName()`, `sensorType()`, `frame()`,
-`carlaTimestamp()`, the sensor transform (`x/y/z`, `pitch/yaw/roll`), GNSS
+`simTimeNs()` / `simTime()` (the simulation instant of the measurement's
+CARLA frame, assigned by the manager as described in §3), the sensor transform (`x/y/z`, `pitch/yaw/roll`), GNSS
 (`latitude/longitude/altitude`), IMU (`accel*`, `gyro*`, `compass`), collision
 (`impulse*`, `otherActorId/Name`), image (`width/height/fov`), `count()` and the
 optional raw `payload()`.
@@ -156,13 +179,12 @@ targets) automatically get `-n .../src/carla` and `-l libartery_carla.so`.
 | `host`, `port` | `localhost`, `2000` | CARLA RPC endpoint |
 | `timeout` | `20s` | timeout for all CARLA RPCs |
 | `map` | `""` | map to load; empty keeps the currently loaded world |
-| `synchronousMode` | `true` | switch the server to lock-step mode |
+
 | `noRenderingMode` | `false` | headless rendering |
 | `stepInterval` | `0.01s` | OMNeT++ step == `fixed_delta_seconds` (CARLA accepts 1 µs … 1/60 s) |
-| `tickTimeout`, `tickRetries` | `10s`, `2` | per-frame tick timeout / number of tick cues |
-| `sensorWaitTimeout` | `0.02s` | wait for the frame's sensor data after `Tick()` |
+| `tickTimeout` | `60s` | per-frame tick timeout; a timed-out tick aborts the run (re-cueing could double-tick the server) |
+| `sensorWaitTimeout` | `0.02s` | wall-clock time `step()` waits for the frame's complete sensor set |
 | `startTime` | `0s` | connect at this simulation time |
-| `spawnEgoVehicle`, `vehicleBlueprint`, `spawnTransform`, `autopilot` | `true`, `vehicle.tesla.model3`, `""`, `true` | ego vehicle (`spawnTransform` empty ⇒ random recommended spawn point, retried on blocked positions) |
 | `sensors` | `sensor.other.gnss:10;sensor.other.imu:100;sensor.other.collision` | see grammar below |
 | `copySensorPayload` | `false` | copy raw point-cloud/image bytes into the signal |
 | `destroyActorsOnFinish` | `true` | remove own actors at the end |
@@ -185,11 +207,31 @@ TraCI callback threads.
 Sensor list grammar (`;`-separated entries):
 
 ```
-<blueprint>[:<frequency>][@<x>,<y>,<z>[,<pitch>,<yaw>[,<roll>]]][!<attr>=<value>[,<attr>=<value>]*]
+<blueprint>[@<x>,<y>,<z>[,<pitch>,<yaw>[,<roll>]]][!<attr>=<value>[,<attr>=<value>]*]
 ```
-`<frequency>` is written to the blueprint's `sensor_tick` attribute (period in
-seconds); offsets are relative to the ego vehicle when one was spawned,
-otherwise absolute in CARLA coordinates.
+Every spawned sensor emits **one measurement per world frame**; all of them
+are therefore part of the set `step()` waits for (see §3; event
+sensors like `sensor.other.collision` report occurrences only and are never
+waited for).
+
+**Data rate control** — CARLA's `sensor_tick` blueprint attribute is
+deliberately *unsupported* (there is no `:<frequency>` grammar).  It would
+reduce the data CARLA generates, but it makes synchronization substantially
+harder: the server's emission schedule is an unobservable floating-point
+accumulation (no phase, ±1 frame jitter against `fixed_delta_seconds`), so a
+the barrier in `step()` could only wait on guessed, jittering frame
+masks.  To obtain a lower data rate, keep sensors at per-frame emission and
+**drop arriving measurements on the consumer side** instead (skip a
+`carla.sensor` reading whenever, e.g., `frame % k != 0`): every consumer
+sees exactly the frames it wants with exact `simTimeNs()` attribution, and
+the barrier logic stays trivially "all sensors, every frame".  In the
+target server-side deployment dropping is free anyway — the cost was only
+ever WAN bandwidth.
+
+Offsets are absolute in CARLA world coordinates for manager-level sensors;
+for avatar sensors they are vehicle-local (`x` = fore).  Blueprint attributes are verified with `ContainsAttribute`
+(`sensor.camera.rgb` uses `image_size_x`, `image_size_y` and `fov`; there is
+no `width`/`height`).
 
 ---
 
@@ -208,14 +250,16 @@ otherwise absolute in CARLA coordinates.
 * **Wedged servers** — a client that is killed leaves the server waiting for
   tick cues (every RPC then times out). On connect the module checks
   `GetSettings().synchronous_mode`, and if it is already on, sends a tick cue to
-  unfreeze the world; on `finish()` the original settings are restored (with one
-  retry). CARLA teardown runs inside a `try/catch` because destructors must not
+  unfreeze the world.  The server is otherwise deliberately left in synchronous
+  mode (lock-step is the only supported mode; no settings are restored).
+  CARLA teardown runs inside a `try/catch` because destructors must not
   throw (`carla::client::TimeoutException` escaping a destructor aborts the
   process).
 * **Blueprint handling** — `BlueprintLibrary::Find()` returns a `const_pointer`
   and `nullptr` when the id is unknown, so the pointer is checked and the
   blueprint is copied before attributes are modified; unknown attributes are
-  skipped with a warning (e.g. `frequency` does not exist — use `sensor_tick`).
+  skipped with a warning (e.g. `width` does not exist — use `image_size_x`;
+  `sensor_tick` is never set, see §6 "Data rate control").
 * Traffic participants enter Artery through `traci::Manager` (SUMO is the
   traffic master); CARLA mirrors them. CARLA-side positions are *not* fed back
   into SUMO, and no control commands are sent from Artery applications to
@@ -223,9 +267,12 @@ otherwise absolute in CARLA coordinates.
 * CARLA and SUMO coordinate frames: `x_carla = x_xodr`, `y_carla = -y_xodr`,
   `yaw_carla = angle_sumo - 90°` (verified empirically at map-load time, see
   `CoordTransform.h` and the `coordtransform` unit test).
-* Avatar spawn heights must clear the actor bounding box (`zOffset` ≈ 0.6 m),
-  otherwise `TrySpawnActor` rejects the pose with a ground collision; queued
-  vehicles departing tightly behind another may retry for a few frames.
+* Avatars spawn with `zOffset = 0.02`: the road surface of a generated map is
+  z=0, and spawning exactly on it is rejected by `TrySpawnActor`'s overlap
+  check (the avatar then silently never appears), while a few centimetres of
+  clearance pass and stay invisible on camera.  A rejected spawn aborts the
+  run — the vehicle exists on the SUMO side, so a blocked pose is a
+  programming error, not a transient condition.
 
 ---
 

@@ -39,7 +39,6 @@ protected:
 
 private:
     std::map<std::string, uint64_t> mCounts;
-    double mLastTimestamp {0.0};
 };
 
 }  // namespace carla

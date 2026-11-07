@@ -9,6 +9,7 @@ set(SOURCES
     CarlaAvatar.cc
     CarlaSensorReading.cc
     CarlaSensorSink.cc
+    CarlaImageSink.cc
 )
 
 add_library(carla SHARED ${SOURCES})
@@ -48,6 +49,12 @@ find_package(ZLIB QUIET)
 if(TARGET ZLIB::ZLIB)
     target_link_libraries(carla PUBLIC ZLIB::ZLIB)
 endif()
+
+# CarlaImageSink writes PNGs through libpng's simplified API.  libpng is
+# already a hard requirement of the CARLA client build (CarlaClient.cmake runs
+# find_package(PNG REQUIRED)), so this adds no new dependency.
+find_package(PNG REQUIRED)
+target_link_libraries(carla PUBLIC PNG::PNG)
 
 # unit test for the coordinate transform (plain C++ executable, no OMNeT++)
 add_executable(carla_coordtest tests/CoordTransformTest.cc)

@@ -147,8 +147,11 @@ def main():
     for depart, vid, entry, exit_ in vehicles:
         # explicit route edges; SUMO inserts the internal lanes of the
         # junction automatically
+        # departSpeed="max": spawn rolling at the posted speed instead of
+        # creeping up from 0 -- with the short arms this makes the vehicles
+        # actually reach the junction within the (short) simulation
         lines.append(f'  <vehicle id="{vid}" type="car" depart="{depart:.2f}" '
-                     f'departLane="best">')
+                     f'departLane="best" departSpeed="max">')
         lines.append(f'    <route edges="{entry} {exit_}"/>')
         lines.append("  </vehicle>")
     count = len(vehicles)

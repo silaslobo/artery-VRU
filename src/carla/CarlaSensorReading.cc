@@ -51,11 +51,12 @@ std::string CarlaSensorReading::str() const
     char buffer[256];
     std::snprintf(buffer,
         sizeof(buffer),
-        "%s(%s) frame=%llu t=%.3f pos=(%.2f,%.2f,%.2f)",
+        "%s(%s) frame=%llu t=%.3f sim=%.3f pos=(%.2f,%.2f,%.2f)",
         kindName(),
         sensorName().c_str(),
         static_cast<unsigned long long>(mData.frame),
         mData.timestamp,
+        static_cast<double>(mData.simTimeNs) * 1e-9,
         mData.x,
         mData.y,
         mData.z);

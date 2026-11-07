@@ -19,10 +19,9 @@ Constraints honoured:
   * No YAML/JSON map definition -- all dimensions are plain Python constants /
     dataclasses below, reviewable and unit-testable.
 
-Two sidecar artifacts are written next to the .xodr (plain text, trivially
+One sidecar artifact is written next to the .xodr (plain text, trivially
 parseable from C++ without a JSON library):
 
-  <out>.spawn       "road lane s x y hdg_deg carla_x carla_y carla_yaw_deg"
   <out>.lanepoints  "road lane s x y z hdg_deg"  (lane centrelines, 1 m steps;
                     input of the static CARLA-vs-generator geometry check)
 
@@ -47,7 +46,9 @@ from xml.etree import ElementTree as ET
 # Symmetric four-way intersection, right hand traffic:
 #   * every arm: 1 inbound + 1 outbound driving lane of 3.5 m
 #   * 0.5 m shoulder + 2.0 m sidewalk on both sides
-#   * 120 m long arms (from the junction centre), junction inscribed radius 12 m
+#   * 18 m long arms (from the junction centre), junction inscribed radius 8 m
+#     (short on purpose: vehicles at speed reach the junction within ~1 s of
+#     simulated traffic time)
 #   * through / left / right legal from every arm, no U-turns
 #   * 50 km/h on the arms, 20 km/h on the turning connectors
 # ---------------------------------------------------------------------------
@@ -81,7 +82,7 @@ class Approach:
     lanes_in: int = 1
     lanes_out: int = 1
     lane_width: float = 3.5
-    approach_length: float = 120.0  # junction centre -> arm end
+    approach_length: float = 18.0  # junction centre -> arm end
     speed_kmh: float = 50.0
     shoulder_width: float = 0.5
     sidewalk_width: float = 2.0
@@ -97,7 +98,7 @@ class Intersection:
     name: str = "artery_intersection"
     projection: str = PROJECTION
     origin: tuple = ORIGIN
-    junction_radius: float = 12.0         # inscribed radius of the junction
+    junction_radius: float = 8.0          # inscribed radius of the junction
     connector_speed_kmh: float = 20.0
     country: str = "OpenDRIVE"            # signal country key used by netconvert
     approaches: list = field(default_factory=list)
@@ -372,8 +373,11 @@ class OpenDriveBuilder:
                                 speed_kmh=ap.speed_kmh, kind="arm")
             inbound.successor = ("junction", str(self.junction["id"]), "end")
             stop = min(ap.stops.values()) if ap.stops else 2.0
-            inbound.signals.append((inbound.length() - stop,
-                                    -ap.lanes_in * ap.lane_width / 2.0, 1.5, math.pi))
+            # No <signal> elements on purpose: CARLA would spawn traffic
+            # light props for them (with no sensible way to place the poles
+            # off the roadway), while SUMO does not need them at all -- it
+            # infers its own traffic lights via netconvert --tls.guess-
+            # signals.  The stop line below is a roadMark and stays.
             inbound.stop_mark_s = inbound.length() - stop
             self.roads.append(inbound)
 
@@ -659,19 +663,6 @@ class OpenDriveBuilder:
 
     # -- sidecars -----------------------------------------------------------
 
-    def spawn_points(self, step=10.0):
-        pts = []
-        for r in self.roads:
-            if r.kind != "arm":
-                continue
-            for lid, _w in r.driving_lanes():
-                s = 5.0
-                while s < r.length() - 1.0:
-                    (x, y), hdg = r.lane_center(s, lid)
-                    pts.append((r.rid, lid, s, x, y, math.degrees(hdg)))
-                    s += step
-        return pts
-
     def lane_points(self, step=1.0):
         pts = []
         for r in self.roads:
@@ -740,19 +731,12 @@ def main(argv=None):
     print(f"wrote {args.out} ({len(xml)} bytes)")
 
     if not args.no_sidecars:
-        spawn = args.out + ".spawn"
-        with open(spawn, "w") as out:
-            out.write("# road lane s x y hdg_deg carla_x carla_y carla_yaw_deg\n")
-            out.write(f"# projection {builder.data.projection}\n")
-            for rid, lid, s, x, y, hdg in builder.spawn_points():
-                out.write(f"{rid} {lid} {s:.2f} {x:.4f} {y:.4f} {hdg:.4f} "
-                          f"{x:.4f} {-y:.4f} {-hdg:.4f}\n")
         lp = args.out + ".lanepoints"
         with open(lp, "w") as out:
             out.write("# road lane s x y z hdg_deg\n")
             for rid, lid, s, x, y, z, hdg in builder.lane_points():
                 out.write(f"{rid} {lid} {s:.2f} {x:.4f} {y:.4f} {z:.4f} {hdg:.4f}\n")
-        print(f"wrote {spawn} and {lp}")
+        print(f"wrote {lp}")
     return 0
 
 

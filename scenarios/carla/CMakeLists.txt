@@ -16,7 +16,7 @@ add_opp_run(carla_sumo_scenario CONFIG omnetpp-sumo.ini DEPENDENCY carla_sumo_de
 # ---------------------------------------------------------------------------
 # Map artifacts (scenarios/carla/maps)
 #
-#   gen_xodr.py --> intersection.xodr (+ .spawn / .lanepoints sidecars)
+#   gen_xodr.py --> intersection.xodr (+ .lanepoints sidecar)
 #   netconvert  --> intersection.net.xml   (normalization MUST stay disabled)
 #   gen_routes.py --> intersection.rou.xml
 #
@@ -33,7 +33,6 @@ set(CARLA_MAP_GEN ${CMAKE_SOURCE_DIR}/tools/carla_map)
 if(PYTHON3_EXECUTABLE AND NETCONVERT_EXECUTABLE)
     add_custom_command(
         OUTPUT ${CARLA_MAP_DIR}/intersection.xodr
-               ${CARLA_MAP_DIR}/intersection.xodr.spawn
                ${CARLA_MAP_DIR}/intersection.xodr.lanepoints
         COMMAND ${PYTHON3_EXECUTABLE} ${CARLA_MAP_GEN}/gen_xodr.py
                 --out ${CARLA_MAP_DIR}/intersection.xodr --verify
@@ -46,7 +45,6 @@ if(PYTHON3_EXECUTABLE AND NETCONVERT_EXECUTABLE)
                 --opendrive-files ${CARLA_MAP_DIR}/intersection.xodr
                 --offset.disable-normalization=true
                 --tls.guess-signals --tls.guess-signals.dist=15
-                --opendrive.import-all-lanes
                 --output-file ${CARLA_MAP_DIR}/intersection.net.xml
         DEPENDS ${CARLA_MAP_DIR}/intersection.xodr
         COMMENT "Converting intersection.xodr -> intersection.net.xml")
@@ -56,7 +54,8 @@ if(PYTHON3_EXECUTABLE AND NETCONVERT_EXECUTABLE)
         COMMAND ${PYTHON3_EXECUTABLE} ${CARLA_MAP_GEN}/gen_routes.py
                 --xodr ${CARLA_MAP_DIR}/intersection.xodr
                 --net ${CARLA_MAP_DIR}/intersection.net.xml
-                --only=-10:-15
+                --only=-10:-13 --only=-12:-17
+                --per-movement 1
                 --out ${CARLA_MAP_DIR}/intersection.rou.xml
         DEPENDS ${CARLA_MAP_DIR}/intersection.net.xml
                 ${CARLA_MAP_DIR}/intersection.xodr

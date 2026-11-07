@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iterator>
 #include <limits>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -90,13 +91,12 @@ std::vector<std::string> split(const std::string& s, char separator)
 /**
  * Specification of a single sensor, parsed from the "sensors" parameter.
  *
- * grammar: entry := blueprint [":" frequency] ["@" x,y,z[,pitch,yaw[,roll]]]
+ * grammar: entry := blueprint ["@" x,y,z[,pitch,yaw[,roll]]]
  *                  ["!" key=value[,key=value]*]
  * entries are separated by ';'.
  */
 struct SensorSpec {
     std::string blueprint;
-    double frequency {0.0};
     bool hasTransform {false};
     double x {0.0}, y {0.0}, z {0.0};
     double pitch {0.0}, yaw {0.0}, roll {0.0};
@@ -141,12 +141,6 @@ std::vector<SensorSpec> parseSensors(const std::string& text)
             remainder = remainder.substr(0, at);
         }
 
-        auto colon = remainder.find(':');
-        if (colon != std::string::npos) {
-            spec.frequency = std::strtod(remainder.substr(colon + 1).c_str(), nullptr);
-            remainder = remainder.substr(0, colon);
-        }
-
         spec.blueprint = trim(remainder);
         if (!spec.blueprint.empty()) {
             specs.push_back(spec);
@@ -161,18 +155,6 @@ cg::Transform makeTransform(const SensorSpec& spec)
     transform.location = cg::Location(spec.x, spec.y, spec.z);
     transform.rotation = cg::Rotation(spec.pitch, spec.yaw, spec.roll);
     return transform;
-}
-
-/// Parse a "x,y,z[,pitch,yaw[,roll]]" string into a CARLA transform.
-cg::Transform parseTransform(const std::string& text)
-{
-    SensorSpec spec;
-    const auto fields = split(text, ',');
-    double* components[6] = {&spec.x, &spec.y, &spec.z, &spec.pitch, &spec.yaw, &spec.roll};
-    for (size_t i = 0; i < fields.size() && i < 6; ++i) {
-        *components[i] = std::strtod(fields[i].c_str(), nullptr);
-    }
-    return makeTransform(spec);
 }
 
 }  // namespace
@@ -287,8 +269,7 @@ CarlaScenarioManager::CarlaScenarioManager()
     : m_connectEvent(nullptr),
       m_stepEvent(nullptr),
       m_inbox(std::make_shared<SensorInbox>()),
-      m_port(2000),
-      m_synchronous(true)
+      m_port(2000)
 {
 }
 
@@ -309,11 +290,9 @@ void CarlaScenarioManager::initialize()
     // note: SimTime has an (int64_t, unit) constructor which would truncate
     // sub-second values, so assign the plain double (seconds) here
     m_timeout = par("timeout").doubleValue();
-    m_synchronous = par("synchronousMode");
     m_stepInterval = par("stepInterval").doubleValue();
     m_sensorWaitTimeout = par("sensorWaitTimeout").doubleValue();
     m_tickTimeout = par("tickTimeout").doubleValue();
-    m_tickRetries = static_cast<unsigned>(int(par("tickRetries")));
 
     m_connectEvent = new cMessage("connect CARLA");
     m_stepEvent = new cMessage("CARLA step");
@@ -343,31 +322,19 @@ void CarlaScenarioManager::finish()
                 << " max=" << m_residualMax << " m mean=" << residualMean() << " m"
                 << std::endl;
     }
+    if (m_lateReadings > 0) {
+        EV_INFO << m_lateReadings << " sensor measurements arrived after their CARLA"
+                << " frame had been ticked (attributed by frame distance)" << std::endl;
+    }
 
     if (m_world && par("destroyActorsOnFinish")) {
         cleanupActors();
     }
 
-    // never leave the server stuck in synchronous mode
-    if (m_world && m_synchronous && m_savedSettings) {
-        for (unsigned attempt = 0; attempt < 2; ++attempt) {
-            try {
-                m_world->ApplySettings(*m_savedSettings, toCarlaDuration(10.0));
-                break;
-            }
-            catch (const std::exception& e) {
-                EV_WARN << "Could not restore CARLA server settings: " << e.what() << std::endl;
-                // the server might just be waiting for the next tick cue
-                try {
-                    m_world->Tick(toCarlaDuration(5.0));
-                }
-                catch (const std::exception&) {
-                    break;
-                }
-            }
-        }
-    }
-
+    // the server is deliberately left in synchronous mode: this integration
+    // *is* a lock-step co-simulation, and a client that is killed hard would
+    // anyway leave the server waiting for tick cues (handled on the next
+    // connect, see connect())
     disconnect();
 }
 
@@ -377,9 +344,7 @@ void CarlaScenarioManager::disconnect()
     // the server is still waiting for a tick cue), so swallow any error.
     try {
         m_sensors.clear();
-        m_ego.reset();
         m_avatars.clear();
-        m_savedSettings.reset();
         m_world.reset();
         m_client.reset();
     }
@@ -387,15 +352,10 @@ void CarlaScenarioManager::disconnect()
         EV_WARN << "Error while disconnecting from the CARLA server: " << e.what() << std::endl;
     }
 
-    {
-        std::lock_guard<std::mutex> guard(m_inbox->mutex);
-        m_inbox->closed = true;
-        if (m_inbox->dropped > 0) {
-            EV_WARN << "Dropped " << m_inbox->dropped
-                    << " CARLA sensor measurements (queue overflow)" << std::endl;
-        }
+    if (m_inbox->dropped > 0) {
+        EV_WARN << "Dropped " << m_inbox->dropped
+                << " CARLA sensor measurements (queue overflow)" << std::endl;
     }
-    m_inbox->cv.notify_all();
 }
 
 void CarlaScenarioManager::handleMessage(cMessage* msg)
@@ -449,10 +409,10 @@ void CarlaScenarioManager::connect()
             m_world.reset(new cc::World(m_client->LoadWorld(map)));
         }
 
-        if (m_synchronous) {
-            m_savedSettings.reset(new ::carla::rpc::EpisodeSettings(m_world->GetSettings()));
-
-            auto settings = *m_savedSettings;
+        // lock-step is the only mode this integration supports: a co-
+        // simulation that is not synchronous is not a co-simulation
+        {
+            auto settings = m_world->GetSettings();
             settings.synchronous_mode = true;
             settings.no_rendering_mode = par("noRenderingMode");
             settings.fixed_delta_seconds = m_stepInterval.dbl();
@@ -473,7 +433,10 @@ void CarlaScenarioManager::connect()
                     << " no_rendering=" << applied.no_rendering_mode << std::endl;
         }
 
-        spawnEgoVehicle();
+        // no traffic manager anywhere, by design: it is a client-side library
+        // object (TrafficManagerLocal) that would poll the server with its own
+        // thread -- incompatible with lock-step, see the SetAutopilot comment
+        // in updateAvatar -- and a stock CARLA server runs no TM service
         spawnSensors();
     }
     catch (const cc::TimeoutException& e) {
@@ -484,71 +447,6 @@ void CarlaScenarioManager::connect()
         throw cRuntimeError("Could not connect to CARLA server %s:%u: %s", m_host.c_str(), m_port,
             e.what());
     }
-}
-
-void CarlaScenarioManager::spawnEgoVehicle()
-{
-    if (!par("spawnEgoVehicle")) {
-        return;
-    }
-
-    const auto blueprintId = par("vehicleBlueprint").stdstringValue();
-    auto library = m_world->GetBlueprintLibrary();
-    // Find() returns a const handle; work on a copy so that attributes can be set
-    auto found = library->Find(blueprintId);
-    if (found == nullptr) {
-        throw cRuntimeError("CARLA blueprint '%s' not found", blueprintId.c_str());
-    }
-    auto blueprint = *found;
-
-    const auto spec = par("spawnTransform").stdstringValue();
-    const auto from = par("spawnFrom").stdstringValue();
-    std::vector<cg::Transform> spawnPoints;
-    if (!spec.empty()) {
-        spawnPoints.push_back(parseTransform(spec));
-    }
-    else if (!from.empty()) {
-        // generated worlds have no recommended spawn points: take the pose
-        // computed by the map generator from its own geometry
-        CarlaPose pose;
-        if (!resolveSpawnFrom(from, pose)) {
-            throw cRuntimeError("spawnFrom '%s' not found in the spawn sidecar "
-                                "(wrong road/lane/s?)", from.c_str());
-        }
-        pose.z += 0.2;
-        cg::Transform transform;
-        transform.location = cg::Location(pose.x, pose.y, pose.z);
-        transform.rotation = cg::Rotation(0.0, pose.yaw, 0.0);
-        spawnPoints.push_back(transform);
-    }
-    else {
-        auto map = m_world->GetMap();
-        spawnPoints = map->GetRecommendedSpawnPoints();
-        if (spawnPoints.empty()) {
-            throw cRuntimeError("CARLA map provides no recommended spawn points "
-                                "(use spawnFrom for generated maps)");
-        }
-    }
-
-    cg::Transform transform;
-    boost::shared_ptr<cc::Actor> actor;
-    const size_t maxAttempts = std::min<size_t>(spawnPoints.size(), 20u);
-    for (size_t attempt = 0; attempt < maxAttempts && !actor; ++attempt) {
-        transform = spawnPoints.size() > 1 ?
-            spawnPoints[getRNG(0)->intRand(spawnPoints.size())] : spawnPoints.front();
-        // TrySpawnActor returns a null handle instead of throwing, e.g. when
-        // the spawn position is blocked by actors of a previous run
-        actor = m_world->TrySpawnActor(blueprint, transform);
-    }
-    if (!actor) {
-        throw cRuntimeError("Could not spawn CARLA vehicle '%s' (spawn position blocked?)",
-            blueprintId.c_str());
-    }
-    m_ego = boost::static_pointer_cast<cc::Vehicle>(actor);
-    m_egoId = m_ego->GetId();
-    m_ego->SetAutopilot(par("autopilot"));
-    EV_INFO << "Spawned ego vehicle " << m_egoId << " (" << blueprintId << ") at (" << transform.location.x
-            << ',' << transform.location.y << ',' << transform.location.z << ')' << std::endl;
 }
 
 void CarlaScenarioManager::loadGeneratedMap()
@@ -707,66 +605,6 @@ void CarlaScenarioManager::checkGeneratedGeometry()
     }
 }
 
-bool CarlaScenarioManager::resolveSpawnFrom(const std::string& spec, CarlaPose& pose) const
-{
-    // spec: "roadId,laneId,s"; sidecar lines: "road lane s x y hdg cx cy cyaw"
-    const auto fields = split(spec, ',');
-    if (fields.size() != 3) {
-        throw cRuntimeError("spawnFrom must be 'roadId,laneId,s', got '%s'", spec.c_str());
-    }
-    const int road = std::atoi(fields[0].c_str());
-    const int lane = std::atoi(fields[1].c_str());
-    const double s = std::strtod(fields[2].c_str(), nullptr);
-
-    std::string file = par("spawnPointsFile").stdstringValue();
-    if (file.empty()) {
-        file = par("opendriveFile").stdstringValue() + ".spawn";
-    }
-    std::ifstream in(file);
-    if (!in) {
-        throw cRuntimeError("Cannot open spawn sidecar '%s' (generated by "
-                            "gen_xodr.py alongside the .xodr)", file.c_str());
-    }
-    std::string line;
-    double bestDelta = -1.0;
-    int bestRoad = 0, bestLane = 0; 
-    double carlaX = 0, carlaY = 0, carlaYaw = 0;
-    while (std::getline(in, line)) {
-        if (line.empty() || line[0] == '#') {
-            continue;
-        }
-        std::istringstream ls(line);
-        int r, l;
-        double ps, x, y, hdg, cx, cy, cyaw;
-        if (!(ls >> r >> l >> ps >> x >> y >> hdg >> cx >> cy >> cyaw)) {
-            continue;
-        }
-        if (r != road || l != lane) {
-            continue;
-        }
-        const double delta = std::fabs(ps - s);
-        if (bestDelta < 0.0 || delta < bestDelta) {
-            bestDelta = delta;
-            bestRoad = r;
-            bestLane = l;
-            carlaX = cx;
-            carlaY = cy;
-            carlaYaw = cyaw;
-        }
-    }
-    if (bestDelta < 0.0) {
-        return false;
-    }
-    EV_INFO << "spawnFrom " << road << ',' << lane << ',' << s << " resolved to s="
-            << (bestDelta) << " m offset, CARLA pose (" << carlaX << ',' << carlaY
-            << ',' << carlaYaw << ")" << std::endl;
-    pose.x = carlaX;
-    pose.y = carlaY;
-    pose.z = 0.0;
-    pose.yaw = carlaYaw;
-    return true;
-}
-
 void CarlaScenarioManager::acquireAvatar(const std::string& key, const std::string& blueprint,
     const CarlaPose& pose)
 {
@@ -829,7 +667,7 @@ void CarlaScenarioManager::applyAvatarUpdates()
         m_avatarsToDestroy.clear();
     }
 
-    boost::optional<::carla::client::ActorBlueprint> blueprint;
+    std::optional<::carla::client::ActorBlueprint> blueprint;
     std::string blueprintId;
     for (auto& entry : m_avatars) {
         auto& avatar = entry.second;
@@ -848,24 +686,30 @@ void CarlaScenarioManager::applyAvatarUpdates()
                     blueprint = *found;
                     blueprintId = avatar.blueprint;
                 }
-                // TrySpawnActor returns null instead of throwing (e.g. when a
-                // queued vehicle departs directly behind another one); keep
-                // the avatar pending and retry on the next frame
+                // A rejected spawn is a programming error, not a transient
+                // condition: the vehicle exists on the SUMO side, and the
+                // only ways to block the pose here are our own (wrong z,
+                // overlapping avatars) -- fail loudly instead of retrying
                 auto actor = m_world->TrySpawnActor(*blueprint, transform);
                 if (!actor) {
-                    if (avatar.spawnWarnings < 3) {
-                        ++avatar.spawnWarnings;
-                        EV_WARN << "Could not spawn CARLA avatar '" << entry.first
-                                << "' at (" << avatar.pose.x << ',' << avatar.pose.y
-                                << ") yet, retrying next frame" << std::endl;
-                    }
-                    continue;
+                    throw cRuntimeError("Could not spawn CARLA avatar '%s' at "
+                        "(%.2f,%.2f,%.2f): pose rejected by the server", entry.first.c_str(),
+                        transform.location.x, transform.location.y, transform.location.z);
                 }
                 avatar.actor = boost::static_pointer_cast<cc::Vehicle>(actor);
-                avatar.actor->SetAutopilot(false);
-                if (!par("avatarSimulatePhysics")) {
-                    avatar.actor->SetSimulatePhysics(false);
-                }
+                // deliberately no SetAutopilot(false) here: freshly spawned
+                // actors have no autopilot, and even the *unregister* path of
+                // SetAutopilot constructs a client-side TrafficManager whose
+                // background thread polls the server -- fatal in synchronous
+                // mode (RPC timeouts throw on that thread and abort our
+                // process while the server never notices anything)
+
+                // avatars are kinematic mirrors: the per-tick SetTransform()
+                // is the position authority, and physics cannot coexist with
+                // teleports (PhysX resolves the teleported-overlap by
+                // exploding the body -- in synchronous mode that has been
+                // observed to take the whole server down)
+                avatar.actor->SetSimulatePhysics(false);
                 EV_INFO << "Spawned CARLA avatar '" << entry.first << "' (actor "
                         << avatar.actor->GetId() << ") from " << avatar.blueprint
                         << " at (" << avatar.pose.x << ',' << avatar.pose.y << ','
@@ -919,7 +763,9 @@ void CarlaScenarioManager::measureAvatarResiduals()
 
 void CarlaScenarioManager::spawnSensors()
 {
-    spawnSensorList(m_ego ? m_ego.get() : nullptr, par("sensors").stdstringValue(),
+    // manager-level sensors are world-fixed: no parent actor (avatar sensors
+    // are attached to their vehicle, see spawnSensorList)
+    spawnSensorList(nullptr, par("sensors").stdstringValue(),
         std::string(), m_sensors);
 }
 
@@ -941,18 +787,9 @@ void CarlaScenarioManager::spawnSensorList(cc::Actor* parent, const std::string&
             throw cRuntimeError("CARLA blueprint '%s' not found", spec.blueprint.c_str());
         }
         auto blueprint = *found;
-        // CARLA controls the measurement rate of a sensor through its
-        // "sensor_tick" attribute (period in seconds)
-        if (spec.frequency > 0.0) {
-            if (blueprint.ContainsAttribute("sensor_tick")) {
-                blueprint.SetAttribute("sensor_tick", std::to_string(1.0 / spec.frequency));
-            }
-            else {
-                EV_WARN << "CARLA blueprint " << spec.blueprint
-                        << " has no sensor_tick attribute, ignoring requested frequency"
-                        << std::endl;
-            }
-        }
+        // Note: the sensor_tick blueprint attribute is deliberately never
+        // set -- every sensor emits on every world frame and consumers throttle
+        // by dropping arrivals (see README §6, "Data rate control").
         for (const auto& attribute : spec.attributes) {
             if (!blueprint.ContainsAttribute(attribute.first)) {
                 EV_WARN << "CARLA blueprint " << spec.blueprint << " has no attribute "
@@ -982,9 +819,6 @@ void CarlaScenarioManager::spawnSensorList(cc::Actor* parent, const std::string&
         const std::string sensorType = spec.blueprint;
         sensor->Listen([inbox, sensorName, sensorType, copyPayload](
                            boost::shared_ptr<::carla::sensor::SensorData> data) {
-            if (inbox->closed) {
-                return;
-            }
             auto raw = toRaw(data, sensorName, sensorType, copyPayload);
             {
                 std::lock_guard<std::mutex> guard(inbox->mutex);
@@ -997,8 +831,19 @@ void CarlaScenarioManager::spawnSensorList(cc::Actor* parent, const std::string&
             inbox->cv.notify_all();
         });
 
+        // Every non-event sensor emits one measurement per world frame and
+        // is therefore waited for by step(); event sensors
+        // (collision, lane invasion, obstacle detection) only report
+        // occurrences and must never be waited for.
+        const bool eventSensor = spec.blueprint.find("collision") != std::string::npos
+            || spec.blueprint.find("lane_invasion") != std::string::npos
+            || spec.blueprint.find("obstacle_detection") != std::string::npos;
+        if (!eventSensor) {
+            m_frameSensorNames.insert(name);
+        }
+
         EV_INFO << "Attached sensor " << sensor->GetId() << " (" << spec.blueprint
-                << ", frequency=" << spec.frequency << ", name=" << name << ')'
+                << ", name=" << name << ')'
                 << std::endl;
         out.push_back(sensor);
     }
@@ -1025,35 +870,60 @@ void CarlaScenarioManager::step()
     // shows the SUMO state of the current simulation instant
     applyAvatarUpdates();
 
-    if (m_synchronous && m_world) {
+    if (m_world) {
         const auto tickTimeout = toCarlaDuration(m_tickTimeout.dbl());
-        for (unsigned attempt = 1; true; ++attempt) {
-            try {
-                m_frame = m_world->Tick(tickTimeout);
-                break;
-            }
-            catch (const cc::TimeoutException& e) {
-                if (attempt > m_tickRetries) {
-                    throw cRuntimeError(
-                        "CARLA Tick() timed out after %u attempts (server not in "
-                        "synchronous mode?): %s",
-                        attempt, e.what());
-                }
-                EV_WARN << "CARLA Tick() timed out, sending another tick cue" << std::endl;
-            }
+        try {
+            m_frame = m_world->Tick(tickTimeout);
+        }
+        catch (const cc::TimeoutException& e) {
+            // Deliberately a single attempt: a timed-out tick has very likely
+            // completed on the server with the response stuck behind the
+            // sensor stream (saturated WAN); sending another tick cue would
+            // double-tick the server and desynchronise the strict
+            // request/response protocol -- the stale response then corrupts
+            // every later RPC until CARLA's receiver thread aborts this
+            // process.  A server left waiting for a cue by the abort is
+            // nudged at connect time, so the next run recovers cleanly.
+            throw cRuntimeError("CARLA Tick() timed out after %s: %s -- the tick "
+                "may still have completed on the server, so it is deliberately "
+                "not re-cued; aborting the run",
+                m_tickTimeout.str().c_str(), e.what());
         }
 
-        // sensor data of a frame is streamed asynchronously and may arrive
-        // shortly after Tick() returned
-        if (m_sensorWaitTimeout.dbl() > 0.0 && !m_sensors.empty()) {
+
+        // Every sensor emits exactly one measurement per frame (sensor_tick
+        // is deliberately unsupported), so the frame's measurement set is
+        // complete as soon as each registered sensor has been observed once
+        // for m_frame.  Waiting blocks the event loop -- the next tick cue
+        // goes out only afterwards -- which is exactly the lock-step pacing
+        // of the co-simulation (a CV consumer's processing time is part of
+        // the loop).  Measurements that miss the deadline are not lost: the
+        // next steps publish them, attributed to their true simulation
+        // instant (see drainInbox).
+        std::vector<RawSensorData> pending;
+        {
             std::unique_lock<std::mutex> lock(m_inbox->mutex);
+            auto remaining = m_frameSensorNames;
+            // wait_for re-evaluates the predicate against a single deadline
+            // until it returns true or the timeout expires; the predicate
+            // drains the queue into `pending`, retiring sensors that
+            // delivered a measurement for the ticked frame
             m_inbox->cv.wait_for(lock,
                 std::chrono::duration<double>(m_sensorWaitTimeout.dbl()),
-                [this] { return !m_inbox->queue.empty() || m_inbox->closed; });
+                [this, &remaining, &pending] {
+                    while (!m_inbox->queue.empty()) {
+                        auto raw = std::move(m_inbox->queue.front());
+                        m_inbox->queue.pop_front();
+                        if (raw.frame == m_frame) {
+                            remaining.erase(raw.sensorName);
+                        }
+                        pending.push_back(std::move(raw));
+                    }
+                    return remaining.empty();
+                });
         }
+        drainInbox(std::move(pending));
     }
-
-    drainInbox();
 
     measureAvatarResiduals();
 
@@ -1062,26 +932,30 @@ void CarlaScenarioManager::step()
     scheduleAt(simTime() + m_stepInterval, m_stepEvent);
 }
 
-std::vector<RawSensorData> CarlaScenarioManager::takePending()
+void CarlaScenarioManager::drainInbox(std::vector<RawSensorData> pending)
 {
-    std::vector<RawSensorData> pending;
-    std::lock_guard<std::mutex> guard(m_inbox->mutex);
-    pending.assign(std::make_move_iterator(m_inbox->queue.begin()),
-        std::make_move_iterator(m_inbox->queue.end()));
-    m_inbox->queue.clear();
-    m_droppedReadings = m_inbox->dropped;
-    return pending;
-}
+    for (auto& raw : pending) {
 
-void CarlaScenarioManager::drainInbox()
-{
-    const auto pending = takePending();
-    for (const auto& raw : pending) {
-        if (!m_epochSet) {
-            m_carlaEpoch = raw.timestamp - simTime().dbl();
-            m_epochSet = true;
+        // Correlate the measurement with the simulation instant of the CARLA
+        // frame it was produced in: in lock-step, frame numbers advance by
+        // exactly one per step, and data can only ever lag behind the ticked
+        // frame, never lead it -- so a non-matching measurement is older by
+        // (m_frame - raw.frame) steps.  The unsigned subtraction stays
+        // correct across frame counter wrap-around, and the whole computation
+        // runs in exact integer nanoseconds (OMNeT++'s native time unit), so
+        // the attributed time is bit-identical to the simTime() of the tick
+        // that advanced that frame; consumers can compare
+        // reading.simTimeNs() with simTime().inUnit(SIMTIME_NS)
+        const uint64_t lateFrames = m_frame - raw.frame;
+        const int64_t lateNs = static_cast<int64_t>(lateFrames) * m_stepInterval.inUnit(SIMTIME_NS);
+        raw.simTimeNs = (simTime() - omnetpp::SimTime(lateNs, SIMTIME_NS)).inUnit(SIMTIME_NS);
+        if (raw.frame != m_frame) {
+            ++m_lateReadings;
+            EV_DEBUG << "Sensor data from CARLA frame " << raw.frame
+                     << " received at frame " << m_frame << " (late by " << lateFrames
+                     << " steps), attributed to t=" << static_cast<double>(raw.simTimeNs) * 1e-9
+                     << 's' << std::endl;
         }
-        m_carlaTime = raw.timestamp;
 
         CarlaSensorReading reading(raw);
         emit(sensorSignal, static_cast<const cObject*>(&reading));
@@ -1107,9 +981,7 @@ void CarlaScenarioManager::cleanupActors()
         for (auto& sensor : m_sensors) {
             sensor->Destroy();
         }
-        if (m_ego) {
-            m_ego->Destroy();
-        }
+        m_frameSensorNames.clear();
         for (auto& entry : m_avatars) {
             // stop the streaming callbacks before destroying the parent, or
             // CARLA logs 'sensor object went out of the scope' leaks
@@ -1126,16 +998,7 @@ void CarlaScenarioManager::cleanupActors()
         EV_WARN << "Could not destroy CARLA actors: " << e.what() << std::endl;
     }
     m_sensors.clear();
-    m_ego.reset();
     m_avatars.clear();
-}
-
-SimTime CarlaScenarioManager::toSimTime(double carlaTimestamp) const
-{
-    if (!m_epochSet) {
-        return simTime();
-    }
-    return SimTime(carlaTimestamp - m_carlaEpoch, SIMTIME_S);
 }
 
 }  // namespace carla

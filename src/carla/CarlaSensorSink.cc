@@ -95,7 +95,6 @@ void CarlaSensorSink::receiveSignal(cComponent* source, simsignal_t signalID, cO
 void CarlaSensorSink::handleReading(cComponent* source, const CarlaSensorReading& reading)
 {
     ++mCounts[reading.kindName()];
-    mLastTimestamp = reading.carlaTimestamp();
 
     if (par("printReadings")) {
         EV_INFO << getFullName() << " <- " << source->getFullName() << ": " << reading.str()

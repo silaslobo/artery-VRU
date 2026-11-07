@@ -28,7 +28,6 @@ simple CarlaScenarioManager
 
         // --- generated (custom OpenDRIVE) map ---
         string opendriveFile @desc("Path to an .xodr file. If non-empty the world is generated with GenerateOpenDriveWorld instead of map/GetWorld") = default("");
-        string spawnPointsFile @desc("Sidecar with computed spawn poses as written by gen_xodr.py. Empty appends .spawn to opendriveFile") = default("");
         string mapCheckFile @desc("Lane centre line samples (.lanepoints sidecar). If non-empty, the CARLA lane geometry is compared against them after generating the map") = default("");
         double vertexDistance @desc("OpenDRIVE generation: vertex distance of the generated mesh") = default(0.2);
         double maxRoadLength @desc("OpenDRIVE generation: maximum length of road segments") = default(50);
@@ -41,28 +40,23 @@ simple CarlaScenarioManager
 
         // --- avatars (kinematic mirrors of SUMO vehicles) ---
         bool avatarResidualCheck @desc("After every frame compare the CARLA actor pose with the requested pose and emit sync.geometryResidual") = default(true);
-        bool avatarSimulatePhysics @desc("Keep physics enabled for avatar vehicles. Off makes them purely kinematic mirrors") = default(false);
-        bool synchronousMode @desc("Switch the CARLA server into synchronous (lock-step) mode") = default(true);
-        bool noRenderingMode @desc("Disable rendering in synchronous mode (faster headless co-simulation)") = default(false);
+        // synchronous (lock-step) mode is always enabled: it is the only
+        // supported mode, and the server is deliberately left in it
+        bool noRenderingMode @desc("Disable rendering (faster headless co-simulation)") = default(false);
         double stepInterval @unit(s) @desc("OMNeT++ step size, used as CARLA fixed_delta_seconds. CARLA accepts values between 1e-6 s and 1/60 s") = default(0.01s);
-        double tickTimeout @unit(s) @desc("Maximum time to wait for the CARLA server to complete one frame") = default(10s);
-        int tickRetries @desc("Number of tick cues sent per frame before giving up") = default(2);
+        double tickTimeout @unit(s) @desc("Maximum time to wait for the CARLA server to complete one frame. A timed-out tick aborts the run -- the response may merely be stuck behind the sensor stream, and re-cueing would double-tick the server") = default(60s);
         double sensorWaitTimeout @unit(s) @desc("Maximum time to wait for the sensor data belonging to a frame") = default(0.02s);
         double startTime @unit(s) = default(0s);
 
-        // --- ego vehicle ---
-        bool spawnEgoVehicle = default(true);
-        string vehicleBlueprint = default("vehicle.tesla.model3");
-        string spawnTransform @desc("x,y,z plus optional pitch,yaw,roll in CARLA coordinates. Empty picks a random recommended spawn point (or spawnFrom if set)") = default("");
-        string spawnFrom @desc("roadId,laneId,s - spawn pose computed from the generator geometry via the sidecar file. Required for generated maps which have no recommended spawn points") = default("");
-        bool autopilot = default(true);
-
         // --- sensors ---
         // semicolon separated list of sensors, each entry:
-        //   <blueprint>[:<frequency>][@<x>,<y>,<z>[,<pitch>,<yaw>[,<roll>]]][!<attr>=<value>[,<attr>=<value>]*]
-        // The optional frequency is written to the sensor_tick blueprint attribute.
-        // relative offsets are applied to the ego vehicle, if one was spawned.
-        string sensors = default("sensor.other.gnss:10;sensor.other.imu:100;sensor.other.collision");
+        //   <blueprint>[@<x>,<y>,<z>[,<pitch>,<yaw>[,<roll>]]][!<attr>=<value>[,<attr>=<value>]*]
+        // Every sensor emits on every world frame; the sensor_tick blueprint
+        // attribute is deliberately unsupported -- throttle by dropping
+        // arrivals on the consumer side instead (see src/carla/README.md).
+        // offsets are absolute CARLA world coordinates; avatar sensors use
+        // vehicle-local offsets (x = fore) instead.
+        string sensors = default("sensor.other.gnss;sensor.other.imu;sensor.other.collision");
         bool copySensorPayload @desc("Copy raw point cloud / image bytes into the signal payload") = default(false);
         bool destroyActorsOnFinish = default(true);
 }

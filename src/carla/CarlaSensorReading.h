@@ -51,6 +51,13 @@ struct RawSensorData
     uint64_t frame {0};
     /// CARLA episode timestamp in seconds (not OMNeT++ sim time!)
     double timestamp {0.0};
+    /// OMNeT++ simulation time of the CARLA frame this measurement belongs
+    /// to, in exact integer nanoseconds (OMNeT++'s native time unit).
+    /// Assigned by the manager in drainInbox(), which is the only place a
+    /// reading is emitted (lock-step: current simTime minus
+    /// (current frame - measurement frame) * step) — so every reading a
+    /// consumer receives carries its correlated simulation time.
+    int64_t simTimeNs {0};
 
     /// sensor transform in CARLA (unreal) world coordinates
     double x {0.0}, y {0.0}, z {0.0};
@@ -92,9 +99,13 @@ struct SensorInbox
     std::mutex mutex;
     std::condition_variable cv;
     std::deque<RawSensorData> queue;
-    bool closed {false};
-    /// guard against unbounded growth when the simulation cannot keep up
-    size_t highWatermark {10000};
+    /// bound on the queue depth: on overflow the *oldest* measurement is
+    /// dropped, so consumers always see the freshest data.  Sized for
+    /// imaging payloads (one 1280x720 BGRA frame ~ 3.7 MB, i.e. ~120 MB
+    /// worst case); readers are never blocked longer than their wait
+    /// timeout, so a full queue can only mean "nobody is draining" and
+    /// dropping is the correct response
+    size_t highWatermark {32};
     /// measurements discarded because the queue ran full
     size_t dropped {0};
 };
@@ -145,10 +156,21 @@ public:
     {
         return mData.frame;
     }
-    /// CARLA episode timestamp in seconds
-    double carlaTimestamp() const
+    /// OMNeT++ simulation time of the CARLA frame this measurement belongs
+    /// to, in exact integer nanoseconds (OMNeT++'s native time unit).
+    /// Measurements may arrive late; the manager back-dates them by their
+    /// frame distance to the ticked frame, so the value is always exactly
+    /// the sim time of the tick that advanced the measurement's frame.
+    int64_t simTimeNs() const
     {
-        return mData.timestamp;
+        return mData.simTimeNs;
+    }
+    /// Convenience view of simTimeNs() as seconds (exact conversion for all
+    /// realistic sim times: int64 ns are representable losslessly in a double
+    /// up to ~104 days)
+    double simTime() const
+    {
+        return static_cast<double>(mData.simTimeNs) * 1e-9;
     }
 
     double x() const
