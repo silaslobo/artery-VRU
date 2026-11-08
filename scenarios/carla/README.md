@@ -104,14 +104,18 @@ command line.
 ...
 [INFO]  Spawned CARLA avatar 'v_e10_to_e13_0' (actor 35) from vehicle.tesla.model3 at (-1.75,-13.4,90)
 [INFO]  Spawned CARLA avatar 'v_e12_to_e17_0' (actor 36) from vehicle.tesla.model3 at (13.4,-1.75,180)
-[INFO]  sensorSink <- carlaManager: image(rgb) frame=12370342 t=1.281 sim=0.290 pos=(0.00,-38.00,30.00) 1280x720 fov=90.0
-[INFO]  Captured captures/290ms_rgb_f12370342.png (1280x720, sim t=0.29s)
+[INFO]  sensorSink <- carlaManager: image(v_e12_to_e17_0.rgb) frame=2395124 t=5.020 sim=2.720 pos=(3.34,-1.75,1.72) 1280x720 fov=90.0
+[INFO]  Captured captures/2720ms_v_e12_to_e17_0_rgb_f2395124.png (1280x720, sim t=2.72s)
 ...
-[INFO]  avatar pose residual: n=180 max=0.067 m mean=0.0045 m
-[INFO]  received 190 image measurements
-[INFO]  wrote 190 image frames to captures
+[INFO]  avatar pose residual: n=600 max=0.068 m mean=0.002 m
+[INFO]  received 300 image measurements
+[INFO]  wrote 300 image frames to captures
 End.
 ```
+
+Both vehicles depart at t=0 (`gen_routes.py`), so the residual covers every
+frame of all 300 ticks (n=600 = 2 avatars x 300 frames) and the single
+vehicle camera delivers exactly one image per tick (300 of them).
 
 Note: on CARLA 1.0 (UE5) the map keeps the OpenDRIVE coordinate frame — the
 check reports *x/y identical*; on 0.9.16 (UE4) it reported
@@ -141,17 +145,16 @@ instant.
 
 ## Camera captures (`captures/`)
 
-`omnetpp-sumo.ini` enables two 1280x720 RGB cameras:
+`omnetpp-sumo.ini` enables one 1280x720 RGB camera:
 
-* one fixed observation camera (manager-level `sensors`, absolute CARLA world
-  coordinates): high oblique view from south
-  of the junction (`0,-38,30`, pitch -55, yaw 90) covering the whole 18 m
-  arms;
 * one front-windshield camera on the **second** vehicle only
   (`*.node[1].carlaAvatar.sensors`, vehicle-local offset `1.8,0,1.7`; nodes
-  are created in departure order).
+  are created in departure order, both vehicles depart at t=0).
 
-Both cameras deliver **one image per world tick** and `step()` blocks each
+There are deliberately no manager-level (static/overhead) cameras: every
+sensor is vehicle-mounted, mirroring the deployment the integration targets.
+
+The camera delivers **one image per world tick** and `step()` blocks each
 tick until the frame's complete sensor set arrived (or `sensorWaitTimeout =
 2s` expired) — the synchronous mode a CV consumer needs; over a WAN every
 tick therefore costs up to the image transfer time, which is fine for
@@ -176,7 +179,7 @@ cmake --build build --target run_carla_sumo_scenario
 ls captures/
 ```
 
-Tuning: change positions in the two `sensor.camera.rgb` entries of
+Tuning: change the `sensor.camera.rgb` entries of
 `omnetpp-sumo.ini` (grammar `blueprint[@x,y,z,pitch,yaw,roll][!attr=val]`).
 Images stream on every tick — one 1280x720 BGRA frame ≈ 3.7 MB per camera and
 tick; `CarlaImageSink` also takes `maxFrames` to cap the number of written

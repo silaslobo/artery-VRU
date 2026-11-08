@@ -101,7 +101,8 @@ def main():
                          "default: all movements of the junction")
     ap.add_argument("--depart-step", type=float, default=0.4,
                     help="departure spacing [s] within a movement")
-    ap.add_argument("--depart-start", type=float, default=0.1)
+    # vehicles are present from t=0 (no warm-up gap before the scene exists)
+    ap.add_argument("--depart-start", type=float, default=0.0)
     ap.add_argument("--max-speed", type=float, default=13.89)
     args = ap.parse_args()
 
