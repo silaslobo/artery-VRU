@@ -14,11 +14,11 @@ set(SOURCES
 
 add_library(carla SHARED ${SOURCES})
 
-# libcarla and its headers require C++17, while Artery itself is built with
+# libcarla (CARLA 1.0) requires C++20, while Artery itself is built with
 # C++11/14.  Keep the newer standard local to this target.
 set_target_properties(carla PROPERTIES
     OUTPUT_NAME artery_carla
-    CXX_STANDARD 17
+    CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
     OMNETPP_LIBRARY ON
     NED_FOLDERS ${CMAKE_CURRENT_SOURCE_DIR})
@@ -26,35 +26,33 @@ set_target_properties(carla PROPERTIES
 # CarlaAvatar implements the traci::VehicleSink interface; the bundled TraCI
 # client headers (src/ + src/traci/sumo) are needed at compile time, the
 # symbols come from libtraci.so at load time.
-target_include_directories(carla PUBLIC
+# Everything below is PRIVATE on purpose: this library must export no usage
+# requirements.  artery core links `carla` PUBLIC (so add_opp_run finds the
+# module), but core is built against the system Boost at C++14 — leaking the
+# CARLA 1.0 vendored Boost tree or C++20 into it breaks its compilation
+# (measured).  No consumer compiles against carla/ headers anyway.
+target_include_directories(carla PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/src/traci/sumo
     $<TARGET_PROPERTY:core,INCLUDE_DIRECTORIES>)
-target_link_libraries(carla PUBLIC traci)
+target_link_libraries(carla PRIVATE traci)
 
-find_package(Boost REQUIRED COMPONENTS date_time system filesystem)
 find_package(Threads REQUIRED)
 
-# CARLA's static libraries have to be listed before their dependencies
-target_link_libraries(carla PUBLIC
-    Carla::Client
-    ${CARLA_RECAST_LIBRARIES}
-    Carla::Rpc
-    Boost::date_time
-    Boost::system
-    Boost::filesystem
-    Threads::Threads)
+# CARLA 1.0 vendors its dependencies (Boost 1.90, rpclib, Recast, libpng,
+# zlib) as static archives built by cmake/carla/CarlaClient.cmake.  They are
+# linked instead of the system libraries so libcarla always sees the exact
+# versions it was compiled against; the system Boost (used by artery core)
+# is kept away from them by --exclude-libs below.  Carla::Client carries the
+# full ordered archive list as interface dependencies (see CarlaClient.cmake),
+# so linking the single target is everything this library needs.
+target_link_libraries(carla PRIVATE Carla::Client Threads::Threads)
 
-find_package(ZLIB QUIET)
-if(TARGET ZLIB::ZLIB)
-    target_link_libraries(carla PUBLIC ZLIB::ZLIB)
-endif()
-
-# CarlaImageSink writes PNGs through libpng's simplified API.  libpng is
-# already a hard requirement of the CARLA client build (CarlaClient.cmake runs
-# find_package(PNG REQUIRED)), so this adds no new dependency.
-find_package(PNG REQUIRED)
-target_link_libraries(carla PUBLIC PNG::PNG)
+# Hide the vendored (Boost 1.90 & friends) archive symbols inside this
+# shared library: artery core is linked against the system Boost, and two
+# Boost versions exported from one process would interbind at runtime.
+# Our own objects (the OMNeT++ module symbols) stay exported.
+target_link_options(carla PRIVATE "LINKER:--exclude-libs,ALL")
 
 # unit test for the coordinate transform (plain C++ executable, no OMNeT++)
 add_executable(carla_coordtest tests/CoordTransformTest.cc)

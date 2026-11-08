@@ -90,9 +90,10 @@ else()
 endif()
 
 
-check_git_submodule(PATH extern/carla REQUIRED_FILES LibCarla/cmake/CMakeLists.txt)
-check_git_submodule(PATH extern/rpclib REQUIRED_FILES CMakeLists.txt)
-check_git_submodule(PATH extern/recastnavigation REQUIRED_FILES CMakeLists.txt)
+check_git_submodule(PATH extern/carla REQUIRED_FILES LibCarla/CMakeLists.txt CMake/Dependencies.cmake)
+# rpclib and recastnavigation are intentionally NOT vendored: CARLA 1.0's
+# own FetchContent build provides the versions it is compatible with
+# (see cmake/carla/CarlaClient.cmake).
 
 
 option(WITH_ENVMOD "Build Artery with environment model feature" ON)

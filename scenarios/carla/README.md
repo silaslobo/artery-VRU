@@ -43,14 +43,44 @@ in `tools/carla_map/gen_xodr.py` and re-run the target.
 ## Run
 
 ```bash
-cmake -S . -B build && cmake --build build -j$(nproc)
+cmake -S . -B build -DCMAKE_BUILD_TYPE=RELEASE && cmake --build build -j$(nproc)
 
 cmake --build build --target run_carla_sumo_scenario
 ```
 
+The run target launches OMNeT++ with its default environment, **Qtenv**
+(the Qt GUI).  On a headless machine — CI, a container, or when an agent
+runs the scenario — select **Cmdenv** instead; the environment is chosen
+by the launcher, not by the ini file, so pass it at configure time:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=RELEASE -DRUN_FLAGS=-uCmdenv
+```
+
+(or invoke the generated `opp_run` command line manually with `-uCmdenv`).
+Everything the run is verified by — the pose-residual summary, the frame
+count, `End.` — is console output and appears identically in both
+environments.
+
 Point `*.carlaHost` / `*.carlaPort` in `omnetpp-sumo.ini` at your CARLA server;
 it starts SUMO itself via `PosixLauncher`, so only the CARLA server has to run
-externally.
+externally.  The server is CARLA 1.0 (Unreal Engine 5) and is started there
+with
+
+```bash
+CUDA_VISIBLE_DEVICES=<GPU index> ./CarlaUnreal.sh -RenderOffScreen -nosound -graphicsadapter=<GPU index>
+# the gpu indexes from the environment variable and the flag may not be the same
+# CUDA_VISIBLE_DEVICES limits the devices visible to CUDA
+# while -graphicsadapter the device used by vulkan
+```
+
+Generating the world from `intersection.xodr` runs UE5 meshing, PCG and
+navmesh build on the server; measured, it completes in seconds (a full
+re-generation round trip is ~3 s, the first generation after a server start
+at most a minute).  `carlaManager.timeout = 60s` covers that comfortably —
+if generation ever runs into the timeout, suspect a wedged server (see
+Known issues), not a slow build.  Every run of the scenario regenerates the
+same world.
 
 To watch SUMO with the GUI (requires an X display), select the GUI run
 configuration, e.g. append `-c Config-sumo-gui` to the generated `opp_run`
@@ -60,25 +90,35 @@ command line.
 
 ```
 [INFO]  Connecting to CARLA server big-boss.tail4b138a.ts.net:2000
-[INFO]  Connected to CARLA 0.9.16, world 0.01s step
-[INFO]  Generating CARLA world from OpenDRIVE 'maps/intersection.xodr' ...
+[INFO]  Connected to CARLA 1.0-9ec914a6f, world 0s step
+[INFO]  Generating CARLA world from OpenDRIVE 'maps/intersection.xodr' (29223 bytes, checksum ...): vertex_distance=0.2 additional_width=0 simplification=0 smooth_junctions=0 wall_height=0
 [INFO]  Loaded CARLA map name='Carla/Maps/OpenDriveMap' geoReference lat=55.6761 lon=12.5683 alt=0
+[INFO]  OpenDRIVE round trip: sent 29223 bytes (checksum ...), server reports 29223 bytes (checksum ...)
 [INFO]  Server stores exactly the OpenDRIVE string that was sent
-[INFO]  Map geometry check: CARLA coordinate convention x_carla = x_xodr, y_carla = -y_xodr
-[INFO]  Map geometry check: 257 lane samples, max deviation 0.0004 m, ...
+[INFO]  Map geometry check: CARLA coordinate convention x/y identical (dev plain=0 flipped=0)
+[INFO]  Map geometry check: 256 lane samples, max deviation 0.00057 m, mean 8.7e-05 m, ...
+[INFO]  CARLA server settings: synchronous=1 fixed_delta=0.01 no_rendering=0
 [INFO]  TraCI server is SUMO 1.28.0 with API level 22
 ** Event #3  t=0.01  CarlaSumoWorld.traci.core
 ** Event #4  t=0.01  CarlaSumoWorld.carlaManager       <- alternating: lock-step
 ...
-[INFO]  Spawned CARLA avatar 'v_e10_to_e13_0' (actor 87) from vehicle.tesla.model3 at (-1.75,-13.4,90)
-[INFO]  Spawned CARLA avatar 'v_e12_to_e17_0' (actor 88) from vehicle.tesla.model3 at (13.4,-1.75,180)
-[INFO]  sensorSink <- carlaManager: image(rgb) frame=3077 t=3.171 sim=0.290 pos=(0.00,-38.00,30.00) 1280x720 fov=90.0
-[INFO]  Captured captures/290ms_rgb_f3077.png (1280x720, sim t=0.29s)
+[INFO]  Spawned CARLA avatar 'v_e10_to_e13_0' (actor 35) from vehicle.tesla.model3 at (-1.75,-13.4,90)
+[INFO]  Spawned CARLA avatar 'v_e12_to_e17_0' (actor 36) from vehicle.tesla.model3 at (13.4,-1.75,180)
+[INFO]  sensorSink <- carlaManager: image(rgb) frame=12370342 t=1.281 sim=0.290 pos=(0.00,-38.00,30.00) 1280x720 fov=90.0
+[INFO]  Captured captures/290ms_rgb_f12370342.png (1280x720, sim t=0.29s)
 ...
-[INFO]  avatar pose residual: n=140 max=0.14 m mean=0.013 m
-[INFO]  received 147 image measurements
-[INFO]  wrote 147 image frames to captures
+[INFO]  avatar pose residual: n=180 max=0.067 m mean=0.0045 m
+[INFO]  received 190 image measurements
+[INFO]  wrote 190 image frames to captures
+End.
 ```
+
+Note: on CARLA 1.0 (UE5) the map keeps the OpenDRIVE coordinate frame — the
+check reports *x/y identical*; on 0.9.16 (UE4) it reported
+`x_carla = x_xodr, y_carla = -y_xodr`.  (If the client ever reports
+`1.0-<sha>-dirty` against a `1.0-<sha>` server, the CARLA submodule working
+tree has local modifications; the stock build keeps it pristine and the
+version-mismatch warning does not appear.)
 
 The `sim=` value and the file-name prefix are the *simulation* instants the
 measurements belong to, derived from the CARLA frame numbers (never from
@@ -89,7 +129,7 @@ instant.
 
 ## Verification built into the run
 
-* **Static, map level**: 257 lane-centre samples from the generator are
+* **Static, map level**: lane-centre samples from the generator are
   projected onto the map CARLA actually built (`mapCheckFile`); the run asserts
   the deviation is in the sub-millimetre range and detects CARLA's coordinate
   convention empirically.
@@ -120,7 +160,8 @@ deliberately unsupported (see `src/carla/README.md` §6 "Data rate control"):
 throttle by dropping arrivals on the consumer side, never by asking CARLA
 for less.  Resolution is set through the blueprint attributes
 `image_size_x`/`image_size_y` (the correct names; others are skipped with a
-warning) and the server should run with `-quality-level=Epic`.  The readings
+warning); the stock CARLA 1.0 server render settings (as launched per "Run"
+above) are sufficient.  The readings
 are stored as PNGs by
 `carla.CarlaImageSink` (`imageSink` in `CarlaSumoWorld.ned`), which subscribes
 to the same `carla.sensor` signal; it requires
@@ -169,20 +210,33 @@ python3 tools/carla_map/frame_report.py --ascii captures/*.png
 
 ## Known issues
 
-* **CARLA 0.9.16 server: the second synchronous-mode client session dies ~60-77
-  ticks in.** The client times out in `Tick()`, and afterwards the server
-  answers no RPC at all (fresh connects time out too) without ever logging a
-  crash.  Ruled out: image / bandwidth load (reproduces with GNSS-only
-  sensors), world regeneration (reproduces with the identical OpenDRIVE world
-  reused), spawn geometry, avatar physics, and the traffic manager.  On the TM
-  specifically: it is a *client-side* library object (`TrafficManagerLocal`)
-  that no stock server runs as a service (port 8000 is closed by default), and
-  this integration uses no TM at all — see the `SetAutopilot` comment in
-  `updateAvatar`.  So there is no TM to put in synchronous mode; the doc note
-  about synchronising the TM does not apply here.
+* **The CARLA 0.9.16 stall is fixed on CARLA 1.0 (UE5).**  On 0.9.16 the
+  second synchronous-mode client session reliably stopped answering every RPC
+  ~60-77 ticks in (game thread stuck in the `do { RunSome(1u); } while
+  (!TickCueReceived());` spin — an `io_context::reset()` race in
+  `SyncRunFor()`); only a server restart helped, so runs had to be
+  serialised behind restarts.  On CARLA 1.0 the acceptance scenario and
+  repeated sync-mode probe sessions (teleported avatars every frame, world
+  regeneration included) run back-to-back against the same server instance
+  without a single timed-out tick (5 sessions, 3000 teleported frames).
 
-  Only the first run after a server restart completes reliably; restart the
-  server between runs until it is replaced (a newer CARLA on Unreal Engine 5
-  is the planned fix).  The client behaves correctly: a timed-out tick aborts
-  the run cleanly rather than re-cueing (which would double-tick the server and
-  desynchronise the RPC protocol).
+* **`check-signals` (debug OMNeT++ builds)**: `@signal[carla.sensor]` carries
+  no `type=` attribute on purpose.  `type=object` is *invalid* in OMNeT++ 5.7
+  ("object" is not a registered class) and throws on the first emit whenever
+  signal checking is enabled — which is the default in debug builds
+  (`check-signals`).  Build with `CMAKE_BUILD_TYPE=RELEASE` (the usual artery
+  configuration); the scenario also runs in debug since the declaration fix.
+
+* **The UE5 server still occasionally dies in the render thread**
+  (`LowLevelFatalError [RenderingThread.cpp] GameThread timed out waiting
+  for RenderThread after 60.00 secs`, then segfault).  It happens far less
+  on CARLA 1.0 than our earlier sessions suggested, but it is not fully
+  root-caused.  During such a hang the async `version` RPC keeps answering
+  while every game-thread RPC times out; afterwards the server refuses
+  connections.  Nothing on our side triggers it deterministically (the
+  teleport/sync regression passes repeatedly) and the client already
+  behaves correctly: a timed-out tick aborts instead of re-cueing.
+  Host-side suspects are VRAM pressure and GPU preemption — check for
+  competing GPU processes before suspecting the stack.  Deferred for now;
+  if it becomes frequent, the next diagnostic step is a backtrace of the
+  RHIThread *during* the hang (`thread apply all bt 1`).

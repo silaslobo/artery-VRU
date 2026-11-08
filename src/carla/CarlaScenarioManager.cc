@@ -171,7 +171,7 @@ namespace
  * RawSensorData container.  Runs on CARLA's streaming threads, so it must not
  * touch any OMNeT++ API.
  */
-RawSensorData toRaw(const boost::shared_ptr<::carla::sensor::SensorData>& data,
+RawSensorData toRaw(const std::shared_ptr<::carla::sensor::SensorData>& data,
     const std::string& name,
     const std::string& type,
     bool copyPayload)
@@ -190,13 +190,13 @@ RawSensorData toRaw(const boost::shared_ptr<::carla::sensor::SensorData>& data,
     raw.yaw = transform.rotation.yaw;
     raw.roll = transform.rotation.roll;
 
-    if (auto gnss = boost::dynamic_pointer_cast<csd::GnssMeasurement>(data)) {
+    if (auto gnss = std::dynamic_pointer_cast<csd::GnssMeasurement>(data)) {
         raw.kind = SensorKind::Gnss;
         raw.latitude = gnss->GetLatitude();
         raw.longitude = gnss->GetLongitude();
         raw.altitude = gnss->GetAltitude();
     }
-    else if (auto imu = boost::dynamic_pointer_cast<csd::IMUMeasurement>(data)) {
+    else if (auto imu = std::dynamic_pointer_cast<csd::IMUMeasurement>(data)) {
         raw.kind = SensorKind::Imu;
         const auto accelerometer = imu->GetAccelerometer();
         const auto gyroscope = imu->GetGyroscope();
@@ -208,7 +208,7 @@ RawSensorData toRaw(const boost::shared_ptr<::carla::sensor::SensorData>& data,
         raw.gyroZ = gyroscope.z;
         raw.compass = imu->GetCompass();
     }
-    else if (auto collision = boost::dynamic_pointer_cast<csd::CollisionEvent>(data)) {
+    else if (auto collision = std::dynamic_pointer_cast<csd::CollisionEvent>(data)) {
         raw.kind = SensorKind::Collision;
         const auto& impulse = collision->GetNormalImpulse();
         raw.impulseX = impulse.x;
@@ -219,7 +219,7 @@ RawSensorData toRaw(const boost::shared_ptr<::carla::sensor::SensorData>& data,
             raw.otherActorName = other->GetTypeId();
         }
     }
-    else if (auto obstacle = boost::dynamic_pointer_cast<csd::ObstacleDetectionEvent>(data)) {
+    else if (auto obstacle = std::dynamic_pointer_cast<csd::ObstacleDetectionEvent>(data)) {
         raw.kind = SensorKind::ObstacleDetection;
         raw.count = static_cast<int64_t>(obstacle->GetDistance());
         if (auto other = obstacle->GetOtherActor()) {
@@ -227,10 +227,10 @@ RawSensorData toRaw(const boost::shared_ptr<::carla::sensor::SensorData>& data,
             raw.otherActorName = other->GetTypeId();
         }
     }
-    else if (boost::dynamic_pointer_cast<csd::LaneInvasionEvent>(data)) {
+    else if (std::dynamic_pointer_cast<csd::LaneInvasionEvent>(data)) {
         raw.kind = SensorKind::LaneInvasion;
     }
-    else if (auto lidar = boost::dynamic_pointer_cast<csd::LidarMeasurement>(data)) {
+    else if (auto lidar = std::dynamic_pointer_cast<csd::LidarMeasurement>(data)) {
         raw.kind = SensorKind::Lidar;
         raw.count = static_cast<int64_t>(lidar->size());
         if (copyPayload && !lidar->empty()) {
@@ -239,15 +239,15 @@ RawSensorData toRaw(const boost::shared_ptr<::carla::sensor::SensorData>& data,
             raw.payload.assign(first, last);
         }
     }
-    else if (auto semantic = boost::dynamic_pointer_cast<csd::SemanticLidarMeasurement>(data)) {
+    else if (auto semantic = std::dynamic_pointer_cast<csd::SemanticLidarMeasurement>(data)) {
         raw.kind = SensorKind::SemanticLidar;
         raw.count = static_cast<int64_t>(semantic->size());
     }
-    else if (auto radar = boost::dynamic_pointer_cast<csd::RadarMeasurement>(data)) {
+    else if (auto radar = std::dynamic_pointer_cast<csd::RadarMeasurement>(data)) {
         raw.kind = SensorKind::Radar;
         raw.count = static_cast<int64_t>(radar->size());
     }
-    else if (auto image = boost::dynamic_pointer_cast<csd::Image>(data)) {
+    else if (auto image = std::dynamic_pointer_cast<csd::Image>(data)) {
         raw.kind = SensorKind::Image;
         raw.width = image->GetWidth();
         raw.height = image->GetHeight();
@@ -383,7 +383,7 @@ void CarlaScenarioManager::connect()
 
         m_world.reset(new cc::World(m_client->GetWorld()));
         EV_INFO << "Connected to CARLA " << m_client->GetServerVersion() << ", world "
-                << m_world->GetSettings().fixed_delta_seconds.get_value_or(0.0) << "s step"
+                << m_world->GetSettings().fixed_delta_seconds.value_or(0.0) << "s step"
                 << std::endl;
 
         // A client that died without restoring the settings leaves the server
@@ -414,7 +414,10 @@ void CarlaScenarioManager::connect()
         {
             auto settings = m_world->GetSettings();
             settings.synchronous_mode = true;
-            settings.no_rendering_mode = par("noRenderingMode");
+            // rendering is always on: the camera sensor is this integration's
+            // main data source, and pinning the flag also prevents inheriting
+            // a no_rendering session left behind by another client
+            settings.no_rendering_mode = false;
             settings.fixed_delta_seconds = m_stepInterval.dbl();
             settings.substepping = false;
             try {
@@ -429,7 +432,7 @@ void CarlaScenarioManager::connect()
             }
             const auto applied = m_world->GetSettings();
             EV_INFO << "CARLA server settings: synchronous=" << applied.synchronous_mode
-                    << " fixed_delta=" << applied.fixed_delta_seconds.get_value_or(0.0)
+                    << " fixed_delta=" << applied.fixed_delta_seconds.value_or(0.0)
                     << " no_rendering=" << applied.no_rendering_mode << std::endl;
         }
 
@@ -696,7 +699,7 @@ void CarlaScenarioManager::applyAvatarUpdates()
                         "(%.2f,%.2f,%.2f): pose rejected by the server", entry.first.c_str(),
                         transform.location.x, transform.location.y, transform.location.z);
                 }
-                avatar.actor = boost::static_pointer_cast<cc::Vehicle>(actor);
+                avatar.actor = std::static_pointer_cast<cc::Vehicle>(actor);
                 // deliberately no SetAutopilot(false) here: freshly spawned
                 // actors have no autopilot, and even the *unregister* path of
                 // SetAutopilot constructs a client-side TrafficManager whose
@@ -771,7 +774,7 @@ void CarlaScenarioManager::spawnSensors()
 
 void CarlaScenarioManager::spawnSensorList(cc::Actor* parent, const std::string& text,
     const std::string& name_prefix,
-    std::vector<boost::shared_ptr<cc::Sensor>>& out)
+    std::vector<std::shared_ptr<cc::Sensor>>& out)
 {
     const auto specs = parseSensors(text);
     if (specs.empty()) {
@@ -810,7 +813,7 @@ void CarlaScenarioManager::spawnSensorList(cc::Actor* parent, const std::string&
 
         const auto transform = makeTransform(spec);
         auto actor = m_world->SpawnActor(blueprint, transform, parent);
-        auto sensor = boost::static_pointer_cast<cc::Sensor>(actor);
+        auto sensor = std::static_pointer_cast<cc::Sensor>(actor);
 
         // The callback runs on a CARLA streaming thread: it may only touch
         // CARLA data and the mutex guarded inbox, never OMNeT++ itself.
@@ -818,7 +821,7 @@ void CarlaScenarioManager::spawnSensorList(cc::Actor* parent, const std::string&
         const std::string sensorName = name;
         const std::string sensorType = spec.blueprint;
         sensor->Listen([inbox, sensorName, sensorType, copyPayload](
-                           boost::shared_ptr<::carla::sensor::SensorData> data) {
+                           std::shared_ptr<::carla::sensor::SensorData> data) {
             auto raw = toRaw(data, sensorName, sensorType, copyPayload);
             {
                 std::lock_guard<std::mutex> guard(inbox->mutex);

@@ -10,7 +10,7 @@ This library connects an Artery (OMNeT++) simulation to a running
 
 | Area | Change |
 |---|---|
-| CARLA C++ client | `cmake/carla/CarlaClient.cmake` builds `libcarla_client.a`, `librpc.a` and Recast/Detour from the pinned submodules via `ExternalProject` and exports `Carla::Client`, `Carla::Rpc`, `Carla::Recast`. Two fixes were needed to make the static CARLA code usable from an OMNeT++ shared library: `-fPIC` for libcarla, and explicit ordering of the Detour archives (see §5). |
+| CARLA C++ client | `cmake/carla/CarlaClient.cmake` builds `libcarla-client.a` (plus its vendored rpclib/Recast/Detour/Boost, which CARLA 1.0's own FetchContent build provides — they are deliberately *not* vendored as artery submodules) via `ExternalProject`) and exports a **single** `Carla::Client` target that carries headers and all vendored archives as interface dependencies. Two fixes were needed to make the static CARLA code usable from an OMNeT++ shared library: `-fPIC` for libcarla, and explicit ordering of the static archives (see §5). |
 | New library | `src/carla/` → `libartery_carla.so`, compiled with C++17 (CARLA headers), added from the root `CMakeLists.txt` with `add_subdirectory(src/carla)`. |
 | Manager module | `CarlaScenarioManager` owns `carla::client::Client` + `carla::client::World`, spawns sensors and mirrors SUMO vehicles as avatars, and drives CARLA one frame per OMNeT++ step. |
 | Sensor path | `Sensor::Listen()` callbacks marshal measurements into a mutex-guarded inbox; the event-loop thread drains it and emits the `carla.sensor` signal. |
@@ -24,7 +24,7 @@ This library connects an Artery (OMNeT++) simulation to a running
 ## 2. Architecture
 
 ```
-              CARLA server (UE4, RPC :2000)
+              CARLA server (UE5, RPC :2000)
                         ^
                         |  Tick() / ApplySettings()        Listen() callbacks
                         |  (OMNeT++ thread)                (CARLA streaming threads)
@@ -159,12 +159,15 @@ with its NED files. Two CARLA-specific points:
    standard is kept local to this target. In `CarlaScenarioManager.cc`,
    `#undef PI` is required before including CARLA headers because OMNeT++ defines
    `PI` as a macro.
-2. **Static library order.** `libcarla_client.a` references Detour/DetourCrowd
-   symbols. CMake moves the static dependencies of a target's
-   `INTERFACE_LINK_LIBRARIES` to the end of the link line, where they no longer
-   resolve those references. `CarlaClient.cmake` therefore also exports the plain
-   list `CARLA_RECAST_LIBRARIES` (Recast, DetourCrowd, DetourTileCache, Detour)
-   which `src/carla` links right after `Carla::Client`. The archives additionally
+2. **Static library order.** `libcarla-client.a` references Detour/DetourCrowd,
+   rpclib and Boost symbols, and static archives resolve left-to-right, so the
+   dependency archives must follow it in exactly that order (Recast, DetourCrowd,
+   Detour, rpc, Boost…, png, z). `Carla::Client` lists them in
+   `INTERFACE_LINK_LIBRARIES` of the *IMPORTED STATIC* target, where CMake
+   preserves the order and appends them right after the library. Wrapping the
+   same list in an INTERFACE library does **not** work — CMake hoists static
+   entries of INTERFACE libraries to the end of the link line, where they no
+   longer resolve libcarla's references (measured). The archives additionally
    have to be built with `-fPIC`, since they end up inside a `.so`.
 
 Because `core` links `carla` PUBLIC, `run_artery.sh` (and the scenario run
@@ -180,7 +183,6 @@ targets) automatically get `-n .../src/carla` and `-l libartery_carla.so`.
 | `timeout` | `20s` | timeout for all CARLA RPCs |
 | `map` | `""` | map to load; empty keeps the currently loaded world |
 
-| `noRenderingMode` | `false` | headless rendering |
 | `stepInterval` | `0.01s` | OMNeT++ step == `fixed_delta_seconds` (CARLA accepts 1 µs … 1/60 s) |
 | `tickTimeout` | `60s` | per-frame tick timeout; a timed-out tick aborts the run (re-cueing could double-tick the server) |
 | `sensorWaitTimeout` | `0.02s` | wall-clock time `step()` waits for the frame's complete sensor set |

@@ -9,13 +9,9 @@
 
 #include "CoordTransform.h"
 
-// boost::shared_ptr is required by the CARLA 0.9.16 client API: carla::
-// SharedPtr<T> is an alias for boost::shared_ptr<T> (LibCarla Memory.h), so
-// every handle the client returns is boost-managed.  std::shared_ptr has an
-// independent control block, so wrapping those raw pointers would create
-// double ownership; CARLA handle storage therefore uses the boost types and
-// everything else is std.
-#include <boost/shared_ptr.hpp>
+// CARLA 1.0's carla::SharedPtr<T> is std::shared_ptr<T> (LibCarla Memory.h);
+// handle storage below uses it directly.  (0.9.16 used boost::shared_ptr;
+// that mismatch is gone with 1.0.)
 
 #include <omnetpp/cmessage.h>
 #include <omnetpp/csimplemodule.h>
@@ -143,7 +139,7 @@ private:
 
     std::unique_ptr<::carla::client::Client> m_client;
     std::unique_ptr<::carla::client::World> m_world;
-    std::vector<boost::shared_ptr<::carla::client::Sensor>> m_sensors;
+    std::vector<std::shared_ptr<::carla::client::Sensor>> m_sensors;
     /// names of per-frame sensors (all spawned sensors except event types
     /// like collision); step() waits for all of them to have reported for
     /// the frame that was just ticked (or for sensorWaitTimeout to expire)
@@ -151,21 +147,21 @@ private:
 
     struct AvatarEntry
     {
-        boost::shared_ptr<::carla::client::Vehicle> actor;  // null until spawned
+        std::shared_ptr<::carla::client::Vehicle> actor;  // null until spawned
         CarlaPose pose;  ///< last requested pose (CARLA coordinates)
         std::string blueprint;
         std::string pendingSensors;   ///< sensor spec not yet attached
         bool sensorsAttached {false};
-        std::vector<boost::shared_ptr<::carla::client::Sensor>> sensors;
+        std::vector<std::shared_ptr<::carla::client::Sensor>> sensors;
     };
     std::map<std::string, AvatarEntry> m_avatars;
     /// shared implementation of spawnSensors() and the avatar sensors
     void spawnSensorList(::carla::client::Actor* parent, const std::string& text,
         const std::string& name_prefix,
-        std::vector<boost::shared_ptr<::carla::client::Sensor>>& out);
+        std::vector<std::shared_ptr<::carla::client::Sensor>>& out);
 
     /// actors of released avatars, destroyed at the next step
-    std::vector<boost::shared_ptr<::carla::client::Vehicle>> m_avatarsToDestroy;
+    std::vector<std::shared_ptr<::carla::client::Vehicle>> m_avatarsToDestroy;
     double m_residualMax {0.0};
     double m_residualSum {0.0};
     uint64_t m_residualCount {0};

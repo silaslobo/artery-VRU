@@ -183,6 +183,11 @@ target_include_directories(core PUBLIC ${Boost_INCLUDE_DIRS})
 target_link_libraries(core PUBLIC ${Boost_LIBRARIES})
 target_link_libraries(core PUBLIC OmnetPP::envir)
 target_link_libraries(core PUBLIC traci)
+# PUBLIC so that add_opp_run() discovers the carla module through core's
+# interface (OMNETPP_LIBRARY walk) and links it into every scenario binary.
+# The carla target deliberately exports *no* usage requirements (its CARLA
+# 1.0 vendored-Boost includes and C++20 are PRIVATE to it), so this does not
+# affect how core itself is compiled.
 target_link_libraries(core PUBLIC carla)
 target_link_libraries(core PUBLIC Vanetza::vanetza)
 

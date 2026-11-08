@@ -15,7 +15,7 @@ simple CarlaScenarioManager
         @signal[carla.init](type=simtime_t);
         @signal[carla.step](type=simtime_t);
         @signal[carla.close](type=simtime_t);
-        @signal[carla.sensor](type=object);
+        @signal[carla.sensor];  // payload: CarlaSensorReading (object signals take no valid 'type=object' in OMNeT++ 5.7)
         @signal[sync.geometryResidual](type=double);
 
         // --- server connection ---
@@ -42,7 +42,6 @@ simple CarlaScenarioManager
         bool avatarResidualCheck @desc("After every frame compare the CARLA actor pose with the requested pose and emit sync.geometryResidual") = default(true);
         // synchronous (lock-step) mode is always enabled: it is the only
         // supported mode, and the server is deliberately left in it
-        bool noRenderingMode @desc("Disable rendering (faster headless co-simulation)") = default(false);
         double stepInterval @unit(s) @desc("OMNeT++ step size, used as CARLA fixed_delta_seconds. CARLA accepts values between 1e-6 s and 1/60 s") = default(0.01s);
         double tickTimeout @unit(s) @desc("Maximum time to wait for the CARLA server to complete one frame. A timed-out tick aborts the run -- the response may merely be stuck behind the sensor stream, and re-cueing would double-tick the server") = default(60s);
         double sensorWaitTimeout @unit(s) @desc("Maximum time to wait for the sensor data belonging to a frame") = default(0.02s);

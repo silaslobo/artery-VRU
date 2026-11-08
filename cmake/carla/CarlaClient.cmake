@@ -1,152 +1,138 @@
-# Builds the CARLA C++ client library from the pinned submodules
-# (carla, rpclib, recastnavigation) using ExternalProject.
+# Builds the CARLA 1.0 C++ client library (LibCarla) from the pinned
+# submodule and collects it, together with everything it needs at link
+# time, into a self-contained prefix under build/extern/carla/install.
 #
-# Produces the following IMPORTED targets:
-#   Carla::Client     - libcarla_client.a + carla headers
-#   Carla::Rpc        - librpc.a
-#   Carla::Recast     - libRecast.a, libDetour.a, libDetourCrowd.a, libDetourTileCache.a
+# CARLA 1.0 rewrote its build system: the top-level CMakeLists.txt +
+# CMake/Dependencies.cmake fetch all dependencies (Boost 1.90, Eigen, zlib,
+# libpng, rpclib, recastnavigation) with FetchContent, and LibCarla has a
+# normal CMakeLists.txt — no more `make setup` / LibCarla/cmake trick, no
+# more -DBOOST_INCLUDE_PATH-style cache plumbing, and no local source
+# patches at all.
 #
-# The CARLA client source is patched with carla-client-mutex.patch
-# (adds missing <mutex> includes required when using libstdc++/system Boost).
+# Dependency versions are exactly what upstream CARLA pins (FetchContent,
+# branch archives of the carla-simulator forks of rpclib/recastnavigation).
+# We deliberately do NOT re-pin them locally: CARLA owns compatibility,
+# and one more version voice would only add drift.  Requires python3-dev
+# at configure time (BUILD_PYTHON_API is kept ON, see below).
+#
+# Produces exactly one IMPORTED target (consumed by src/carla/CMakeLists.txt):
+#
+#   Carla::Client  - libcarla-client.a, its headers (carla/, boost/, rpc/,
+#                    Recast, png - all merged into one prefix by the sysroot
+#                    script), and every vendored static archive it needs
+#                    (Recast/Detour*, rpclib, Boost, png, zlib) as interface
+#                    dependencies in correct link order.
+#
+# Nothing else is exported; consumption is
+#   target_link_libraries(x PRIVATE Carla::Client Threads::Threads)
+#
+# Note: CARLA 1.0's public API uses std::shared_ptr (carla::SharedPtr),
+# C++20, and rpc::EpisodeSettings with std::optional — see src/carla.
 
 include(ExternalProject)
 
-# Each dependency builds and installs into its own directory under build/extern/.
-set(CARLA_EXTERN_DIR ${CMAKE_CURRENT_BINARY_DIR}/extern)
+set(CARLA_SRC ${PROJECT_SOURCE_DIR}/extern/carla)
+set(CARLA_BUILD_DIR ${CMAKE_BINARY_DIR}/extern/carla)
+set(CARLA_INSTALL_DIR ${CARLA_BUILD_DIR}/install)
+# The IMPORTED targets below reference this prefix before the ExternalProject
+# has populated it; CMake rejects non-existent INTERFACE_INCLUDE_DIRECTORIES
+# at configure time unless we create the directories here.
+file(MAKE_DIRECTORY ${CARLA_INSTALL_DIR}/include ${CARLA_INSTALL_DIR}/lib)
 
-find_package(Boost REQUIRED)
-find_package(PNG REQUIRED)
+# BUILD_PYTHON_API stays at upstream's default (ON) on purpose.  Turning it
+# off hits a configure-time contradiction in CMake/Dependencies.cmake
+# (`python` is listed in BOOST_INCLUDED_PROJECTS unconditionally while
+# BOOST_ENABLE_PYTHON follows BUILD_PYTHON_API -> "Boost library 'python'
+# has been explicitly requested, but BOOST_ENABLE_PYTHON is OFF"), and both
+# variables are re-imposed on every configure, so no -D override helps.
+# Building with python enabled needs python3-dev, costs some Boost compile
+# time, and keeps the submodule pristine (no PATCH_COMMAND, no '-dirty'
+# version suffix).  The wheel target (carla-python-api) is *not* built here.
 
-# Boost and libpng are provided system-wide. The CARLA client build uses their
-# headers at compile time (BOOST_INCLUDE_PATH / LIBPNG_INCLUDE_PATH) but, after
-# our carla-client-cmake.patch, no longer installs their headers/libs. Their lib
-# paths are unused in the client build, so we pass the system include dirs only.
-
-# --------------------------------------------------------------------------
-# rpclib
-# --------------------------------------------------------------------------
-set(RPCLIB_SRC ${PROJECT_SOURCE_DIR}/extern/rpclib)
-set(RPCLIB_INSTALL ${CARLA_EXTERN_DIR}/rpclib/install)
-
-ExternalProject_Add(carla_rpclib
-    SOURCE_DIR ${RPCLIB_SRC}
-    BINARY_DIR ${CMAKE_BINARY_DIR}/extern/rpclib
-    PREFIX ${CMAKE_BINARY_DIR}/extern/rpclib/prefix
-    BUILD_ALWAYS OFF
-    INSTALL_DIR ${RPCLIB_INSTALL}
-    CMAKE_ARGS
-        -DCMAKE_BUILD_TYPE=Release
-        -DRPCLIB_BUILD_TESTS=OFF
-        -DRPCLIB_BUILD_EXAMPLES=OFF
-        -DCMAKE_CXX_FLAGS=-fPIC
-        -DCMAKE_INSTALL_PREFIX=${RPCLIB_INSTALL}
-    BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release
-    INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config Release
-)
-
-# --------------------------------------------------------------------------
-# Recast & Detour
-# --------------------------------------------------------------------------
-set(RECAST_SRC ${PROJECT_SOURCE_DIR}/extern/recastnavigation)
-set(RECAST_INSTALL ${CARLA_EXTERN_DIR}/recastnavigation/install)
-
-ExternalProject_Add(carla_recast
-    SOURCE_DIR ${RECAST_SRC}
-    BINARY_DIR ${CMAKE_BINARY_DIR}/extern/recastnavigation
-    PREFIX ${CMAKE_BINARY_DIR}/extern/recastnavigation/prefix
-    INSTALL_DIR ${RECAST_INSTALL}
-    CMAKE_ARGS
-        -DRECASTNAVIGATION_BUILDER=OFF
-        -DRECASTNAVIGATION_DEMO=OFF
-        -DRECASTNAVIGATION_TESTS=OFF
-        -DRECASTNAVIGATION_EXAMPLES=OFF
-        -DRECASTNAVIGATION_STATIC=ON
-        -DCMAKE_CXX_FLAGS=-fPIC
-        -DCMAKE_INSTALL_PREFIX=${RECAST_INSTALL}
-    BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release
-    INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config Release
-)
-
-# --------------------------------------------------------------------------
-# libcarla_client
-# --------------------------------------------------------------------------
-set(CARLA_CLIENT_SRC ${PROJECT_SOURCE_DIR}/extern/carla)
-set(CARLA_INSTALL_DIR ${CARLA_EXTERN_DIR}/carla/install)
-# Patches applied to the CARLA client source:
-#   carla-client-mutex.patch - add missing <mutex> includes (libstdc++/system Boost)
-#   carla-client-cmake.patch - skip installing Boost and libpng headers/libs
-#                             (both are provided system-wide)
-set(CARLA_PATCH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/carla/carla-client-mutex.patch)
-set(CARLA_PATCH_CMAKE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/carla/carla-client-cmake.patch)
+# The Boost zip extraction (and thus configure) fails under a non-UTF-8
+# locale ("Pathname cannot be converted from UTF-8 to current locale"), so
+# force C.UTF-8 for the sub-build regardless of the caller's environment.
+set(CARLA_ENV env LC_ALL=C.UTF-8 LANG=C.UTF-8)
 
 ExternalProject_Add(carla_client
-    DEPENDS carla_rpclib carla_recast
-    # Configure directly against LibCarla/cmake. CARLA's top-level CMakeLists.txt
-    # includes a generated Build/CMakeLists.txt.in (produced by `make setup`,
-    # which requires UE4) that is absent from the 0.9.16 source checkout.
-    SOURCE_DIR ${CARLA_CLIENT_SRC}/LibCarla/cmake
-    BINARY_DIR ${CMAKE_BINARY_DIR}/extern/carla
-    PREFIX ${CMAKE_BINARY_DIR}/extern/carla/prefix
-    INSTALL_DIR ${CARLA_INSTALL_DIR}
-    # Apply both patches in the CARLA source root (git -C), since the patch
-    # paths are relative to the repo root, not to LibCarla/cmake.
-    # Reset first so the patch step is idempotent (ExternalProject re-runs it
-    # on every build; a dirty tree would otherwise fail the apply).
-    PATCH_COMMAND git -C ${CARLA_CLIENT_SRC} checkout -- .
-                 && git -C ${CARLA_CLIENT_SRC} apply ${CARLA_PATCH}
-                 && git -C ${CARLA_CLIENT_SRC} apply ${CARLA_PATCH_CMAKE}
-    CMAKE_ARGS
-        -DCMAKE_BUILD_TYPE=Client
-        # Artery loads this static library into OMNeT++ shared libraries, so
-        # libcarla itself has to be position independent
-        -DCMAKE_CXX_FLAGS=-fPIC
+    SOURCE_DIR ${CARLA_SRC}
+    BINARY_DIR ${CARLA_BUILD_DIR}
+    PREFIX ${CARLA_BUILD_DIR}/prefix
+    CONFIGURE_COMMAND ${CARLA_ENV} ${CMAKE_COMMAND} -S ${CARLA_SRC} -B ${CARLA_BUILD_DIR}
+        -DCMAKE_BUILD_TYPE=Release
+        # Position independent: Artery loads this static library into
+        # OMNeT++ shared libraries.
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-        -DLIBCARLA_BUILD_RELEASE=ON
-        -DLIBCARLA_BUILD_DEBUG=OFF
-        -DLIBCARLA_BUILD_TEST=OFF
-        -DCARLA_VERSION=0.9.16
-        -DBOOST_INCLUDE_PATH=${Boost_INCLUDE_DIR}
-        -DRPCLIB_INCLUDE_PATH=${RPCLIB_INSTALL}/include
-        -DRPCLIB_LIB_PATH=${RPCLIB_INSTALL}/lib
-        -DRECAST_INCLUDE_PATH=${RECAST_INSTALL}/include
-        -DRECAST_LIB_PATH=${RECAST_INSTALL}/lib
-        -DLIBPNG_INCLUDE_PATH=${PNG_INCLUDE_DIRS}
+        -DCMAKE_CXX_FLAGS=-fPIC
+        -DBUILD_CARLA_CLIENT=ON
+        -DBUILD_CARLA_SERVER=OFF
+        -DBUILD_CARLA_UNREAL=OFF
+        -DBUILD_EXAMPLES=OFF
+        -DBUILD_LIBCARLA_TESTS=OFF
+        -DBUILD_PYTHON_API=ON
+        -DBUILD_OSM_WORLD_RENDERER=OFF
+        -DENABLE_ROS2=OFF
         -DCMAKE_INSTALL_PREFIX=${CARLA_INSTALL_DIR}
-    BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release
-    INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config Release
+    BUILD_COMMAND ${CARLA_ENV} ${CMAKE_COMMAND} --build ${CARLA_BUILD_DIR} --target carla-client
+    INSTALL_COMMAND ${CARLA_ENV} ${CMAKE_COMMAND} --install ${CARLA_BUILD_DIR}
+    && ${CARLA_ENV} bash ${PROJECT_SOURCE_DIR}/cmake/carla/carla-sysroot-install.sh
+             ${CARLA_BUILD_DIR} ${CARLA_INSTALL_DIR}
 )
 
 # --------------------------------------------------------------------------
 # Imported targets
 # --------------------------------------------------------------------------
+#
+# The vendored archives in INTERFACE_LINK_LIBRARIES are ORDERED and must
+# stay so: these are static libraries, the linker resolves left-to-right,
+# and the archives carry no dependency info between each other -
+#   libcarla-client.a  ->  Recast/DetourCrowd/Detour (road navmesh;
+#                         1.0 no longer needs DetourTileCache)
+#                   ->  librpc (msgpack/RPC transport)
+#                   ->  Boost (date_time for carla::time_duration, filesystem
+#                         for GIL, graph/random/serialization for client-side
+#                         maps, thread/chrono/atomic/context underneath;
+#                         asio is header-only)
+#                   ->  png/z (image decoding, rpclib payloads; last so the
+#                         .so stays self-contained without a system libpng)
+# CMake appends the interface dependencies of an IMPORTED STATIC target
+# directly after the target itself and preserves the relative order of
+# entries without a dependency relation, so this list reaches the link line
+# verbatim.  Wrapping the same list in an INTERFACE library does NOT work:
+# CMake hoists static entries of INTERFACE libraries to the end of the link
+# line, where they no longer satisfy libcarla's references (measured).
+set(CARLA_LIB ${CARLA_INSTALL_DIR}/lib)
+# (plain file-local list; the semicolon-separated entries must not pick up
+# newlines, hence no quoted multi-line string)
+set(CARLA_CLIENT_DEPS
+    ${CARLA_LIB}/libRecast.a
+    ${CARLA_LIB}/libDetourCrowd.a
+    ${CARLA_LIB}/libDetour.a
+    ${CARLA_LIB}/librpc.a
+    ${CARLA_LIB}/libboost_date_time.a
+    ${CARLA_LIB}/libboost_filesystem.a
+    ${CARLA_LIB}/libboost_container.a
+    ${CARLA_LIB}/libboost_chrono.a
+    ${CARLA_LIB}/libboost_thread.a
+    ${CARLA_LIB}/libboost_atomic.a
+    ${CARLA_LIB}/libboost_context.a
+    ${CARLA_LIB}/libboost_serialization.a
+    ${CARLA_LIB}/libboost_random.a
+    ${CARLA_LIB}/libboost_graph.a
+    ${CARLA_LIB}/libpng.a
+    ${CARLA_LIB}/libz.a)
 add_library(Carla::Client STATIC IMPORTED GLOBAL)
 set_target_properties(Carla::Client PROPERTIES
-    IMPORTED_LOCATION ${CARLA_INSTALL_DIR}/lib/libcarla_client.a
+    IMPORTED_LOCATION ${CARLA_LIB}/libcarla-client.a
+    # Includes carla/ (installed by CARLA) and boost/, rpc/, Recast, png
+    # (merged by the sysroot script) - src/carla must compile against the
+    # very headers libcarla was built with, not the system ones.
     INTERFACE_INCLUDE_DIRECTORIES ${CARLA_INSTALL_DIR}/include
+    # Mirrors CARLA's CARLA_COMMON_DEFINITIONS for the default
+    # LIBCARLA_IMAGE_SUPPORTED_FORMATS="png" - the carla::image types are
+    # compile-gated on it, so consumers need it too.
+    INTERFACE_COMPILE_DEFINITIONS LIBCARLA_IMAGE_SUPPORT_PNG=1
+    INTERFACE_COMPILE_FEATURES cxx_std_20
+    INTERFACE_LINK_LIBRARIES "${CARLA_CLIENT_DEPS}"
 )
 add_dependencies(Carla::Client carla_client)
-
-add_library(Carla::Rpc STATIC IMPORTED GLOBAL)
-set_target_properties(Carla::Rpc PROPERTIES
-    IMPORTED_LOCATION ${RPCLIB_INSTALL}/lib/librpc.a
-    INTERFACE_INCLUDE_DIRECTORIES ${RPCLIB_INSTALL}/include
-)
-
-add_library(Carla::Recast STATIC IMPORTED GLOBAL)
-set_target_properties(Carla::Recast PROPERTIES
-    IMPORTED_LOCATION ${RECAST_INSTALL}/lib/libRecast.a
-    INTERFACE_INCLUDE_DIRECTORIES ${RECAST_INSTALL}/include
-)
-
-# Detour/DetourCrowd/DetourTileCache must be resolved *after* libcarla_client,
-# which references them.  Listing them in INTERFACE_LINK_LIBRARIES of
-# Carla::Recast is not enough: CMake moves static dependencies of INTERFACE
-# libraries to the end of the link line, where they no longer satisfy the
-# references of libcarla_client.a.  Consumers therefore have to list the
-# archives explicitly (see src/carla/CMakeLists.txt).
-set(CARLA_RECAST_LIBRARIES
-    ${RECAST_INSTALL}/lib/libRecast.a
-    ${RECAST_INSTALL}/lib/libDetourCrowd.a
-    ${RECAST_INSTALL}/lib/libDetourTileCache.a
-    ${RECAST_INSTALL}/lib/libDetour.a
-    CACHE INTERNAL "CARLA Recast & Detour archives, in link order")
